@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proactive Coaching Layer - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .tip-card {
+            border-left: 4px solid #007bff;
+            transition: all 0.2s;
+        }
+        .tip-card:hover {
+            transform: translateX(5px);
+        }
+        .tip-onboarding { border-left-color: #28a745; }
+        .tip-feature-discovery { border-left-color: #17a2b8; }
+        .tip-best-practices { border-left-color: #ffc107; }
+        .tip-performance { border-left-color: #fd7e14; }
+        .tip-security { border-left-color: #dc3545; }
+        .tip-compliance { border-left-color: #6f42c1; }
+        
+        .audit-card {
+            border-left: 4px solid #007bff;
+        }
+        .audit-passed { border-left-color: #28a745; }
+        .audit-warning { border-left-color: #ffc107; }
+        .audit-failed { border-left-color: #dc3545; }
+        
+        .behavior-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .learning-path {
+            position: relative;
+            padding-left: 30px;
+        }
+        .learning-path::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #dee2e6;
+        }
+        .learning-step {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+        .learning-step::before {
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #007bff;
+        }
+        .learning-step.completed::before {
+            background-color: #28a745;
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform-origin: 50% 50%;
+        }
+        
+        .nudge-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            max-width: 350px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-md-9">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-graduation-cap"></i> Proactive Coaching Layer</h2>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="showDashboard()">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showTips()">
+                            <i class="fas fa-lightbulb"></i> Tips
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showAudits()">
+                            <i class="fas fa-shield-alt"></i> Audits
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showBehavior()">
+                            <i class="fas fa-chart-line"></i> Behavior
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dashboard Interface -->
+                <div id="dashboard-interface">
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card behavior-card">
+                                <div class="card-body text-center">
+                                    <h4 id="total-tips">0</h4>
+                                    <small>Total Tips</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card behavior-card">
+                                <div class="card-body text-center">
+                                    <h4 id="tips-accepted">0</h4>
+                                    <small>Tips Accepted</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card behavior-card">
+                                <div class="card-body text-center">
+                                    <h4 id="audits-passed">0</h4>
+                                    <small>Audits Passed</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card behavior-card">
+                                <div class="card-body text-center">
+                                    <h4 id="learning-progress">0%</h4>
+                                    <small>Learning Progress</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Learning Path -->
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-road"></i> Learning Path</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="learning-path" id="learning-path">
+                                        <!-- Learning steps will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-pie"></i> Tip Categories</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="tipChart" width="200" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-clock"></i> Recent Coaching Activity</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="learning-path" id="recent-activity">
+                                        <!-- Activity items will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tips Interface -->
+                <div id="tips-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Coaching Tips</h4>
+                        <button class="btn btn-primary" onclick="createTip()">
+                            <i class="fas fa-plus"></i> Create Tip
+                        </button>
+                    </div>
+                    
+                    <div class="row" id="tips-list">
+                        <!-- Tip cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Audits Interface -->
+                <div id="audits-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>System Audits</h4>
+                        <button class="btn btn-primary" onclick="runAudit()">
+                            <i class="fas fa-play"></i> Run New Audit
+                        </button>
+                    </div>
+                    
+                    <div class="row" id="audits-list">
+                        <!-- Audit cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Behavior Interface -->
+                <div id="behavior-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>User Behavior Analytics</h4>
+                        <button class="btn btn-primary" onclick="analyzeBehavior()">
+                            <i class="fas fa-chart-bar"></i> Analyze
+                        </button>
+                    </div>
+                    
+                    <div class="row" id="behavior-charts">
+                        <!-- Behavior charts will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cog"></i> Coaching Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Active Coaching -->
+                        <h6>Active Coaching</h6>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="coaching-enabled" checked>
+                            <label class="form-check-label" for="coaching-enabled">
+                                Enable Coaching
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="tips-enabled" checked>
+                            <label class="form-check-label" for="tips-enabled">
+                                Show Tips
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="audits-enabled" checked>
+                            <label class="form-check-label" for="audits-enabled">
+                                Auto Audits
+                            </label>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Tip Frequency -->
+                        <h6>Tip Frequency</h6>
+                        <select class="form-select mb-3" id="tip-frequency">
+                            <option value="low">Low (1-2 per day)</option>
+                            <option value="medium" selected>Medium (3-5 per day)</option>
+                            <option value="high">High (5+ per day)</option>
+                        </select>
+                        
+                        <hr>
+                        
+                        <!-- Quick Actions -->
+                        <h6>Quick Actions</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="generateTips()">
+                                <i class="fas fa-lightbulb"></i> Generate Tips
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" onclick="runSystemAudit()">
+                                <i class="fas fa-shield-alt"></i> System Audit
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="analyzeLearningPath()">
+                                <i class="fas fa-road"></i> Learning Path
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="exportCoachingData()">
+                                <i class="fas fa-download"></i> Export Data
+                            </button>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Recent Tips -->
+                        <h6>Recent Tips</h6>
+                        <div id="recent-tips">
+                            <!-- Recent tips will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Tip Modal -->
+    <div class="modal fade" id="tipModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Coaching Tip</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="tip-form">
+                        <div class="mb-3">
+                            <label for="tip-type" class="form-label">Tip Type</label>
+                            <select class="form-select" id="tip-type" required>
+                                <option value="onboarding">Onboarding</option>
+                                <option value="feature_discovery">Feature Discovery</option>
+                                <option value="best_practices">Best Practices</option>
+                                <option value="performance">Performance</option>
+                                <option value="security">Security</option>
+                                <option value="compliance">Compliance</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tip-title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="tip-title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tip-content" class="form-label">Content</label>
+                            <textarea class="form-control" id="tip-content" rows="4" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tip-priority" class="form-label">Priority</label>
+                            <select class="form-select" id="tip-priority" required>
+                                <option value="1">High</option>
+                                <option value="2" selected>Medium</option>
+                                <option value="3">Low</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tip-trigger" class="form-label">Trigger</label>
+                            <select class="form-select" id="tip-trigger" required>
+                                <option value="first_login">First Login</option>
+                                <option value="feature_usage">Feature Usage</option>
+                                <option value="error_occurrence">Error Occurrence</option>
+                                <option value="performance_issue">Performance Issue</option>
+                                <option value="security_concern">Security Concern</option>
+                                <option value="manual">Manual</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitTip()">Create Tip</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Modal -->
+    <div class="modal fade" id="auditModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">System Audit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="audit-form">
+                        <div class="mb-3">
+                            <label for="audit-system" class="form-label">System</label>
+                            <select class="form-select" id="audit-system" required>
+                                <!-- Systems will be loaded here -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="audit-type" class="form-label">Audit Type</label>
+                            <select class="form-select" id="audit-type" required>
+                                <option value="architecture">Architecture</option>
+                                <option value="feature_coverage">Feature Coverage</option>
+                                <option value="compliance">Compliance</option>
+                                <option value="performance">Performance</option>
+                                <option value="security">Security</option>
+                                <option value="best_practices">Best Practices</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="audit-scope" class="form-label">Scope</label>
+                            <select class="form-select" id="audit-scope" required>
+                                <option value="full">Full System</option>
+                                <option value="core">Core Features</option>
+                                <option value="security">Security Only</option>
+                                <option value="performance">Performance Only</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitAudit()">Run Audit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nudge Toast -->
+    <div class="nudge-toast" id="nudge-toast" style="display: none;">
+        <div class="toast" role="alert">
+            <div class="toast-header">
+                <i class="fas fa-lightbulb text-warning me-2"></i>
+                <strong class="me-auto" id="toast-title">Pro Tip</strong>
+                <button type="button" class="btn-close" onclick="dismissToast()"></button>
+            </div>
+            <div class="toast-body" id="toast-content">
+                <!-- Toast content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let tipChart = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCoachingStatistics();
+            loadLearningPath();
+            loadTipCategories();
+            loadRecentActivity();
+            loadRecentTips();
+            startCoaching();
+        });
+
+        // Interface Functions
+        function showDashboard() {
+            document.getElementById('dashboard-interface').style.display = 'block';
+            document.getElementById('tips-interface').style.display = 'none';
+            document.getElementById('audits-interface').style.display = 'none';
+            document.getElementById('behavior-interface').style.display = 'none';
+        }
+
+        function showTips() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('tips-interface').style.display = 'block';
+            document.getElementById('audits-interface').style.display = 'none';
+            document.getElementById('behavior-interface').style.display = 'none';
+            loadTips();
+        }
+
+        function showAudits() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('tips-interface').style.display = 'none';
+            document.getElementById('audits-interface').style.display = 'block';
+            document.getElementById('behavior-interface').style.display = 'none';
+            loadAudits();
+        }
+
+        function showBehavior() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('tips-interface').style.display = 'none';
+            document.getElementById('audits-interface').style.display = 'none';
+            document.getElementById('behavior-interface').style.display = 'block';
+            loadBehavior();
+        }
+
+        // Statistics Functions
+        function loadCoachingStatistics() {
+            fetch('/api/coaching/statistics')
+            .then(response => response.json())
+            .then(stats => {
+                document.getElementById('total-tips').textContent = stats.total_tips;
+                document.getElementById('tips-accepted').textContent = stats.tips_accepted;
+                document.getElementById('audits-passed').textContent = stats.audits_passed;
+                document.getElementById('learning-progress').textContent = stats.learning_progress.toFixed(1) + '%';
+            })
+            .catch(error => console.error('Error loading coaching statistics:', error));
+        }
+
+        function loadLearningPath() {
+            fetch('/api/coaching/learning-path')
+            .then(response => response.json())
+            .then(path => {
+                const pathContainer = document.getElementById('learning-path');
+                pathContainer.innerHTML = '';
+                
+                path.steps.forEach((step, index) => {
+                    const stepDiv = document.createElement('div');
+                    stepDiv.className = `learning-step ${step.completed ? 'completed' : ''}`;
+                    stepDiv.innerHTML = `
+                        <div class="d-flex justify-content-between">
+                            <strong>${step.title}</strong>
+                            <small class="text-muted">${step.completed ? 'Completed' : 'Pending'}</small>
+                        </div>
+                        <p class="mb-0">${step.description}</p>
+                    `;
+                    pathContainer.appendChild(stepDiv);
+                });
+            })
+            .catch(error => console.error('Error loading learning path:', error));
+        }
+
+        function loadTipCategories() {
+            fetch('/api/coaching/tip-categories')
+            .then(response => response.json())
+            .then(categories => {
+                const ctx = document.getElementById('tipChart').getContext('2d');
+                
+                if (tipChart) {
+                    tipChart.destroy();
+                }
+                
+                tipChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(categories),
+                        datasets: [{
+                            data: Object.values(categories),
+                            backgroundColor: [
+                                '#28a745',
+                                '#17a2b8',
+                                '#ffc107',
+                                '#fd7e14',
+                                '#dc3545',
+                                '#6f42c1'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => console.error('Error loading tip categories:', error));
+        }
+
+        function loadRecentActivity() {
+            fetch('/api/coaching/activity')
+            .then(response => response.json())
+            .then(activities => {
+                const activityContainer = document.getElementById('recent-activity');
+                activityContainer.innerHTML = '';
+                
+                activities.slice(0, 10).forEach(activity => {
+                    const activityDiv = document.createElement('div');
+                    activityDiv.className = 'learning-step';
+                    activityDiv.innerHTML = `
+                        <div class="d-flex justify-content-between">
+                            <strong>${activity.user_id}</strong>
+                            <small class="text-muted">${new Date(activity.timestamp).toLocaleString()}</small>
+                        </div>
+                        <p class="mb-0">${activity.activity_type}: ${activity.description}</p>
+                    `;
+                    activityContainer.appendChild(activityDiv);
+                });
+            })
+            .catch(error => console.error('Error loading recent activity:', error));
+        }
+
+        function loadRecentTips() {
+            fetch('/api/coaching/recent-tips')
+            .then(response => response.json())
+            .then(tips => {
+                const tipsContainer = document.getElementById('recent-tips');
+                tipsContainer.innerHTML = '';
+                
+                tips.slice(0, 3).forEach(tip => {
+                    const tipDiv = document.createElement('div');
+                    tipDiv.className = 'mb-2';
+                    tipDiv.innerHTML = `
+                        <small class="text-muted">${tip.title}</small>
+                        <div class="progress" style="height: 2px;">
+                            <div class="progress-bar" style="width: ${tip.acceptance_rate}%"></div>
+                        </div>
+                    `;
+                    tipsContainer.appendChild(tipDiv);
+                });
+            })
+            .catch(error => console.error('Error loading recent tips:', error));
+        }
+
+        // Tips Functions
+        function loadTips() {
+            fetch('/api/coaching/tips')
+            .then(response => response.json())
+            .then(tips => {
+                const tipsList = document.getElementById('tips-list');
+                tipsList.innerHTML = '';
+                
+                tips.forEach(tip => {
+                    const tipCard = createTipCard(tip);
+                    tipsList.appendChild(tipCard);
+                });
+            })
+            .catch(error => console.error('Error loading tips:', error));
+        }
+
+        function createTipCard(tip) {
+            const col = document.createElement('div');
+            col.className = 'col-md-6 mb-3';
+            
+            const tipClass = `tip-${tip.tip_type.replace('_', '-')}`;
+            
+            col.innerHTML = `
+                <div class="card tip-card ${tipClass}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title">${tip.title}</h6>
+                            <span class="badge bg-primary">${tip.tip_type.replace('_', ' ')}</span>
+                        </div>
+                        <p class="card-text">${tip.content}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Priority: ${tip.priority}</small>
+                            <div>
+                                <button class="btn btn-sm btn-outline-success" onclick="showTip('${tip.tip_id}')">
+                                    <i class="fas fa-eye"></i> Show
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTip('${tip.tip_id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return col;
+        }
+
+        function createTip() {
+            const modal = new bootstrap.Modal(document.getElementById('tipModal'));
+            modal.show();
+        }
+
+        function submitTip() {
+            const tipData = {
+                tip_type: document.getElementById('tip-type').value,
+                title: document.getElementById('tip-title').value,
+                content: document.getElementById('tip-content').value,
+                priority: parseInt(document.getElementById('tip-priority').value),
+                trigger: document.getElementById('tip-trigger').value
+            };
+            
+            fetch('/api/coaching/tips', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(tipData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                bootstrap.Modal.getInstance(document.getElementById('tipModal')).hide();
+                document.getElementById('tip-form').reset();
+                loadTips();
+            })
+            .catch(error => console.error('Error creating tip:', error));
+        }
+
+        // Audit Functions
+        function loadAudits() {
+            fetch('/api/coaching/audits')
+            .then(response => response.json())
+            .then(audits => {
+                const auditsList = document.getElementById('audits-list');
+                auditsList.innerHTML = '';
+                
+                audits.forEach(audit => {
+                    const auditCard = createAuditCard(audit);
+                    auditsList.appendChild(auditCard);
+                });
+            })
+            .catch(error => console.error('Error loading audits:', error));
+        }
+
+        function createAuditCard(audit) {
+            const col = document.createElement('div');
+            col.className = 'col-md-6 mb-3';
+            
+            const auditClass = `audit-${audit.status}`;
+            
+            col.innerHTML = `
+                <div class="card audit-card ${auditClass}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title">${audit.system_id}</h6>
+                            <span class="badge bg-${getAuditStatusColor(audit.status)}">${audit.status}</span>
+                        </div>
+                        <p class="card-text text-muted">${audit.audit_type.replace('_', ' ')} Audit</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Score: ${audit.score}/100</small>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewAudit('${audit.audit_id}')">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return col;
+        }
+
+        function getAuditStatusColor(status) {
+            const colors = {
+                'passed': 'success',
+                'warning': 'warning',
+                'failed': 'danger'
+            };
+            return colors[status] || 'secondary';
+        }
+
+        function runAudit() {
+            const modal = new bootstrap.Modal(document.getElementById('auditModal'));
+            modal.show();
+        }
+
+        function submitAudit() {
+            const auditData = {
+                system_id: document.getElementById('audit-system').value,
+                audit_type: document.getElementById('audit-type').value,
+                scope: document.getElementById('audit-scope').value
+            };
+            
+            fetch('/api/coaching/audit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(auditData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                bootstrap.Modal.getInstance(document.getElementById('auditModal')).hide();
+                document.getElementById('audit-form').reset();
+                loadAudits();
+            })
+            .catch(error => console.error('Error running audit:', error));
+        }
+
+        // Behavior Functions
+        function loadBehavior() {
+            fetch('/api/coaching/behavior')
+            .then(response => response.json())
+            .then(behavior => {
+                const chartsContainer = document.getElementById('behavior-charts');
+                chartsContainer.innerHTML = `
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Feature Usage</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="featureChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Learning Progress</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="progressChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Create charts
+                createFeatureChart(behavior.feature_usage);
+                createProgressChart(behavior.learning_progress);
+            })
+            .catch(error => console.error('Error loading behavior:', error));
+        }
+
+        function createFeatureChart(featureUsage) {
+            const ctx = document.getElementById('featureChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(featureUsage),
+                    datasets: [{
+                        label: 'Usage Count',
+                        data: Object.values(featureUsage),
+                        backgroundColor: '#007bff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function createProgressChart(progress) {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: progress.map(p => p.date),
+                    datasets: [{
+                        label: 'Progress %',
+                        data: progress.map(p => p.percentage),
+                        borderColor: '#28a745',
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // Coaching Functions
+        function startCoaching() {
+            // Check for coaching triggers
+            setInterval(() => {
+                checkCoachingTriggers();
+            }, 30000); // Check every 30 seconds
+        }
+
+        function checkCoachingTriggers() {
+            fetch('/api/coaching/check-triggers')
+            .then(response => response.json())
+            .then(triggers => {
+                triggers.forEach(trigger => {
+                    showNudgeToast(trigger.tip);
+                });
+            })
+            .catch(error => console.error('Error checking coaching triggers:', error));
+        }
+
+        function showNudgeToast(tip) {
+            document.getElementById('toast-title').textContent = tip.title;
+            document.getElementById('toast-content').textContent = tip.content;
+            document.getElementById('nudge-toast').style.display = 'block';
+            
+            const toast = new bootstrap.Toast(document.querySelector('.toast'));
+            toast.show();
+        }
+
+        function dismissToast() {
+            document.getElementById('nudge-toast').style.display = 'none';
+        }
+
+        // Utility Functions
+        function generateTips() {
+            fetch('/api/coaching/generate-tips', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(`Generated ${data.count} new tips`);
+                loadTips();
+            })
+            .catch(error => console.error('Error generating tips:', error));
+        }
+
+        function runSystemAudit() {
+            const systemId = prompt('Enter system ID to audit:');
+            if (systemId) {
+                fetch('/api/coaching/audit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        system_id: systemId,
+                        audit_type: 'full',
+                        scope: 'full'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(`Audit completed. Score: ${data.score}/100`);
+                    loadAudits();
+                })
+                .catch(error => console.error('Error running system audit:', error));
+            }
+        }
+
+        function analyzeLearningPath() {
+            fetch('/api/coaching/analyze-learning-path')
+            .then(response => response.json())
+            .then(data => {
+                alert(`Learning path analysis complete. Progress: ${data.progress.toFixed(1)}%`);
+                loadLearningPath();
+            })
+            .catch(error => console.error('Error analyzing learning path:', error));
+        }
+
+        function analyzeBehavior() {
+            fetch('/api/coaching/analyze-behavior')
+            .then(response => response.json())
+            .then(data => {
+                alert(`Behavior analysis complete. Found ${data.insights_count} insights.`);
+                loadBehavior();
+            })
+            .catch(error => console.error('Error analyzing behavior:', error));
+        }
+
+        function exportCoachingData() {
+            fetch('/api/coaching/export')
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'coaching_data.csv';
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => console.error('Error exporting data:', error));
+        }
+    </script>
+</body>
+</html>

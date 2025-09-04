@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 LLMOps Dashboard - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .main-content {
+            padding: 2rem 0;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            background: white;
+            margin-bottom: 2rem;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            border: none;
+            padding: 1.5rem;
+        }
+        
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-queued { background: #fff3cd; color: #856404; }
+        .status-training { background: #d1ecf1; color: #0c5460; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+        
+        .metric-card {
+            text-align: center;
+            padding: 1.5rem;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-bottom: 1rem;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .table {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .table th {
+            background: #f8f9fa;
+            border: none;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .progress {
+            height: 8px;
+            border-radius: 10px;
+            background: #e9ecef;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+        
+        .nav-tabs {
+            border: none;
+            margin-bottom: 2rem;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            border-radius: 25px;
+            margin-right: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 0.75rem 1rem;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .back-to-dashboard {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .back-to-dashboard:hover {
+            color: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-brain me-2"></i>System Builder Hub
+            </a>
+            <a href="/" class="back-to-dashboard">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 class="text-white text-center mb-3">
+                        <i class="fas fa-cogs me-3"></i>LLMOps Dashboard
+                    </h1>
+                    <p class="text-white text-center opacity-75">
+                        Federated Fine-Tuning, Model Management & Training Orchestration
+                    </p>
+                </div>
+            </div>
+
+            <!-- Metrics Overview -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="active-jobs">0</div>
+                        <div class="metric-label">Active Training Jobs</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="total-models">0</div>
+                        <div class="metric-label">Registered Models</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="total-datasets">0</div>
+                        <div class="metric-label">Training Datasets</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="avg-eval-score">0.0</div>
+                        <div class="metric-label">Avg Evaluation Score</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Navigation Tabs -->
+            <ul class="nav nav-tabs" id="llmopsTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="training-tab" data-bs-toggle="tab" data-bs-target="#training" type="button" role="tab">
+                        <i class="fas fa-cogs me-2"></i>Training Activity
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="models-tab" data-bs-toggle="tab" data-bs-target="#models" type="button" role="tab">
+                        <i class="fas fa-brain me-2"></i>Model Registry
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="datasets-tab" data-bs-toggle="tab" data-bs-target="#datasets" type="button" role="tab">
+                        <i class="fas fa-database me-2"></i>Dataset Browser
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="config-tab" data-bs-toggle="tab" data-bs-target="#config" type="button" role="tab">
+                        <i class="fas fa-sliders-h me-2"></i>Training Config
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="llmopsTabContent">
+                <!-- Training Activity Tab -->
+                <div class="tab-pane fade show active" id="training" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-cogs me-2"></i>Training Jobs
+                            </h5>
+                            <button class="btn btn-light btn-sm" onclick="startNewTraining()">
+                                <i class="fas fa-plus me-2"></i>Start Training
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Job ID</th>
+                                            <th>Model</th>
+                                            <th>Dataset</th>
+                                            <th>Status</th>
+                                            <th>Progress</th>
+                                            <th>Created</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="training-jobs-table">
+                                        <!-- Training jobs will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Training Logs -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-line me-2"></i>Training Progress
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="trainingProgressChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Registry Tab -->
+                <div class="tab-pane fade" id="models" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-brain me-2"></i>Model Registry
+                            </h5>
+                            <button class="btn btn-light btn-sm" onclick="registerNewModel()">
+                                <i class="fas fa-plus me-2"></i>Register Model
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Model Name</th>
+                                            <th>Base Model</th>
+                                            <th>Version</th>
+                                            <th>Status</th>
+                                            <th>Provider</th>
+                                            <th>Evaluation Score</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="models-table">
+                                        <!-- Models will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Model Switch Logs -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-history me-2"></i>Model Switch History
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Switched By</th>
+                                            <th>From</th>
+                                            <th>To</th>
+                                            <th>Reason</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="switch-logs-table">
+                                        <!-- Switch logs will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dataset Browser Tab -->
+                <div class="tab-pane fade" id="datasets" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-database me-2"></i>Training Datasets
+                            </h5>
+                            <button class="btn btn-light btn-sm" onclick="createNewDataset()">
+                                <i class="fas fa-plus me-2"></i>Create Dataset
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Dataset Name</th>
+                                            <th>Type</th>
+                                            <th>Samples</th>
+                                            <th>Tokens</th>
+                                            <th>Created</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="datasets-table">
+                                        <!-- Datasets will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dataset Samples Preview -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-eye me-2"></i>Dataset Samples Preview
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="dataset-preview">
+                                <p class="text-muted">Select a dataset to preview samples</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Configuration Tab -->
+                <div class="tab-pane fade" id="config" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-sliders-h me-2"></i>Training Configuration
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="training-config-form">
+                                        <div class="mb-3">
+                                            <label class="form-label">Base Model</label>
+                                            <select class="form-select" id="base-model" required>
+                                                <option value="">Select base model</option>
+                                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                                <option value="gpt-4">GPT-4</option>
+                                                <option value="llama-2-7b">Llama 2 7B</option>
+                                                <option value="llama-2-13b">Llama 2 13B</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Training Mode</label>
+                                            <select class="form-select" id="training-mode" required>
+                                                <option value="">Select training mode</option>
+                                                <option value="lora">LoRA</option>
+                                                <option value="qlora">QLoRA</option>
+                                                <option value="adapter">Adapter</option>
+                                                <option value="full">Full Fine-tuning</option>
+                                                <option value="instruction">Instruction Tuning</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Dataset</label>
+                                            <select class="form-select" id="training-dataset" required>
+                                                <option value="">Select dataset</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Learning Rate</label>
+                                            <input type="number" class="form-control" id="learning-rate" step="0.0001" value="0.0001" required>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Epochs</label>
+                                            <input type="number" class="form-control" id="epochs" value="3" min="1" max="10" required>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Batch Size</label>
+                                            <input type="number" class="form-control" id="batch-size" value="4" min="1" max="32" required>
+                                        </div>
+                                        
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-play me-2"></i>Start Training
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-cog me-2"></i>Model Settings
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="model-settings-form">
+                                        <div class="mb-3">
+                                            <label class="form-label">Temperature</label>
+                                            <input type="range" class="form-range" id="temperature" min="0" max="2" step="0.1" value="0.7">
+                                            <div class="d-flex justify-content-between">
+                                                <small>0.0 (Deterministic)</small>
+                                                <small id="temperature-value">0.7</small>
+                                                <small>2.0 (Creative)</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Top P</label>
+                                            <input type="range" class="form-range" id="top-p" min="0" max="1" step="0.1" value="0.9">
+                                            <div class="d-flex justify-content-between">
+                                                <small>0.0</small>
+                                                <small id="top-p-value">0.9</small>
+                                                <small>1.0</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Max Tokens</label>
+                                            <input type="number" class="form-control" id="max-tokens" value="2048" min="1" max="8192">
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Active Model</label>
+                                            <select class="form-select" id="active-model">
+                                                <option value="">Select active model</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-save me-2"></i>Update Settings
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    
+    <!-- Start Training Modal -->
+    <div class="modal fade" id="startTrainingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-cogs me-2"></i>Start New Training Job
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="new-training-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Job Name</label>
+                                    <input type="text" class="form-control" id="job-name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Organization ID</label>
+                                    <input type="text" class="form-control" id="org-id" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Base Model</label>
+                                    <select class="form-select" id="modal-base-model" required>
+                                        <option value="">Select base model</option>
+                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                        <option value="gpt-4">GPT-4</option>
+                                        <option value="llama-2-7b">Llama 2 7B</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Training Mode</label>
+                                    <select class="form-select" id="modal-training-mode" required>
+                                        <option value="">Select mode</option>
+                                        <option value="lora">LoRA</option>
+                                        <option value="qlora">QLoRA</option>
+                                        <option value="adapter">Adapter</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Dataset</label>
+                            <select class="form-select" id="modal-dataset" required>
+                                <option value="">Select dataset</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="job-description" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitTrainingJob()">
+                        <i class="fas fa-play me-2"></i>Start Training
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Details Modal -->
+    <div class="modal fade" id="modelDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-brain me-2"></i>Model Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="model-details-content">
+                        <!-- Model details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dataset Details Modal -->
+    <div class="modal fade" id="datasetDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-database me-2"></i>Dataset Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="dataset-details-content">
+                        <!-- Dataset details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentOrganizationId = 'default-org';
+        let trainingProgressChart = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            initializeCharts();
+            setupEventListeners();
+        });
+
+        function loadDashboardData() {
+            loadTrainingJobs();
+            loadModels();
+            loadDatasets();
+            loadMetrics();
+        }
+
+        function loadTrainingJobs() {
+            fetch(`/api/fine-tune/jobs?organization_id=${currentOrganizationId}`)
+                .then(response => response.json())
+                .then(jobs => {
+                    const tbody = document.getElementById('training-jobs-table');
+                    tbody.innerHTML = '';
+                    
+                    jobs.forEach(job => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td><code>${job.job_id.substring(0, 8)}...</code></td>
+                            <td>${job.base_model}</td>
+                            <td>${job.dataset_id.substring(0, 8)}...</td>
+                            <td><span class="status-badge status-${job.status}">${job.status}</span></td>
+                            <td>
+                                <div class="progress">
+                                    <div class="progress-bar" style="width: ${getProgressPercentage(job)}%"></div>
+                                </div>
+                            </td>
+                            <td>${new Date(job.created_at).toLocaleDateString()}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewJobDetails('${job.job_id}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                ${job.status === 'completed' ? 
+                                    `<button class="btn btn-sm btn-outline-success" onclick="promoteModel('${job.job_id}')">
+                                        <i class="fas fa-arrow-up"></i>
+                                    </button>` : ''
+                                }
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading training jobs:', error);
+                    document.getElementById('training-jobs-table').innerHTML = 
+                        '<tr><td colspan="7" class="text-center text-muted">Error loading training jobs</td></tr>';
+                });
+        }
+
+        function loadModels() {
+            fetch(`/api/tenant-llm/models?organization_id=${currentOrganizationId}`)
+                .then(response => response.json())
+                .then(models => {
+                    const tbody = document.getElementById('models-table');
+                    tbody.innerHTML = '';
+                    
+                    models.forEach(model => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${model.name}</td>
+                            <td>${model.base_model}</td>
+                            <td>${model.version}</td>
+                            <td><span class="status-badge status-${model.status}">${model.status}</span></td>
+                            <td>${model.hosting_provider}</td>
+                            <td>${model.evaluation_score ? model.evaluation_score.toFixed(3) : 'N/A'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewModelDetails('${model.model_id}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                ${model.status === 'ready' ? 
+                                    `<button class="btn btn-sm btn-outline-success" onclick="deployModel('${model.model_id}')">
+                                        <i class="fas fa-rocket"></i>
+                                    </button>` : ''
+                                }
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading models:', error);
+                });
+        }
+
+        function loadDatasets() {
+            fetch(`/api/fine-tune/datasets?organization_id=${currentOrganizationId}`)
+                .then(response => response.json())
+                .then(datasets => {
+                    const tbody = document.getElementById('datasets-table');
+                    tbody.innerHTML = '';
+                    
+                    datasets.forEach(dataset => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${dataset.name}</td>
+                            <td>${dataset.dataset_type}</td>
+                            <td>${dataset.total_samples.toLocaleString()}</td>
+                            <td>${dataset.token_count.toLocaleString()}</td>
+                            <td>${new Date(dataset.created_at).toLocaleDateString()}</td>
+                            <td><span class="status-badge status-${dataset.is_processed ? 'completed' : 'training'}">${dataset.is_processed ? 'Processed' : 'Processing'}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewDatasetDetails('${dataset.dataset_id}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-info" onclick="previewDataset('${dataset.dataset_id}')">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading datasets:', error);
+                });
+        }
+
+        function loadMetrics() {
+            // Load dashboard metrics
+            fetch(`/api/fine-tune/metrics?organization_id=${currentOrganizationId}`)
+                .then(response => response.json())
+                .then(metrics => {
+                    document.getElementById('active-jobs').textContent = metrics.active_jobs || 0;
+                    document.getElementById('total-models').textContent = metrics.total_models || 0;
+                    document.getElementById('total-datasets').textContent = metrics.total_datasets || 0;
+                    document.getElementById('avg-eval-score').textContent = (metrics.avg_eval_score || 0).toFixed(3);
+                })
+                .catch(error => {
+                    console.error('Error loading metrics:', error);
+                });
+        }
+
+        function initializeCharts() {
+            const ctx = document.getElementById('trainingProgressChart').getContext('2d');
+            trainingProgressChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Training Loss',
+                        data: [],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function setupEventListeners() {
+            // Training config form
+            document.getElementById('training-config-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                startTrainingFromConfig();
+            });
+
+            // Model settings form
+            document.getElementById('model-settings-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                updateModelSettings();
+            });
+
+            // Range input listeners
+            document.getElementById('temperature').addEventListener('input', function(e) {
+                document.getElementById('temperature-value').textContent = e.target.value;
+            });
+
+            document.getElementById('top-p').addEventListener('input', function(e) {
+                document.getElementById('top-p-value').textContent = e.target.value;
+            });
+        }
+
+        function startNewTraining() {
+            const modal = new bootstrap.Modal(document.getElementById('startTrainingModal'));
+            modal.show();
+        }
+
+        function submitTrainingJob() {
+            const formData = {
+                organization_id: document.getElementById('org-id').value,
+                base_model: document.getElementById('modal-base-model').value,
+                training_mode: document.getElementById('modal-training-mode').value,
+                dataset_id: document.getElementById('modal-dataset').value,
+                name: document.getElementById('job-name').value,
+                description: document.getElementById('job-description').value
+            };
+
+            fetch('/api/fine-tune/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.job_id) {
+                    bootstrap.Modal.getInstance(document.getElementById('startTrainingModal')).hide();
+                    loadTrainingJobs();
+                    showAlert('Training job started successfully!', 'success');
+                } else {
+                    showAlert('Failed to start training job', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error starting training job:', error);
+                showAlert('Error starting training job', 'error');
+            });
+        }
+
+        function viewJobDetails(jobId) {
+            fetch(`/api/fine-tune/job/${jobId}`)
+                .then(response => response.json())
+                .then(job => {
+                    // Show job details in a modal or expandable section
+                    console.log('Job details:', job);
+                })
+                .catch(error => {
+                    console.error('Error loading job details:', error);
+                });
+        }
+
+        function promoteModel(jobId) {
+            if (confirm('Promote this model to production?')) {
+                fetch(`/api/fine-tune/promote/${jobId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        promoted_by: 'current_user',
+                        reason: 'Manual promotion from dashboard'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Model promoted successfully!', 'success');
+                        loadModels();
+                    } else {
+                        showAlert('Failed to promote model', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error promoting model:', error);
+                    showAlert('Error promoting model', 'error');
+                });
+            }
+        }
+
+        function viewModelDetails(modelId) {
+            fetch(`/api/tenant-llm/model/${modelId}`)
+                .then(response => response.json())
+                .then(model => {
+                    const modal = new bootstrap.Modal(document.getElementById('modelDetailsModal'));
+                    document.getElementById('model-details-content').innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Model Information</h6>
+                                <p><strong>Name:</strong> ${model.name}</p>
+                                <p><strong>Base Model:</strong> ${model.base_model}</p>
+                                <p><strong>Version:</strong> ${model.version}</p>
+                                <p><strong>Status:</strong> <span class="status-badge status-${model.status}">${model.status}</span></p>
+                                <p><strong>Provider:</strong> ${model.hosting_provider}</p>
+                                <p><strong>Size:</strong> ${model.model_size_mb ? model.model_size_mb.toFixed(2) + ' MB' : 'N/A'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Deployment</h6>
+                                <p><strong>Target:</strong> ${model.deployment_target}</p>
+                                <p><strong>Endpoint:</strong> ${model.api_endpoint || 'N/A'}</p>
+                                <p><strong>Evaluation Score:</strong> ${model.evaluation_score ? model.evaluation_score.toFixed(3) : 'N/A'}</p>
+                                <p><strong>Created:</strong> ${new Date(model.created_at).toLocaleString()}</p>
+                            </div>
+                        </div>
+                    `;
+                    modal.show();
+                })
+                .catch(error => {
+                    console.error('Error loading model details:', error);
+                });
+        }
+
+        function viewDatasetDetails(datasetId) {
+            fetch(`/api/fine-tune/dataset/${datasetId}`)
+                .then(response => response.json())
+                .then(dataset => {
+                    const modal = new bootstrap.Modal(document.getElementById('datasetDetailsModal'));
+                    document.getElementById('dataset-details-content').innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Dataset Information</h6>
+                                <p><strong>Name:</strong> ${dataset.name}</p>
+                                <p><strong>Type:</strong> ${dataset.dataset_type}</p>
+                                <p><strong>Samples:</strong> ${dataset.total_samples.toLocaleString()}</p>
+                                <p><strong>Tokens:</strong> ${dataset.token_count.toLocaleString()}</p>
+                                <p><strong>Status:</strong> ${dataset.is_processed ? 'Processed' : 'Processing'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Metadata</h6>
+                                <p><strong>Created:</strong> ${new Date(dataset.created_at).toLocaleString()}</p>
+                                <p><strong>Updated:</strong> ${new Date(dataset.updated_at).toLocaleString()}</p>
+                                <p><strong>Hash:</strong> <code>${dataset.data_hash.substring(0, 16)}...</code></p>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <h6>Description</h6>
+                            <p>${dataset.description}</p>
+                        </div>
+                    `;
+                    modal.show();
+                })
+                .catch(error => {
+                    console.error('Error loading dataset details:', error);
+                });
+        }
+
+        function previewDataset(datasetId) {
+            fetch(`/api/fine-tune/dataset/${datasetId}/samples?limit=5`)
+                .then(response => response.json())
+                .then(samples => {
+                    const preview = document.getElementById('dataset-preview');
+                    preview.innerHTML = `
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Prompt</th>
+                                        <th>Completion</th>
+                                        <th>Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${samples.map(sample => `
+                                        <tr>
+                                            <td><small>${sample.prompt.substring(0, 100)}...</small></td>
+                                            <td><small>${sample.completion.substring(0, 100)}...</small></td>
+                                            <td>${sample.score ? sample.score.toFixed(3) : 'N/A'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error loading dataset preview:', error);
+                });
+        }
+
+        function getProgressPercentage(job) {
+            if (job.status === 'completed') return 100;
+            if (job.status === 'failed') return 0;
+            if (job.epochs_completed && job.hyperparameters?.epochs) {
+                return Math.round((job.epochs_completed / job.hyperparameters.epochs) * 100);
+            }
+            return 0;
+        }
+
+        function showAlert(message, type) {
+            // Simple alert implementation
+            alert(message);
+        }
+
+        // Auto-refresh data every 30 seconds
+        setInterval(loadDashboardData, 30000);
+    </script>
+</body>
+</html>

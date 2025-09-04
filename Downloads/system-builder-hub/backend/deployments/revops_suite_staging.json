@@ -1,0 +1,54 @@
+{
+  "name": "revops_suite_staging",
+  "version": "1.0.0",
+  "ecosystem": "revops_suite",
+  "environment": "staging",
+  "description": "Staging environment for RevOps Suite",
+  "tags": [
+    "staging",
+    "test",
+    "revops"
+  ],
+  "services": {
+    "backend": {
+      "name": "sbh-backend",
+      "image": "sbh-backend:staging",
+      "ports": [
+        5001
+      ],
+      "environment": {
+        "FLASK_ENV": "staging",
+        "DEBUG": "false",
+        "DATABASE": "/data/staging.db"
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:5001/healthz"
+        ],
+        "interval": "30s",
+        "timeout": "10s",
+        "retries": 3
+      }
+    },
+    "db": {
+      "name": "sqlite-staging",
+      "image": "alpine:latest",
+      "volumes": [
+        "/data:/data"
+      ],
+      "command": "tail -f /dev/null"
+    },
+    "worker": {
+      "name": "sbh-worker",
+      "image": "sbh-backend:staging",
+      "environment": {
+        "FLASK_ENV": "staging",
+        "DATABASE": "/data/staging.db"
+      },
+      "command": "python -m src.cli worker"
+    }
+  }
+}

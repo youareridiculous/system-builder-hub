@@ -1,0 +1,187 @@
+name: "Template Smoke Tests"
+description: "Smoke tests for template functionality including launch, seed, KPI validation, and export."
+
+scenario_bundles:
+  - name: "CRM Template Launch"
+    description: "Launch CRM template and validate basic functionality"
+    natural_language: "Launch a CRM template with basic contact and deal management features"
+    sla_class: "thorough"
+    steps:
+      - name: "Launch Template"
+        description: "Launch the CRM template"
+        action: "launch"
+        inputs:
+          template: "crm_basic"
+          tenant_id: "test_tenant"
+        assertions:
+          - name: "template_launched"
+            type: "contains"
+            expected: "success"
+            description: "Template should launch successfully"
+
+      - name: "Validate Structure"
+        description: "Validate template structure"
+        action: "validate"
+        inputs:
+          check_files: ["src/", "tests/", "README.md"]
+        assertions:
+          - name: "src_directory"
+            type: "file_exists"
+            expected: "src/"
+            description: "Source directory should exist"
+          - name: "tests_directory"
+            type: "file_exists"
+            expected: "tests/"
+            description: "Tests directory should exist"
+
+      - name: "Run Basic Tests"
+        description: "Run basic functionality tests"
+        action: "test"
+        inputs:
+          test_pattern: "test_basic_*"
+        assertions:
+          - name: "tests_passed"
+            type: "contains"
+            expected: "passed"
+            description: "Basic tests should pass"
+
+  - name: "LMS Template Smoke"
+    description: "Smoke test for Learning Management System template"
+    natural_language: "Create a learning management system with course management and student tracking"
+    sla_class: "thorough"
+    steps:
+      - name: "Launch LMS Template"
+        description: "Launch the LMS template"
+        action: "launch"
+        inputs:
+          template: "lms_basic"
+        assertions:
+          - name: "lms_launched"
+            type: "contains"
+            expected: "success"
+            description: "LMS template should launch"
+
+      - name: "Validate Course Structure"
+        description: "Validate course management structure"
+        action: "validate"
+        inputs:
+          check_models: ["Course", "Student", "Enrollment"]
+        assertions:
+          - name: "course_model"
+            type: "contains"
+            expected: "Course"
+            description: "Course model should exist"
+
+      - name: "Test Course Creation"
+        description: "Test creating a course"
+        action: "test"
+        inputs:
+          test_name: "test_create_course"
+        assertions:
+          - name: "course_created"
+            type: "contains"
+            expected: "created"
+            description: "Course should be created successfully"
+
+  - name: "E-commerce Template Smoke"
+    description: "Smoke test for e-commerce template"
+    natural_language: "Build an e-commerce platform with product catalog and order management"
+    sla_class: "thorough"
+    steps:
+      - name: "Launch E-commerce Template"
+        description: "Launch the e-commerce template"
+        action: "launch"
+        inputs:
+          template: "ecommerce_basic"
+        assertions:
+          - name: "ecommerce_launched"
+            type: "contains"
+            expected: "success"
+            description: "E-commerce template should launch"
+
+      - name: "Validate Product Structure"
+        description: "Validate product management structure"
+        action: "validate"
+        inputs:
+          check_models: ["Product", "Order", "Customer"]
+        assertions:
+          - name: "product_model"
+            type: "contains"
+            expected: "Product"
+            description: "Product model should exist"
+
+      - name: "Test Product Creation"
+        description: "Test creating a product"
+        action: "test"
+        inputs:
+          test_name: "test_create_product"
+        assertions:
+          - name: "product_created"
+            type: "contains"
+            expected: "created"
+            description: "Product should be created successfully"
+
+  - name: "Analytics Dashboard Smoke"
+    description: "Smoke test for analytics dashboard template"
+    natural_language: "Create an analytics dashboard with data visualization and reporting"
+    sla_class: "thorough"
+    steps:
+      - name: "Launch Analytics Template"
+        description: "Launch the analytics template"
+        action: "launch"
+        inputs:
+          template: "analytics_basic"
+        assertions:
+          - name: "analytics_launched"
+            type: "contains"
+            expected: "success"
+            description: "Analytics template should launch"
+
+      - name: "Validate Dashboard Structure"
+        description: "Validate dashboard structure"
+        action: "validate"
+        inputs:
+          check_components: ["Chart", "Table", "Filter"]
+        assertions:
+          - name: "chart_component"
+            type: "contains"
+            expected: "Chart"
+            description: "Chart component should exist"
+
+      - name: "Test Data Loading"
+        description: "Test loading sample data"
+        action: "test"
+        inputs:
+          test_name: "test_load_data"
+        assertions:
+          - name: "data_loaded"
+            type: "contains"
+            expected: "loaded"
+            description: "Sample data should load successfully"
+
+kpi_guards:
+  - name: "template_launch_success"
+    metric: "template_launch_success_rate"
+    threshold: 0.95
+    operator: ">="
+    description: "95% of templates should launch successfully"
+    severity: "error"
+
+  - name: "smoke_test_pass_rate"
+    metric: "smoke_test_pass_rate"
+    threshold: 0.90
+    operator: ">="
+    description: "90% of smoke tests should pass"
+    severity: "error"
+
+  - name: "template_launch_time"
+    metric: "template_launch_time_ms"
+    threshold: 30000
+    operator: "<="
+    description: "Template launch should complete within 30 seconds"
+    severity: "warning"
+
+metadata:
+  tags: ["templates", "smoke", "validation"]
+  priority: "high"
+  estimated_duration_minutes: 20

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Photo Gallery</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 2rem; }
+        .container { max-width: 800px; margin: auto; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; }
+        input, textarea { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
+        .data-section { margin-top: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 4px; }
+        .auth-required { background: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+        .subscription-required { background: #f8d7da; border: 1px solid #f5c6cb; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+        .file-upload-section { margin-top: 2rem; padding: 1rem; background: #e9ecef; border-radius: 4px; }
+        .file-list-section { margin-top: 1rem; }
+        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid #ddd; }
+        .file-item a { color: #007bff; text-decoration: none; }
+        .file-item a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="auth-required"><strong>Authentication Required:</strong> This page requires authentication.</div>
+        
+        
+        <h1>Photo Gallery</h1><p>View and share your photos.</p>
+        
+        
+        <div class="file-upload-section">
+            <h2>File Upload</h2>
+            <form id="upload-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="file">Select File:</label>
+                    <input type="file" id="file" name="file" required>
+                </div>
+                <button type="submit">Upload File</button>
+            </form>
+            <div id="upload-status"></div>
+        </div>
+        
+        <div class="file-list-section">
+            <h2>Uploaded Files</h2>
+            <div id="file-list">Loading...</div>
+        </div>
+        
+        <script>
+        // File upload functionality
+        document.getElementById('upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            const fileInput = document.getElementById('file');
+            formData.append('file', fileInput.files[0]);
+            
+            const statusEl = document.getElementById('upload-status');
+            statusEl.textContent = 'Uploading...';
+            
+            try {
+                const response = await fetch('/api/files/filestore/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    statusEl.textContent = 'Upload successful!';
+                    fileInput.value = '';
+                    loadFiles();
+                } else {
+                    const error = await response.json();
+                    statusEl.textContent = 'Upload failed: ' + error.error;
+                }
+            } catch(e) {
+                statusEl.textContent = 'Upload failed: ' + e;
+            }
+        });
+        
+        // Load files
+        async function loadFiles() {
+            const fileListEl = document.getElementById('file-list');
+            try {
+                const response = await fetch('/api/files/filestore', {
+                    headers: {
+                        'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const files = data.files;
+                    
+                    if (files.length === 0) {
+                        fileListEl.innerHTML = '<p>No files uploaded yet.</p>';
+                    } else {
+                        const fileList = files.map(file => `
+                            <div class="file-item">
+                                <span>${file.name}</span>
+                                <span>(${(file.size / 1024).toFixed(1)} KB)</span>
+                                <a href="/api/files/filestore/${file.name}" target="_blank">Download</a>
+                            </div>
+                        `).join('');
+                        fileListEl.innerHTML = fileList;
+                    }
+                } else {
+                    fileListEl.innerHTML = '<p>Failed to load files.</p>';
+                }
+            } catch(e) {
+                fileListEl.innerHTML = '<p>Failed to load files: ' + e + '</p>';
+            }
+        }
+        
+        // Load files on page load
+        loadFiles();
+        </script>
+        
+        
+        
+    </div>
+</body>
+</html>

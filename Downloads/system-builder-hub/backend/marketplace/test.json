@@ -1,0 +1,28 @@
+{
+  "slug": "test",
+  "name": "Test",
+  "description": "test description",
+  "category": "test",
+  "tags": [
+    "test",
+    "test"
+  ],
+  "version": "1.0.0",
+  "author": "SBH Team",
+  "features": [
+    "feature1"
+  ],
+  "plans": {
+    "plan1": {
+      "name": "Plan1",
+      "price": 799,
+      "billing_cycle": "monthly",
+      "features": [
+        "Up to unlimited test items"
+      ]
+    }
+  },
+  "is_active": true,
+  "created_at": "2025-09-02T06:25:46.755349Z",
+  "updated_at": "2025-09-02T06:25:46.755486Z"
+}

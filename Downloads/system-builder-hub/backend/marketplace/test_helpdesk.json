@@ -1,0 +1,29 @@
+{
+  "slug": "test_helpdesk",
+  "name": "Test Helpdesk",
+  "description": "A test helpdesk system for testing the Spec API",
+  "category": "support",
+  "tags": [
+    "test_helpdesk",
+    "support"
+  ],
+  "version": "1.0.0",
+  "author": "SBH Team",
+  "features": [
+    "tickets",
+    "knowledge_base"
+  ],
+  "plans": {
+    "Basic": {
+      "name": "Basic",
+      "price": 799,
+      "billing_cycle": "monthly",
+      "features": [
+        "Up to unlimited test_helpdesk items"
+      ]
+    }
+  },
+  "is_active": true,
+  "created_at": "2025-09-02T06:25:38.325737Z",
+  "updated_at": "2025-09-02T06:25:38.325740Z"
+}

@@ -1,0 +1,274 @@
+{
+  "export_version": "1.0.0",
+  "template_name": "Flagship CRM & Ops",
+  "template_slug": "flagship-crm-ops",
+  "template_version": "1.0.0",
+  "exported_at": "2024-08-26T00:00:00Z",
+  "sbh_version": "1.0.0",
+  "description": "Production-ready CRM and Operations template for SBH platform",
+  "category": "Sales & Operations",
+  "tags": [
+    "crm",
+    "operations",
+    "sales",
+    "project-management",
+    "automations",
+    "ai",
+    "multi-tenant",
+    "rbac"
+  ],
+  "features": [
+    "Multi-tenant CRM with contacts, deals, and pipeline management",
+    "Project and task management with Kanban boards",
+    "Team messaging and collaboration",
+    "Automations engine with rules and workflows",
+    "AI copilots and conversational analytics",
+    "Calendar integration and email sync",
+    "Advanced search and saved views",
+    "External integrations (Slack, Zapier, Salesforce, HubSpot)",
+    "CSV import/export functionality",
+    "Analytics dashboard and reporting",
+    "Role-based access control (RBAC)",
+    "Audit logging and compliance",
+    "Plugin system and extensibility"
+  ],
+  "requirements": {
+    "python_version": ">=3.9",
+    "postgresql_version": ">=13.0",
+    "redis_version": ">=6.0",
+    "node_version": ">=16.0"
+  },
+  "dependencies": {
+    "python": [
+      "flask>=2.3.0",
+      "sqlalchemy>=2.0.0",
+      "alembic>=1.11.0",
+      "redis>=4.5.0",
+      "requests>=2.28.0",
+      "pydantic>=2.0.0",
+      "jinja2>=3.1.0",
+      "faker>=18.0.0",
+      "prometheus-client>=0.16.0"
+    ],
+    "node": [
+      "react>=18.0.0",
+      "tailwindcss>=3.3.0",
+      "@radix-ui/react-*",
+      "framer-motion>=10.0.0"
+    ]
+  },
+  "file_structure": {
+    "src/": "Main application source code",
+    "src/crm_ops/": "CRM and operations core modules",
+    "src/ai/": "AI and workflows 2.0",
+    "src/ext/": "Extensibility and plugin system",
+    "src/auth/": "Authentication and RBAC",
+    "src/utils/": "Utility functions and helpers",
+    "tests/": "Test suite including smoke tests",
+    "scripts/": "Utility scripts for deployment and verification",
+    "docs/": "Documentation suite",
+    "examples/": "Sample plugins and webhooks",
+    "marketplace/": "Marketplace assets and metadata",
+    "migrations/": "Database migrations",
+    "templates/": "Email and report templates",
+    "static/": "Static assets"
+  },
+  "api_endpoints": {
+    "auth": [
+      "/api/auth/register",
+      "/api/auth/login",
+      "/api/auth/me",
+      "/api/auth/logout"
+    ],
+    "crm": [
+      "/api/contacts",
+      "/api/deals",
+      "/api/activities",
+      "/api/projects",
+      "/api/tasks",
+      "/api/messages"
+    ],
+    "analytics": [
+      "/api/analytics/crm",
+      "/api/analytics/ops"
+    ],
+    "automations": [
+      "/api/automations",
+      "/api/automations/{id}/test",
+      "/api/automations/{id}/runs"
+    ],
+    "ai": [
+      "/api/ai/copilot/ask",
+      "/api/ai/analytics/query",
+      "/api/ai/reports/run",
+      "/api/ai/voice/transcribe"
+    ],
+    "integrations": [
+      "/api/integrations/slack",
+      "/api/integrations/zapier",
+      "/api/integrations/salesforce",
+      "/api/integrations/google-drive"
+    ],
+    "admin": [
+      "/api/admin/subscriptions",
+      "/api/admin/domains",
+      "/api/admin/users",
+      "/api/admin/audit-logs"
+    ]
+  },
+  "database_tables": [
+    "users",
+    "tenants",
+    "tenant_users",
+    "contacts",
+    "deals",
+    "activities",
+    "projects",
+    "tasks",
+    "message_threads",
+    "messages",
+    "automation_rules",
+    "automation_runs",
+    "ai_conversations",
+    "ai_messages",
+    "ai_reports",
+    "comments",
+    "saved_views",
+    "notifications",
+    "audit_logs"
+  ],
+  "environment_variables": {
+    "required": [
+      "DATABASE_URL",
+      "REDIS_URL",
+      "SECRET_KEY",
+      "JWT_SECRET_KEY"
+    ],
+    "optional": [
+      "S3_BUCKET_NAME",
+      "S3_ACCESS_KEY",
+      "S3_SECRET_KEY",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "SES_ACCESS_KEY",
+      "SES_SECRET_KEY",
+      "SLACK_CLIENT_ID",
+      "SLACK_CLIENT_SECRET",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET"
+    ]
+  },
+  "deployment": {
+    "supported_platforms": [
+      "AWS Elastic Beanstalk",
+      "Docker",
+      "Local Development"
+    ],
+    "health_checks": [
+      "/healthz",
+      "/readiness"
+    ],
+    "metrics_endpoint": "/metrics"
+  },
+  "security": {
+    "features": [
+      "Multi-tenancy with tenant isolation",
+      "Role-based access control (RBAC)",
+      "JWT authentication",
+      "Audit logging",
+      "Rate limiting",
+      "Input validation",
+      "SQL injection protection",
+      "XSS protection",
+      "CSRF protection"
+    ],
+    "compliance": [
+      "GDPR ready",
+      "SOC 2 compatible",
+      "Data residency support"
+    ]
+  },
+  "monitoring": {
+    "metrics": [
+      "Request rate and latency",
+      "Database query performance",
+      "Redis operation metrics",
+      "Error rates and types",
+      "User activity metrics",
+      "Business metrics (deals, contacts, etc.)"
+    ],
+    "alerts": [
+      "High error rates",
+      "Database connection issues",
+      "Redis connectivity problems",
+      "High latency requests",
+      "Storage quota warnings"
+    ]
+  },
+  "testing": {
+    "test_types": [
+      "Unit tests",
+      "Integration tests",
+      "End-to-end tests",
+      "Smoke tests",
+      "Performance tests",
+      "Security tests"
+    ],
+    "coverage_target": ">=80%",
+    "automated_testing": true
+  },
+  "documentation": {
+    "user_guides": [
+      "docs/QUICKSTART.md",
+      "docs/USER_GUIDE.md",
+      "docs/ADMIN_GUIDE.md"
+    ],
+    "developer_docs": [
+      "docs/API_REFERENCE.md",
+      "docs/EXTENSIBILITY.md",
+      "docs/DEPLOYMENT.md"
+    ],
+    "integration_docs": [
+      "docs/INTEGRATIONS.md",
+      "docs/AI_COPILOT_GUIDE.md"
+    ]
+  },
+  "marketplace": {
+    "listing_url": "/marketplace/flagship-crm-ops",
+    "screenshots": [
+      "marketplace/assets/flagship-crm/dashboard.png",
+      "marketplace/assets/flagship-crm/contacts.png",
+      "marketplace/assets/flagship-crm/deals_kanban.png",
+      "marketplace/assets/flagship-crm/projects_kanban.png",
+      "marketplace/assets/flagship-crm/automations_builder.png",
+      "marketplace/assets/flagship-crm/ai_copilot_hub.png",
+      "marketplace/assets/flagship-crm/admin_panel.png"
+    ],
+    "demo_video_url": "https://example.com/demo-video",
+    "pricing_plans": [
+      "Starter",
+      "Professional",
+      "Enterprise"
+    ]
+  },
+  "support": {
+    "documentation_url": "https://docs.sbh.com/flagship-crm-ops",
+    "support_email": "support@sbh.com",
+    "community_forum": "https://community.sbh.com",
+    "github_issues": "https://github.com/sbh/flagship-crm-ops/issues"
+  },
+  "changelog": {
+    "version": "1.0.0",
+    "release_date": "2024-08-26",
+    "changes": [
+      "Initial release of Flagship CRM & Ops template",
+      "Complete CRM functionality with contacts, deals, and pipeline",
+      "Project and task management with Kanban boards",
+      "AI copilots and conversational analytics",
+      "Automations engine with rules and workflows",
+      "External integrations (Slack, Zapier, Salesforce, HubSpot)",
+      "Multi-tenant architecture with RBAC",
+      "Comprehensive audit logging and compliance features"
+    ]
+  }
+}

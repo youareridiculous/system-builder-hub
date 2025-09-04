@@ -1,0 +1,740 @@
+"""
+Meta-Builder v2 Orchestrator
+Coordinates the multi-agent build process with iterative refinement.
+"""
+
+import json
+import logging
+import time
+import asyncio
+from typing import Dict, Any, List, Optional
+from datetime import datetime
+from uuid import UUID, uuid4
+
+from .models import (
+    ScaffoldSpec, ScaffoldPlan, BuildRun, BuildStep, DiffArtifact,
+    EvalReport, ApprovalGate, BuildArtifact, RunStatus, StepStatus,
+    StepName, create_spec, create_plan, create_run, create_step,
+    create_diff_artifact, create_eval_report, create_approval_gate,
+    create_build_artifact
+)
+from .agents import (
+    ProductArchitectAgent, SystemDesignerAgent, SecurityComplianceAgent,
+    CodegenEngineerAgent, QAEvaluatorAgent, AutoFixerAgent, DevOpsAgent, ReviewerAgent,
+    AgentContext
+)
+
+logger = logging.getLogger(__name__)
+
+
+class RunContext:
+    """Context for a build run."""
+    
+    def __init__(self, run: BuildRun, spec: ScaffoldSpec, plan: ScaffoldPlan):
+        self.run = run
+        self.spec = spec
+        self.plan = plan
+        self.current_iteration = run.iteration
+        self.artifacts: List[Dict[str, Any]] = []
+        self.reports: List[Dict[str, Any]] = []
+        self.spans: List[Dict[str, Any]] = []
+        self.cache = {}
+    
+    def add_artifact(self, artifact: Dict[str, Any]):
+        """Add an artifact to the context."""
+        self.artifacts.append(artifact)
+    
+    def add_report(self, report: Dict[str, Any]):
+        """Add a report to the context."""
+        self.reports.append(report)
+    
+    def add_span(self, span: Dict[str, Any]):
+        """Add an agent span to the context."""
+        self.spans.append(span)
+
+
+class MetaBuilderOrchestrator:
+    """Orchestrates the multi-agent Meta-Builder v2 process."""
+    
+    def __init__(self):
+        self.agents = {
+            "product_architect": ProductArchitectAgent,
+            "system_designer": SystemDesignerAgent,
+            "security_compliance": SecurityComplianceAgent,
+            "codegen_engineer": CodegenEngineerAgent,
+            "qa_evaluator": QAEvaluatorAgent,
+            "auto_fixer": AutoFixerAgent,
+            "devops": DevOpsAgent,
+            "reviewer": ReviewerAgent
+        }
+    
+    async def plan_spec(self, spec_id: UUID, db_session, context: AgentContext) -> ScaffoldPlan:
+        """Generate a plan for a specification."""
+        logger.info(f"Planning specification {spec_id}")
+        
+        # Get specification
+        spec = db_session.query(ScaffoldSpec).filter(ScaffoldSpec.id == spec_id).first()
+        if not spec:
+            raise ValueError(f"Specification {spec_id} not found")
+        
+        # Create agent context
+        agent_context = AgentContext(
+            tenant_id=context.tenant_id,
+            user_id=context.user_id,
+            repo_ref=context.repo_ref,
+            allow_tools=context.allow_tools,
+            cache=context.cache,
+            safety=context.safety,
+            llm_provider=context.llm_provider,
+            redis=context.redis,
+            analytics=context.analytics
+        )
+        
+        # Step 1: Product Architect - Create specification
+        architect_agent = ProductArchitectAgent(agent_context)
+        spec_result = await architect_agent.execute("create_spec", {
+            "goal_text": spec.description or "",
+            "guided_input": spec.guided_input or {}
+        })
+        
+        # Step 2: System Designer - Create plan
+        designer_agent = SystemDesignerAgent(agent_context)
+        plan_result = await designer_agent.execute("create_plan", {
+            "spec": spec_result["spec"]
+        })
+        
+        # Step 3: Security/Compliance - Review security
+        security_agent = SecurityComplianceAgent(agent_context)
+        security_result = await security_agent.execute("review_security", {
+            "spec": spec_result["spec"],
+            "plan": plan_result["plan"]
+        })
+        
+        # Create plan with security review
+        plan = create_plan(
+            spec_id=spec_id,
+            summary=plan_result["summary"],
+            plan_graph=plan_result["plan"],
+            risk_score=security_result["risk_score"],
+            agents_used=["product_architect", "system_designer", "security_compliance"],
+            diff_preview=plan_result.get("diff_preview")
+        )
+        
+        # Save plan to database
+        db_session.add(plan)
+        db_session.commit()
+        
+        logger.info(f"Plan created for specification {spec_id}")
+        return plan
+    
+    async def start_run(self, spec_id: UUID, plan_id: Optional[UUID] = None, 
+                       max_iterations: int = 4, db_session = None, 
+                       context: AgentContext = None, async_mode: bool = False) -> BuildRun:
+        """Start a new build run."""
+        logger.info(f"Starting build run for specification {spec_id}")
+        
+        # Get specification
+        spec = db_session.query(ScaffoldSpec).filter(ScaffoldSpec.id == spec_id).first()
+        if not spec:
+            raise ValueError(f"Specification {spec_id} not found")
+        
+        # Get or create plan
+        if plan_id:
+            plan = db_session.query(ScaffoldPlan).filter(ScaffoldPlan.id == plan_id).first()
+            if not plan:
+                raise ValueError(f"Plan {plan_id} not found")
+        else:
+            # Generate plan
+            plan = await self.plan_spec(spec_id, db_session, context)
+        
+        # Create run
+        run = create_run(
+            tenant_id=context.tenant_id,
+            spec_id=spec_id,
+            plan_id=plan.id,
+            max_iterations=max_iterations
+        )
+        
+        # Save run to database
+        db_session.add(run)
+        db_session.commit()
+        
+        # Start the build process
+        if async_mode:
+            # Queue async job
+            await self._queue_build_job(run.id, context)
+        else:
+            # Run synchronously
+            await self._execute_build_run(run.id, db_session, context)
+        
+        return run
+    
+    async def _queue_build_job(self, run_id: UUID, context: AgentContext):
+        """Queue build job for async execution."""
+        from src.jobs.job_queue import enqueue_job
+        
+        job_data = {
+            "run_id": str(run_id),
+            "tenant_id": str(context.tenant_id),
+            "user_id": str(context.user_id)
+        }
+        
+        await enqueue_job(
+            "meta_builder_build",
+            job_data,
+            priority="high"
+        )
+        
+        logger.info(f"Build job queued for run {run_id}")
+    
+    async def _execute_build_run(self, run_id: UUID, db_session, context: AgentContext):
+        """Execute the build run."""
+        logger.info(f"Executing build run {run_id}")
+        
+        # Get run
+        run = db_session.query(BuildRun).filter(BuildRun.id == run_id).first()
+        if not run:
+            raise ValueError(f"Run {run_id} not found")
+        
+        # Get spec and plan
+        spec = db_session.query(ScaffoldSpec).filter(ScaffoldSpec.id == run.spec_id).first()
+        plan = db_session.query(ScaffoldPlan).filter(ScaffoldPlan.id == run.plan_id).first()
+        
+        # Create run context
+        run_context = RunContext(run, spec, plan)
+        
+        # Update run status
+        run.status = RunStatus.RUNNING
+        run.started_at = datetime.utcnow()
+        db_session.commit()
+        
+        try:
+            # Execute build loop
+            await self._execute_build_loop(run_context, db_session, context)
+            
+            # Finalize run
+            await self._finalize_run(run_context, db_session, context)
+            
+        except Exception as e:
+            logger.error(f"Build run {run_id} failed: {e}")
+            run.status = RunStatus.FAILED
+            run.finished_at = datetime.utcnow()
+            db_session.commit()
+            raise
+    
+    async def _execute_build_loop(self, run_context: RunContext, db_session, context: AgentContext):
+        """Execute the main build loop with iterations."""
+        run = run_context.run
+        spec = run_context.spec
+        plan = run_context.plan
+        
+        iteration = 0
+        max_iterations = run.max_iterations
+        
+        while iteration < max_iterations:
+            logger.info(f"Starting iteration {iteration + 1}/{max_iterations}")
+            
+            # Update run iteration
+            run.iteration = iteration + 1
+            db_session.commit()
+            
+            # Step 1: Code Generation
+            codegen_result = await self._execute_codegen_step(run_context, db_session, context)
+            if not codegen_result["success"]:
+                logger.error(f"Code generation failed in iteration {iteration + 1}")
+                break
+            
+            # Step 2: Evaluation
+            eval_result = await self._execute_evaluation_step(run_context, db_session, context)
+            if not eval_result["success"]:
+                logger.error(f"Evaluation failed in iteration {iteration + 1}")
+                break
+            
+            # Check if we need approval
+            if eval_result.get("needs_approval"):
+                await self._create_approval_gate(run_context, db_session, context)
+                run.status = RunStatus.NEEDS_APPROVAL
+                db_session.commit()
+                logger.info(f"Run {run.id} requires approval")
+                return
+            
+            # Check if we should continue
+            if eval_result.get("passed", False):
+                logger.info(f"Build passed in iteration {iteration + 1}")
+                break
+            
+            # Step 3: Auto-fix (if needed)
+            if iteration < max_iterations - 1:  # Don't auto-fix on last iteration
+                fix_result = await self._execute_autofix_step(run_context, db_session, context)
+                if not fix_result["success"]:
+                    logger.warning(f"Auto-fix failed in iteration {iteration + 1}")
+                    break
+            
+            iteration += 1
+        
+        # Check if we exceeded max iterations
+        if iteration >= max_iterations:
+            logger.warning(f"Build exceeded max iterations ({max_iterations})")
+            run.status = RunStatus.FAILED
+    
+    async def _execute_codegen_step(self, run_context: RunContext, db_session, context: AgentContext) -> Dict[str, Any]:
+        """Execute code generation step."""
+        run = run_context.run
+        spec = run_context.spec
+        plan = run_context.plan
+        
+        # Create step
+        step = create_step(
+            run_id=run.id,
+            name=StepName.CODEGEN,
+            input_data={
+                "spec": spec.__dict__,
+                "plan": plan.__dict__,
+                "iteration": run.iteration
+            }
+        )
+        
+        step.status = StepStatus.RUNNING
+        step.started_at = datetime.utcnow()
+        db_session.add(step)
+        db_session.commit()
+        
+        try:
+            # Create agent context
+            agent_context = AgentContext(
+                tenant_id=context.tenant_id,
+                user_id=context.user_id,
+                repo_ref=context.repo_ref,
+                allow_tools=context.allow_tools,
+                cache=context.cache,
+                safety=context.safety,
+                llm_provider=context.llm_provider,
+                redis=context.redis,
+                analytics=context.analytics
+            )
+            
+            # Execute codegen
+            codegen_agent = CodegenEngineerAgent(agent_context)
+            result = await codegen_agent.execute("generate_code", {
+                "spec": spec.__dict__,
+                "plan": plan.__dict__,
+                "artifacts": run_context.artifacts
+            })
+            
+            # Create diff artifact
+            diff_artifact = create_diff_artifact(
+                run_id=run.id,
+                iteration=run.iteration,
+                unified_diff=result.get("diff", {}).get("unified_diff", ""),
+                files_changed=result.get("diff", {}).get("files_changed", 0),
+                summary=result.get("diff", {}).get("summary", "")
+            )
+            
+            db_session.add(diff_artifact)
+            
+            # Update step
+            step.status = StepStatus.SUCCEEDED
+            step.finished_at = datetime.utcnow()
+            step.output = result
+            
+            # Add artifacts to context
+            for artifact in result.get("artifacts", []):
+                run_context.add_artifact(artifact)
+            
+            db_session.commit()
+            
+            return {
+                "success": True,
+                "artifacts": result.get("artifacts", []),
+                "diff": result.get("diff", {})
+            }
+            
+        except Exception as e:
+            logger.error(f"Code generation failed: {e}")
+            step.status = StepStatus.FAILED
+            step.finished_at = datetime.utcnow()
+            step.output = {"error": str(e)}
+            db_session.commit()
+            
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    async def _execute_evaluation_step(self, run_context: RunContext, db_session, context: AgentContext) -> Dict[str, Any]:
+        """Execute evaluation step."""
+        run = run_context.run
+        spec = run_context.spec
+        plan = run_context.plan
+        
+        # Create step
+        step = create_step(
+            run_id=run.id,
+            name=StepName.EVALUATE,
+            input_data={
+                "spec": spec.__dict__,
+                "plan": plan.__dict__,
+                "artifacts": run_context.artifacts,
+                "iteration": run.iteration
+            }
+        )
+        
+        step.status = StepStatus.RUNNING
+        step.started_at = datetime.utcnow()
+        db_session.add(step)
+        db_session.commit()
+        
+        try:
+            # Create agent context
+            agent_context = AgentContext(
+                tenant_id=context.tenant_id,
+                user_id=context.user_id,
+                repo_ref=context.repo_ref,
+                allow_tools=context.allow_tools,
+                cache=context.cache,
+                safety=context.safety,
+                llm_provider=context.llm_provider,
+                redis=context.redis,
+                analytics=context.analytics
+            )
+            
+            # Execute evaluation
+            evaluator_agent = QAEvaluatorAgent(agent_context)
+            result = await evaluator_agent.execute("evaluate", {
+                "spec": spec.__dict__,
+                "artifacts": run_context.artifacts,
+                "acceptance_criteria": spec.acceptance or []
+            })
+            
+            # Create evaluation report
+            eval_report = create_eval_report(
+                run_id=run.id,
+                iteration=run.iteration,
+                scores=result.get("scores", {}),
+                failed_cases=result.get("issues", []),
+                pass_rate=result.get("score", 0.0) / 100.0
+            )
+            
+            db_session.add(eval_report)
+            
+            # Update step
+            step.status = StepStatus.SUCCEEDED
+            step.finished_at = datetime.utcnow()
+            step.output = result
+            
+            # Add report to context
+            run_context.add_report(result)
+            
+            db_session.commit()
+            
+            # Check if approval is needed
+            needs_approval = self._check_approval_required(result, run_context)
+            
+            return {
+                "success": True,
+                "passed": result.get("passed", False),
+                "score": result.get("score", 0.0),
+                "needs_approval": needs_approval
+            }
+            
+        except Exception as e:
+            logger.error(f"Evaluation failed: {e}")
+            step.status = StepStatus.FAILED
+            step.finished_at = datetime.utcnow()
+            step.output = {"error": str(e)}
+            db_session.commit()
+            
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    async def _execute_autofix_step(self, run_context: RunContext, db_session, context: AgentContext) -> Dict[str, Any]:
+        """Execute auto-fix step."""
+        run = run_context.run
+        spec = run_context.spec
+        plan = run_context.plan
+        
+        # Create step
+        step = create_step(
+            run_id=run.id,
+            name=StepName.AUTOFIX,
+            input_data={
+                "spec": spec.__dict__,
+                "plan": plan.__dict__,
+                "artifacts": run_context.artifacts,
+                "reports": run_context.reports,
+                "iteration": run.iteration
+            }
+        )
+        
+        step.status = StepStatus.RUNNING
+        step.started_at = datetime.utcnow()
+        db_session.add(step)
+        db_session.commit()
+        
+        try:
+            # Create agent context
+            agent_context = AgentContext(
+                tenant_id=context.tenant_id,
+                user_id=context.user_id,
+                repo_ref=context.repo_ref,
+                allow_tools=context.allow_tools,
+                cache=context.cache,
+                safety=context.safety,
+                llm_provider=context.llm_provider,
+                redis=context.redis,
+                analytics=context.analytics
+            )
+            
+            # Execute auto-fix
+            fixer_agent = AutoFixerAgent(agent_context)
+            result = await fixer_agent.execute("fix_issues", {
+                "spec": spec.__dict__,
+                "evaluation_report": run_context.reports[-1] if run_context.reports else {},
+                "artifacts": run_context.artifacts
+            })
+            
+            # Update step
+            step.status = StepStatus.SUCCEEDED
+            step.finished_at = datetime.utcnow()
+            step.output = result
+            
+            # Update artifacts if fixes were applied
+            if result.get("fixed", False):
+                run_context.artifacts = result.get("new_artifacts", run_context.artifacts)
+            
+            db_session.commit()
+            
+            return {
+                "success": True,
+                "fixed": result.get("fixed", False),
+                "new_artifacts": result.get("new_artifacts", [])
+            }
+            
+        except Exception as e:
+            logger.error(f"Auto-fix failed: {e}")
+            step.status = StepStatus.FAILED
+            step.finished_at = datetime.utcnow()
+            step.output = {"error": str(e)}
+            db_session.commit()
+            
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _check_approval_required(self, eval_result: Dict[str, Any], run_context: RunContext) -> bool:
+        """Check if approval is required based on evaluation results."""
+        # Check pass rate
+        if eval_result.get("score", 0) < 80.0:
+            return True
+        
+        # Check for high-risk issues
+        issues = eval_result.get("issues", [])
+        high_risk_issues = [issue for issue in issues if issue.get("severity") == "high"]
+        if high_risk_issues:
+            return True
+        
+        return False
+    
+    async def _create_approval_gate(self, run_context: RunContext, db_session, context: AgentContext):
+        """Create approval gate for human review."""
+        run = run_context.run
+        
+        # Create approval gate
+        approval_gate = create_approval_gate(
+            run_id=run.id,
+            iteration=run.iteration,
+            requested_by=context.user_id,
+            required=True
+        )
+        
+        db_session.add(approval_gate)
+        db_session.commit()
+        
+        logger.info(f"Approval gate created for run {run.id}")
+    
+    async def _finalize_run(self, run_context: RunContext, db_session, context: AgentContext):
+        """Finalize the build run."""
+        run = run_context.run
+        spec = run_context.spec
+        plan = run_context.plan
+        
+        # Create step
+        step = create_step(
+            run_id=run.id,
+            name=StepName.FINALIZE,
+            input_data={
+                "spec": spec.__dict__,
+                "plan": plan.__dict__,
+                "artifacts": run_context.artifacts,
+                "reports": run_context.reports
+            }
+        )
+        
+        step.status = StepStatus.RUNNING
+        step.started_at = datetime.utcnow()
+        db_session.add(step)
+        db_session.commit()
+        
+        try:
+            # Create agent context
+            agent_context = AgentContext(
+                tenant_id=context.tenant_id,
+                user_id=context.user_id,
+                repo_ref=context.repo_ref,
+                allow_tools=context.allow_tools,
+                cache=context.cache,
+                safety=context.safety,
+                llm_provider=context.llm_provider,
+                redis=context.redis,
+                analytics=context.analytics
+            )
+            
+            # Execute DevOps agent
+            devops_agent = DevOpsAgent(agent_context)
+            result = await devops_agent.execute("generate_artifacts", {
+                "spec": spec.__dict__,
+                "artifacts": run_context.artifacts
+            })
+            
+            # Create build artifacts
+            for artifact_info in result.get("artifacts", []):
+                build_artifact = create_build_artifact(
+                    run_id=run.id,
+                    kind=artifact_info["kind"],
+                    url=artifact_info["url"],
+                    metadata=artifact_info.get("metadata", {})
+                )
+                db_session.add(build_artifact)
+            
+            # Update step
+            step.status = StepStatus.SUCCEEDED
+            step.finished_at = datetime.utcnow()
+            step.output = result
+            
+            # Update run status
+            run.status = RunStatus.SUCCEEDED
+            run.finished_at = datetime.utcnow()
+            run.elapsed_ms = int((run.finished_at - run.started_at).total_seconds() * 1000)
+            
+            db_session.commit()
+            
+            logger.info(f"Build run {run.id} completed successfully")
+            
+        except Exception as e:
+            logger.error(f"Finalization failed: {e}")
+            step.status = StepStatus.FAILED
+            step.finished_at = datetime.utcnow()
+            step.output = {"error": str(e)}
+            
+            run.status = RunStatus.FAILED
+            run.finished_at = datetime.utcnow()
+            
+            db_session.commit()
+    
+    async def get_run(self, run_id: UUID, db_session) -> Dict[str, Any]:
+        """Get run details."""
+        run = db_session.query(BuildRun).filter(BuildRun.id == run_id).first()
+        if not run:
+            raise ValueError(f"Run {run_id} not found")
+        
+        # Get related data
+        spec = db_session.query(ScaffoldSpec).filter(ScaffoldSpec.id == run.spec_id).first()
+        plan = db_session.query(ScaffoldPlan).filter(ScaffoldPlan.id == run.plan_id).first()
+        steps = db_session.query(BuildStep).filter(BuildStep.run_id == run_id).all()
+        diffs = db_session.query(DiffArtifact).filter(DiffArtifact.run_id == run_id).all()
+        evaluations = db_session.query(EvalReport).filter(EvalReport.run_id == run_id).all()
+        approvals = db_session.query(ApprovalGate).filter(ApprovalGate.run_id == run_id).all()
+        artifacts = db_session.query(BuildArtifact).filter(BuildArtifact.run_id == run_id).all()
+        
+        return {
+            "run": run.__dict__,
+            "spec": spec.__dict__ if spec else None,
+            "plan": plan.__dict__ if plan else None,
+            "steps": [step.__dict__ for step in steps],
+            "diffs": [diff.__dict__ for diff in diffs],
+            "evaluations": [eval.__dict__ for eval in evaluations],
+            "approvals": [approval.__dict__ for approval in approvals],
+            "artifacts": [artifact.__dict__ for artifact in artifacts]
+        }
+    
+    async def cancel_run(self, run_id: UUID, db_session) -> bool:
+        """Cancel a running build."""
+        run = db_session.query(BuildRun).filter(BuildRun.id == run_id).first()
+        if not run:
+            raise ValueError(f"Run {run_id} not found")
+        
+        if run.status not in [RunStatus.PENDING, RunStatus.RUNNING]:
+            raise ValueError(f"Cannot cancel run in status {run.status}")
+        
+        run.status = RunStatus.CANCELED
+        run.finished_at = datetime.utcnow()
+        db_session.commit()
+        
+        logger.info(f"Run {run_id} canceled")
+        return True
+    
+    async def approve_run(self, run_id: UUID, reviewer_id: UUID, notes: str, db_session) -> bool:
+        """Approve a run that requires approval."""
+        run = db_session.query(BuildRun).filter(BuildRun.id == run_id).first()
+        if not run:
+            raise ValueError(f"Run {run_id} not found")
+        
+        if run.status != RunStatus.NEEDS_APPROVAL:
+            raise ValueError(f"Run {run_id} does not need approval")
+        
+        # Get approval gate
+        approval_gate = db_session.query(ApprovalGate).filter(
+            ApprovalGate.run_id == run_id,
+            ApprovalGate.iteration == run.iteration
+        ).first()
+        
+        if not approval_gate:
+            raise ValueError(f"No approval gate found for run {run_id}")
+        
+        # Update approval gate
+        approval_gate.status = "approved"
+        approval_gate.reviewer_id = reviewer_id
+        approval_gate.notes = notes
+        approval_gate.updated_at = datetime.utcnow()
+        
+        # Continue the build
+        run.status = RunStatus.RUNNING
+        db_session.commit()
+        
+        logger.info(f"Run {run_id} approved by {reviewer_id}")
+        return True
+    
+    async def reject_run(self, run_id: UUID, reviewer_id: UUID, notes: str, db_session) -> bool:
+        """Reject a run that requires approval."""
+        run = db_session.query(BuildRun).filter(BuildRun.id == run_id).first()
+        if not run:
+            raise ValueError(f"Run {run_id} not found")
+        
+        if run.status != RunStatus.NEEDS_APPROVAL:
+            raise ValueError(f"Run {run_id} does not need approval")
+        
+        # Get approval gate
+        approval_gate = db_session.query(ApprovalGate).filter(
+            ApprovalGate.run_id == run_id,
+            ApprovalGate.iteration == run.iteration
+        ).first()
+        
+        if not approval_gate:
+            raise ValueError(f"No approval gate found for run {run_id}")
+        
+        # Update approval gate
+        approval_gate.status = "rejected"
+        approval_gate.reviewer_id = reviewer_id
+        approval_gate.notes = notes
+        approval_gate.updated_at = datetime.utcnow()
+        
+        # Mark run as failed
+        run.status = RunStatus.FAILED
+        run.finished_at = datetime.utcnow()
+        db_session.commit()
+        
+        logger.info(f"Run {run_id} rejected by {reviewer_id}")
+        return True

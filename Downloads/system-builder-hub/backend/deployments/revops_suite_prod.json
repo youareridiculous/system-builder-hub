@@ -1,0 +1,74 @@
+{
+  "name": "revops_suite_prod",
+  "version": "1.0.0",
+  "ecosystem": "revops_suite",
+  "environment": "production",
+  "description": "Production environment for RevOps Suite",
+  "tags": [
+    "production",
+    "prod",
+    "revops"
+  ],
+  "services": {
+    "backend": {
+      "name": "sbh-backend",
+      "image": "sbh-backend:latest",
+      "ports": [
+        5001
+      ],
+      "environment": {
+        "FLASK_ENV": "production",
+        "DEBUG": "false",
+        "DATABASE": "/data/production.db"
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:5001/healthz"
+        ],
+        "interval": "30s",
+        "timeout": "10s",
+        "retries": 3
+      },
+      "depends_on": [
+        "db"
+      ]
+    },
+    "db": {
+      "name": "sqlite-prod",
+      "image": "alpine:latest",
+      "volumes": [
+        "/data:/data"
+      ],
+      "command": "tail -f /dev/null"
+    },
+    "worker": {
+      "name": "sbh-worker",
+      "image": "sbh-backend:latest",
+      "environment": {
+        "FLASK_ENV": "production",
+        "DATABASE": "/data/production.db"
+      },
+      "command": "python -m src.cli worker",
+      "depends_on": [
+        "db"
+      ]
+    },
+    "nginx": {
+      "name": "nginx-proxy",
+      "image": "nginx:alpine",
+      "ports": [
+        80,
+        443
+      ],
+      "volumes": [
+        "./nginx.conf:/etc/nginx/nginx.conf"
+      ],
+      "depends_on": [
+        "backend"
+      ]
+    }
+  }
+}

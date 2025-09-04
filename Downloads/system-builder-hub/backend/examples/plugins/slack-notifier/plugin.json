@@ -1,0 +1,33 @@
+{
+  "slug": "slack-notifier",
+  "name": "Slack Notifier",
+  "version": "1.0.0",
+  "description": "Sends notifications to Slack channels for important CRM events",
+  "author": "SBH Team",
+  "entry": "main.py",
+  "permissions": [
+    "outbound_http",
+    "read_deals",
+    "read_contacts",
+    "emit_webhook"
+  ],
+  "routes": true,
+  "events": [
+    "deal.won",
+    "deal.lost",
+    "contact.created",
+    "task.overdue"
+  ],
+  "jobs": [
+    {
+      "name": "daily_slack_summary",
+      "schedule": "0 9 * * *",
+      "description": "Send daily summary to Slack"
+    }
+  ],
+  "secrets": [
+    "SLACK_WEBHOOK_URL",
+    "SLACK_CHANNEL",
+    "SLACK_BOT_TOKEN"
+  ]
+}

@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive Intelligence - System Builder Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 5px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #718096;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab:hover:not(.active) {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .recommendation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .recommendation-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #667eea;
+            transition: transform 0.3s ease;
+        }
+
+        .recommendation-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .recommendation-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .recommendation-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #2d3748;
+        }
+
+        .recommendation-confidence {
+            background: #c6f6d5;
+            color: #22543d;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .recommendation-description {
+            color: #4a5568;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .recommendation-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 10px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: #718096;
+            text-transform: uppercase;
+        }
+
+        .recommendation-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .tag {
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+        }
+
+        .recommendation-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #38a169;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #2f855a;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #dd6b20;
+            transform: translateY(-2px);
+        }
+
+        .revenue-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .revenue-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #38a169;
+        }
+
+        .revenue-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .revenue-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #2d3748;
+        }
+
+        .revenue-trend {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .trend-positive {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .trend-negative {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .trend-neutral {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .revenue-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .profit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .profit-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #ed8936;
+        }
+
+        .profit-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .profit-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #2d3748;
+        }
+
+        .profit-margin {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .margin-high {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .margin-medium {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .margin-low {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .profit-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .insight-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #9f7aea;
+        }
+
+        .insight-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .insight-category {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #2d3748;
+        }
+
+        .insight-trend {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .trend-rising {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .trend-declining {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .trend-stable {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .insight-description {
+            color: #4a5568;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .insight-recommendations {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .insight-recommendations h4 {
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .insight-recommendations ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .insight-recommendations li {
+            padding: 5px 0;
+            color: #4a5568;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .insight-recommendations li:last-child {
+            border-bottom: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.1);
+            background: #5a67d8;
+        }
+
+        .filter-bar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .filter-input {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: white;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .recommendation-grid,
+            .revenue-grid,
+            .profit-grid,
+            .insights-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                margin-bottom: 5px;
+            }
+
+            .filter-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Predictive Intelligence</h1>
+            <p>AI-powered build recommendations, revenue analysis, and market insights for intelligent system development</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">💡</div>
+                <div class="stat-number" id="total-recommendations">0</div>
+                <div class="stat-label">Build Recommendations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-number" id="total-revenue">$0</div>
+                <div class="stat-label">Total Revenue</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-number" id="avg-roi">0%</div>
+                <div class="stat-label">Average ROI</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-number" id="active-insights">0</div>
+                <div class="stat-label">Market Insights</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('recommendations')">💡 Build Recommendations</button>
+            <button class="tab" onclick="showTab('revenue')">💰 Revenue Heatmap</button>
+            <button class="tab" onclick="showTab('profit')">📊 Profit Analysis</button>
+            <button class="tab" onclick="showTab('insights')">🎯 Market Insights</button>
+        </div>
+
+        <!-- Build Recommendations Tab -->
+        <div id="recommendations" class="tab-content active">
+            <div class="filter-bar">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label class="filter-label">Recommendation Type</label>
+                        <select class="filter-select" id="rec-type-filter">
+                            <option value="">All Types</option>
+                            <option value="system_build">System Build</option>
+                            <option value="agent_creation">Agent Creation</option>
+                            <option value="template_development">Template Development</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Min Confidence</label>
+                        <input type="number" class="filter-input" id="rec-confidence-filter" min="0" max="1" step="0.1" placeholder="0.5">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Min Revenue Potential</label>
+                        <input type="number" class="filter-input" id="rec-revenue-filter" placeholder="10000">
+                    </div>
+                </div>
+            </div>
+            <div class="recommendation-grid" id="recommendation-grid">
+                <div class="loading">Loading build recommendations...</div>
+            </div>
+        </div>
+
+        <!-- Revenue Heatmap Tab -->
+        <div id="revenue" class="tab-content">
+            <div class="filter-bar">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label class="filter-label">Item Type</label>
+                        <select class="filter-select" id="revenue-type-filter">
+                            <option value="">All Types</option>
+                            <option value="system">Systems</option>
+                            <option value="agent">Agents</option>
+                            <option value="template">Templates</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Min Revenue</label>
+                        <input type="number" class="filter-input" id="revenue-min-filter" placeholder="1000">
+                    </div>
+                </div>
+            </div>
+            <div class="revenue-grid" id="revenue-grid">
+                <div class="loading">Loading revenue data...</div>
+            </div>
+        </div>
+
+        <!-- Profit Analysis Tab -->
+        <div id="profit" class="tab-content">
+            <div class="filter-bar">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label class="filter-label">Min ROI</label>
+                        <input type="number" class="filter-input" id="profit-roi-filter" placeholder="50">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Min Profit Margin</label>
+                        <input type="number" class="filter-input" id="profit-margin-filter" placeholder="20">
+                    </div>
+                </div>
+            </div>
+            <div class="profit-grid" id="profit-grid">
+                <div class="loading">Loading profit analysis...</div>
+            </div>
+        </div>
+
+        <!-- Market Insights Tab -->
+        <div id="insights" class="tab-content">
+            <div class="filter-bar">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label class="filter-label">Category</label>
+                        <select class="filter-select" id="insight-category-filter">
+                            <option value="">All Categories</option>
+                            <option value="saas">SaaS</option>
+                            <option value="automation">Automation</option>
+                            <option value="ai">AI</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Trend</label>
+                        <select class="filter-select" id="insight-trend-filter">
+                            <option value="">All Trends</option>
+                            <option value="rising">Rising</option>
+                            <option value="stable">Stable</option>
+                            <option value="declining">Declining</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="insights-grid" id="insights-grid">
+                <div class="loading">Loading market insights...</div>
+            </div>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="refreshData()">🔄</button>
+
+    <script>
+        let currentTab = 'recommendations';
+
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to selected tab
+            event.target.classList.add('active');
+            
+            currentTab = tabName;
+            loadTabData(tabName);
+        }
+
+        function loadTabData(tabName) {
+            switch(tabName) {
+                case 'recommendations':
+                    loadBuildRecommendations();
+                    break;
+                case 'revenue':
+                    loadRevenueHeatmap();
+                    break;
+                case 'profit':
+                    loadProfitAnalysis();
+                    break;
+                case 'insights':
+                    loadMarketInsights();
+                    break;
+            }
+        }
+
+        async function loadBuildRecommendations() {
+            try {
+                const typeFilter = document.getElementById('rec-type-filter').value;
+                const confidenceFilter = document.getElementById('rec-confidence-filter').value;
+                const revenueFilter = document.getElementById('rec-revenue-filter').value;
+                
+                let url = '/api/predictive/recommendations';
+                const params = new URLSearchParams();
+                if (typeFilter) params.append('type', typeFilter);
+                if (confidenceFilter) params.append('min_confidence', confidenceFilter);
+                if (revenueFilter) params.append('min_revenue', revenueFilter);
+                if (params.toString()) url += '?' + params.toString();
+                
+                const response = await fetch(url);
+                const recommendations = await response.json();
+                
+                const grid = document.getElementById('recommendation-grid');
+                grid.innerHTML = '';
+                
+                recommendations.forEach(rec => {
+                    const card = `
+                        <div class="recommendation-card">
+                            <div class="recommendation-header">
+                                <div class="recommendation-title">${rec.title}</div>
+                                <div class="recommendation-confidence">${(rec.confidence_score * 100).toFixed(0)}%</div>
+                            </div>
+                            <div class="recommendation-description">${rec.description}</div>
+                            <div class="recommendation-metrics">
+                                <div class="metric">
+                                    <div class="metric-value">$${rec.revenue_potential.toLocaleString()}</div>
+                                    <div class="metric-label">Revenue Potential</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value">${(rec.market_demand * 100).toFixed(0)}%</div>
+                                    <div class="metric-label">Market Demand</div>
+                                </div>
+                            </div>
+                            <div class="recommendation-tags">
+                                ${rec.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                            </div>
+                            <div class="recommendation-actions">
+                                <button class="btn btn-primary" onclick="implementRecommendation('${rec.recommendation_id}')">Implement</button>
+                                <button class="btn btn-success" onclick="viewRecommendationDetails('${rec.recommendation_id}')">Details</button>
+                            </div>
+                        </div>
+                    `;
+                    grid.innerHTML += card;
+                });
+            } catch (error) {
+                console.error('Error loading recommendations:', error);
+                document.getElementById('recommendation-grid').innerHTML = '<div class="loading">Error loading recommendations</div>';
+            }
+        }
+
+        async function loadRevenueHeatmap() {
+            try {
+                const typeFilter = document.getElementById('revenue-type-filter').value;
+                const minRevenueFilter = document.getElementById('revenue-min-filter').value;
+                
+                let url = '/api/predictive/revenue';
+                const params = new URLSearchParams();
+                if (typeFilter) params.append('type', typeFilter);
+                if (minRevenueFilter) params.append('min_revenue', minRevenueFilter);
+                if (params.toString()) url += '?' + params.toString();
+                
+                const response = await fetch(url);
+                const revenueData = await response.json();
+                
+                const grid = document.getElementById('revenue-grid');
+                grid.innerHTML = '';
+                
+                revenueData.forEach(item => {
+                    const trendClass = item.revenue_trend > 0 ? 'trend-positive' : item.revenue_trend < 0 ? 'trend-negative' : 'trend-neutral';
+                    const trendSymbol = item.revenue_trend > 0 ? '+' : '';
+                    
+                    const card = `
+                        <div class="revenue-card">
+                            <div class="revenue-header">
+                                <div class="revenue-title">${item.item_id}</div>
+                                <div class="revenue-trend ${trendClass}">${trendSymbol}${item.revenue_trend.toFixed(1)}%</div>
+                            </div>
+                            <div class="revenue-metrics">
+                                <div class="metric">
+                                    <div class="metric-value">$${item.total_revenue.toLocaleString()}</div>
+                                    <div class="metric-label">Total Revenue</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value">${item.download_count}</div>
+                                    <div class="metric-label">Downloads</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value">${item.user_count}</div>
+                                    <div class="metric-label">Users</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value">${item.average_rating.toFixed(1)}</div>
+                                    <div class="metric-label">Rating</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    grid.innerHTML += card;
+                });
+            } catch (error) {
+                console.error('Error loading revenue data:', error);
+                document.getElementById('revenue-grid').innerHTML = '<div class="loading">Error loading revenue data</div>';
+            }
+        }
+
+        async function loadProfitAnalysis() {
+            try {
+                const roiFilter = document.getElementById('profit-roi-filter').value;
+                const marginFilter = document.getElementById('profit-margin-filter').value;
+                
+                let url = '/api/predictive/profit';
+                const params = new URLSearchParams();
+                if (roiFilter) params.append('min_roi', roiFilter);
+                if (marginFilter) params.append('min_margin', marginFilter);
+                if (params.toString()) url += '?' + params.toString();
+                
+                const response = await fetch(url);
+                const profitData = await response.json();
+                
+                const grid = document.getElementById('profit-grid');
+                grid.innerHTML = '';
+                
+                profitData.forEach(item => {
+                    const marginClass = item.profit_margin > 50 ? 'margin-high' : item.profit_margin > 20 ? 'margin-medium' : 'margin-low';
+                    
+                    const card = `
+                        <div class="profit-card">
+                            <div class="profit-header">
+                                <div class="profit-title">${item.item_id}</div>
+                                <div class="profit-margin ${marginClass}">${item.profit_margin.toFixed(1)}%</div>
+                            </div>
+                            <div class="profit-metrics">
+                                <div class="metric">
+                                    <div class="metric-value">$${item.total_revenue.toLocaleString()}</div>
+                                    <div class="metric-label">Revenue</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value">$${item.total_cost.toLocaleString()}</div>
+                                    <div class="metric-label">Cost</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value">${item.roi.toFixed(1)}%</div>
+                                    <div class="metric-label">ROI</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value">${item.profit_margin.toFixed(1)}%</div>
+                                    <div class="metric-label">Margin</div>
+                                </div>
+                            </div>
+                            <div class="recommendation-description">
+                                <strong>Pricing:</strong> ${item.pricing_recommendation}
+                            </div>
+                            <div class="recommendation-tags">
+                                ${item.bundling_suggestions.map(suggestion => `<span class="tag">${suggestion}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                    grid.innerHTML += card;
+                });
+            } catch (error) {
+                console.error('Error loading profit data:', error);
+                document.getElementById('profit-grid').innerHTML = '<div class="loading">Error loading profit data</div>';
+            }
+        }
+
+        async function loadMarketInsights() {
+            try {
+                const categoryFilter = document.getElementById('insight-category-filter').value;
+                const trendFilter = document.getElementById('insight-trend-filter').value;
+                
+                let url = '/api/predictive/insights';
+                const params = new URLSearchParams();
+                if (categoryFilter) params.append('category', categoryFilter);
+                if (trendFilter) params.append('trend', trendFilter);
+                if (params.toString()) url += '?' + params.toString();
+                
+                const response = await fetch(url);
+                const insights = await response.json();
+                
+                const grid = document.getElementById('insights-grid');
+                grid.innerHTML = '';
+                
+                insights.forEach(insight => {
+                    const trendClass = `trend-${insight.trend}`;
+                    
+                    const card = `
+                        <div class="insight-card">
+                            <div class="insight-header">
+                                <div class="insight-category">${insight.category}</div>
+                                <div class="insight-trend ${trendClass}">${insight.trend}</div>
+                            </div>
+                            <div class="insight-description">${insight.description}</div>
+                            <div class="insight-recommendations">
+                                <h4>Recommendations:</h4>
+                                <ul>
+                                    ${insight.recommendations.map(rec => `<li>• ${rec}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                    grid.innerHTML += card;
+                });
+            } catch (error) {
+                console.error('Error loading insights:', error);
+                document.getElementById('insights-grid').innerHTML = '<div class="loading">Error loading market insights</div>';
+            }
+        }
+
+        async function loadStatistics() {
+            try {
+                const response = await fetch('/api/predictive/statistics');
+                const stats = await response.json();
+                
+                document.getElementById('total-recommendations').textContent = stats.total_recommendations;
+                document.getElementById('total-revenue').textContent = `$${stats.total_revenue.toLocaleString()}`;
+                document.getElementById('avg-roi').textContent = `${stats.average_roi.toFixed(1)}%`;
+                document.getElementById('active-insights').textContent = stats.active_insights;
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        async function implementRecommendation(recommendationId) {
+            try {
+                const response = await fetch(`/api/predictive/implement/${recommendationId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('Recommendation implemented successfully!');
+                    loadBuildRecommendations();
+                    loadStatistics();
+                } else {
+                    alert('Failed to implement recommendation');
+                }
+            } catch (error) {
+                console.error('Error implementing recommendation:', error);
+                alert('Error implementing recommendation');
+            }
+        }
+
+        function viewRecommendationDetails(recommendationId) {
+            // This would open a modal with detailed recommendation information
+            alert('Recommendation details would be shown here');
+        }
+
+        // Add event listeners for filters
+        document.getElementById('rec-type-filter').addEventListener('change', loadBuildRecommendations);
+        document.getElementById('rec-confidence-filter').addEventListener('input', loadBuildRecommendations);
+        document.getElementById('rec-revenue-filter').addEventListener('input', loadBuildRecommendations);
+        document.getElementById('revenue-type-filter').addEventListener('change', loadRevenueHeatmap);
+        document.getElementById('revenue-min-filter').addEventListener('input', loadRevenueHeatmap);
+        document.getElementById('profit-roi-filter').addEventListener('input', loadProfitAnalysis);
+        document.getElementById('profit-margin-filter').addEventListener('input', loadProfitAnalysis);
+        document.getElementById('insight-category-filter').addEventListener('change', loadMarketInsights);
+        document.getElementById('insight-trend-filter').addEventListener('change', loadMarketInsights);
+
+        function refreshData() {
+            loadStatistics();
+            loadTabData(currentTab);
+        }
+
+        // Initial load
+        loadStatistics();
+        loadBuildRecommendations();
+
+        // Auto-refresh every 60 seconds
+        setInterval(refreshData, 60000);
+    </script>
+</body>
+</html>

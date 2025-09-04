@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affiliate Tools - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .bundle-card {
+            border-left: 4px solid #28a745;
+            transition: transform 0.2s;
+        }
+        .bundle-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .bundle-card.draft { border-left-color: #6c757d; }
+        .bundle-card.published { border-left-color: #28a745; }
+        .bundle-card.paused { border-left-color: #ffc107; }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .stats-card-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        .stats-card-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .stats-card-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .landing-page-preview {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 20px;
+            background: #f8f9fa;
+            min-height: 200px;
+        }
+        
+        .revenue-chart {
+            height: 300px;
+            position: relative;
+        }
+        
+        .bundle-type-badge {
+            font-size: 0.8em;
+            padding: 0.25em 0.5em;
+        }
+        
+        .creator-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .pricing-display {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .feature-tag {
+            background: #e9ecef;
+            border-radius: 15px;
+            padding: 0.25em 0.75em;
+            font-size: 0.8em;
+            margin: 0.1em;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-md-9">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-handshake"></i> Affiliate Tools</h2>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="showDashboard()">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showBundles()">
+                            <i class="fas fa-box"></i> My Bundles
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showSales()">
+                            <i class="fas fa-chart-line"></i> Sales
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showPayouts()">
+                            <i class="fas fa-money-bill"></i> Payouts
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dashboard Interface -->
+                <div id="dashboard-interface">
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card stats-card">
+                                <div class="card-body text-center">
+                                    <h4 id="total-bundles">0</h4>
+                                    <small>Total Bundles</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-success">
+                                <div class="card-body text-center">
+                                    <h4 id="total-sales">0</h4>
+                                    <small>Total Sales</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-info">
+                                <div class="card-body text-center">
+                                    <h4 id="total-revenue">$0</h4>
+                                    <small>Total Revenue</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-warning">
+                                <div class="card-body text-center">
+                                    <h4 id="avg-conversion">0%</h4>
+                                    <small>Avg Conversion</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-plus"></i> Create New Bundle</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="bundle-form">
+                                        <div class="mb-3">
+                                            <label for="bundle-name" class="form-label">Bundle Name</label>
+                                            <input type="text" class="form-control" id="bundle-name" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="bundle-description" class="form-label">Description</label>
+                                            <textarea class="form-control" id="bundle-description" rows="3" required></textarea>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="bundle-type" class="form-label">Bundle Type</label>
+                                                    <select class="form-select" id="bundle-type" required>
+                                                        <option value="agent_pack">Agent Pack</option>
+                                                        <option value="template_collection">Template Collection</option>
+                                                        <option value="asset_bundle">Asset Bundle</option>
+                                                        <option value="course_material">Course Material</option>
+                                                        <option value="consulting_package">Consulting Package</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="bundle-price" class="form-label">Price ($)</label>
+                                                    <input type="number" class="form-control" id="bundle-price" step="0.01" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="revenue-share-type" class="form-label">Revenue Share Type</label>
+                                                    <select class="form-select" id="revenue-share-type" required>
+                                                        <option value="percentage">Percentage</option>
+                                                        <option value="fixed_amount">Fixed Amount</option>
+                                                        <option value="tiered">Tiered</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="revenue-share-value" class="form-label">Revenue Share Value</label>
+                                                    <input type="number" class="form-control" id="revenue-share-value" step="0.01" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="included-items" class="form-label">Included Items (comma-separated)</label>
+                                            <input type="text" class="form-control" id="included-items" placeholder="agent1, template2, asset3">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="bundle-tags" class="form-label">Tags (comma-separated)</label>
+                                            <input type="text" class="form-control" id="bundle-tags" placeholder="ai, automation, productivity">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Create Bundle
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-line"></i> Performance Overview</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center mb-3">
+                                        <div class="col-4">
+                                            <h6>Published</h6>
+                                            <span class="badge bg-success" id="published-count">0</span>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6>Draft</h6>
+                                            <span class="badge bg-secondary" id="draft-count">0</span>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6>Paused</h6>
+                                            <span class="badge bg-warning" id="paused-count">0</span>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <small class="text-muted">This Month</small>
+                                            <div><strong id="monthly-revenue">$0</strong></div>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Pending Payout</small>
+                                            <div><strong id="pending-payout">$0</strong></div>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="revenue-chart">
+                                        <canvas id="revenueChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Performing Bundles -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-trophy"></i> Top Performing Bundles</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="top-bundles">
+                                        <!-- Top bundles will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bundles Interface -->
+                <div id="bundles-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>My Bundles</h4>
+                        <button class="btn btn-primary" onclick="showDashboard()">
+                            <i class="fas fa-plus"></i> Create New Bundle
+                        </button>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <select class="form-select" id="bundle-status-filter" onchange="filterBundles()">
+                                <option value="">All Status</option>
+                                <option value="draft">Draft</option>
+                                <option value="published">Published</option>
+                                <option value="paused">Paused</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="bundle-type-filter" onchange="filterBundles()">
+                                <option value="">All Types</option>
+                                <option value="agent_pack">Agent Pack</option>
+                                <option value="template_collection">Template Collection</option>
+                                <option value="asset_bundle">Asset Bundle</option>
+                                <option value="course_material">Course Material</option>
+                                <option value="consulting_package">Consulting Package</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="bundle-search" placeholder="Search bundles..." onkeyup="searchBundles()">
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="bundles-list">
+                        <!-- Bundle cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Sales Interface -->
+                <div id="sales-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Sales Analytics</h4>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary" onclick="exportSalesData()">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="refreshSalesData()">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="sales-data">
+                        <!-- Sales data will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Payouts Interface -->
+                <div id="payouts-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Payouts & Earnings</h4>
+                        <button class="btn btn-primary" onclick="requestPayout()">
+                            <i class="fas fa-money-bill"></i> Request Payout
+                        </button>
+                    </div>
+                    
+                    <div class="row" id="payouts-data">
+                        <!-- Payouts data will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cog"></i> Affiliate Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Creator Profile -->
+                        <h6>Creator Profile</h6>
+                        <div class="mb-3">
+                            <img src="https://via.placeholder.com/60" class="creator-avatar mb-2" alt="Creator Avatar">
+                            <div><strong id="creator-name">Your Name</strong></div>
+                            <small class="text-muted" id="creator-tier">Gold Creator</small>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Quick Stats -->
+                        <h6>Quick Stats</h6>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Total Sales</span>
+                                <span id="sidebar-total-sales">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Commission Rate</span>
+                                <span id="sidebar-commission-rate">15%</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Available for Payout</span>
+                                <span id="sidebar-available-payout">$0</span>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Quick Actions -->
+                        <h6>Quick Actions</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="createLandingPage()">
+                                <i class="fas fa-globe"></i> Create Landing Page
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="viewAnalytics()">
+                                <i class="fas fa-chart-bar"></i> View Analytics
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="shareBundle()">
+                                <i class="fas fa-share"></i> Share Bundle
+                            </button>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Tips -->
+                        <h6>Pro Tips</h6>
+                        <div class="alert alert-info alert-sm">
+                            <small><i class="fas fa-lightbulb"></i> High-quality preview images increase conversion rates</small>
+                        </div>
+                        <div class="alert alert-info alert-sm">
+                            <small><i class="fas fa-lightbulb"></i> Bundle multiple related items for better value</small>
+                        </div>
+                        <div class="alert alert-info alert-sm">
+                            <small><i class="fas fa-lightbulb"></i> Regular updates keep your bundles fresh</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Bundle Details Modal -->
+    <div class="modal fade" id="bundleDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Bundle Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4 id="modal-bundle-name"></h4>
+                            <p id="modal-bundle-description"></p>
+                            <div class="mb-3">
+                                <span class="badge bg-primary bundle-type-badge" id="modal-bundle-type"></span>
+                                <span class="badge bg-success bundle-type-badge" id="modal-bundle-status"></span>
+                            </div>
+                            <div class="pricing-display mb-3" id="modal-bundle-price"></div>
+                            <div class="mb-3">
+                                <h6>Included Items:</h6>
+                                <div id="modal-included-items"></div>
+                            </div>
+                            <div class="mb-3">
+                                <h6>Tags:</h6>
+                                <div id="modal-bundle-tags"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6>Performance</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <small>Total Sales</small>
+                                        <div><strong id="modal-total-sales">0</strong></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small>Revenue</small>
+                                        <div><strong id="modal-total-revenue">$0</strong></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small>Conversion Rate</small>
+                                        <div><strong id="modal-conversion-rate">0%</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="editBundle()">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="publishBundle()">
+                        <i class="fas fa-globe"></i> Publish
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Landing Page Preview Modal -->
+    <div class="modal fade" id="landingPageModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Landing Page Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="landing-page-preview" id="landing-page-content">
+                        <!-- Landing page content will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="customizeLandingPage()">
+                        <i class="fas fa-paint-brush"></i> Customize
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="publishLandingPage()">
+                        <i class="fas fa-rocket"></i> Publish
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let currentUserId = "user123"; // This would come from authentication
+        let currentOrganizationId = "org456"; // This would come from authentication
+        let revenueChart = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAffiliateStatistics();
+            loadCreatorProfile();
+            setupEventListeners();
+            initializeRevenueChart();
+        });
+
+        // Interface Functions
+        function showDashboard() {
+            document.getElementById('dashboard-interface').style.display = 'block';
+            document.getElementById('bundles-interface').style.display = 'none';
+            document.getElementById('sales-interface').style.display = 'none';
+            document.getElementById('payouts-interface').style.display = 'none';
+        }
+
+        function showBundles() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('bundles-interface').style.display = 'block';
+            document.getElementById('sales-interface').style.display = 'none';
+            document.getElementById('payouts-interface').style.display = 'none';
+            loadBundles();
+        }
+
+        function showSales() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('bundles-interface').style.display = 'none';
+            document.getElementById('sales-interface').style.display = 'block';
+            document.getElementById('payouts-interface').style.display = 'none';
+            loadSalesData();
+        }
+
+        function showPayouts() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('bundles-interface').style.display = 'none';
+            document.getElementById('sales-interface').style.display = 'none';
+            document.getElementById('payouts-interface').style.display = 'block';
+            loadPayoutsData();
+        }
+
+        // Statistics Functions
+        function loadAffiliateStatistics() {
+            fetch('/api/affiliate/statistics')
+            .then(response => response.json())
+            .then(stats => {
+                document.getElementById('total-bundles').textContent = stats.total_bundles;
+                document.getElementById('total-sales').textContent = stats.total_sales;
+                document.getElementById('total-revenue').textContent = '$' + stats.total_revenue.toLocaleString();
+                document.getElementById('avg-conversion').textContent = stats.average_conversion_rate.toFixed(1) + '%';
+                
+                document.getElementById('published-count').textContent = stats.published_bundles;
+                document.getElementById('draft-count').textContent = stats.draft_bundles;
+                document.getElementById('paused-count').textContent = stats.paused_bundles;
+                
+                document.getElementById('monthly-revenue').textContent = '$' + stats.monthly_revenue.toFixed(2);
+                document.getElementById('pending-payout').textContent = '$' + (stats.total_revenue - stats.total_paid_out).toFixed(2);
+                
+                // Update sidebar
+                document.getElementById('sidebar-total-sales').textContent = stats.total_sales;
+                document.getElementById('sidebar-available-payout').textContent = '$' + (stats.total_revenue - stats.total_paid_out).toFixed(2);
+            })
+            .catch(error => console.error('Error loading affiliate statistics:', error));
+        }
+
+        function loadCreatorProfile() {
+            // This would load creator profile information
+            document.getElementById('creator-name').textContent = 'John Doe';
+            document.getElementById('creator-tier').textContent = 'Gold Creator';
+            document.getElementById('sidebar-commission-rate').textContent = '15%';
+        }
+
+        function initializeRevenueChart() {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            revenueChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Revenue',
+                        data: [0, 0, 0, 0, 0, 0],
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Bundle Functions
+        function setupEventListeners() {
+            document.getElementById('bundle-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                createBundle();
+            });
+        }
+
+        function createBundle() {
+            const formData = {
+                creator_id: currentUserId,
+                organization_id: currentOrganizationId,
+                name: document.getElementById('bundle-name').value,
+                description: document.getElementById('bundle-description').value,
+                bundle_type: document.getElementById('bundle-type').value,
+                price: parseFloat(document.getElementById('bundle-price').value),
+                revenue_share_type: document.getElementById('revenue-share-type').value,
+                revenue_share_value: parseFloat(document.getElementById('revenue-share-value').value),
+                included_items: document.getElementById('included-items').value.split(',').map(item => item.trim()),
+                tags: document.getElementById('bundle-tags').value.split(',').map(tag => tag.trim())
+            };
+
+            fetch('/api/affiliate/create-bundle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert('Bundle created successfully!');
+                    document.getElementById('bundle-form').reset();
+                    loadBundles();
+                    loadAffiliateStatistics();
+                }
+            })
+            .catch(error => console.error('Error creating bundle:', error));
+        }
+
+        function loadBundles() {
+            // This would load user's bundles
+            const bundlesList = document.getElementById('bundles-list');
+            bundlesList.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Your bundles will be displayed here
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadSalesData() {
+            // This would load sales data
+            const salesData = document.getElementById('sales-data');
+            salesData.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Sales data will be displayed here
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadPayoutsData() {
+            // This would load payouts data
+            const payoutsData = document.getElementById('payouts-data');
+            payoutsData.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Payouts data will be displayed here
+                    </div>
+                </div>
+            `;
+        }
+
+        // Utility Functions
+        function filterBundles() {
+            const statusFilter = document.getElementById('bundle-status-filter').value;
+            const typeFilter = document.getElementById('bundle-type-filter').value;
+            // Implement bundle filtering
+            console.log('Filtering by status:', statusFilter, 'type:', typeFilter);
+        }
+
+        function searchBundles() {
+            const searchTerm = document.getElementById('bundle-search').value;
+            // Implement bundle search
+            console.log('Searching for:', searchTerm);
+        }
+
+        function exportSalesData() {
+            // This would export sales data
+            alert('Export functionality would be implemented here');
+        }
+
+        function refreshSalesData() {
+            loadSalesData();
+        }
+
+        function requestPayout() {
+            const amount = prompt('Enter payout amount:');
+            if (amount && !isNaN(amount)) {
+                // This would call the payout API
+                alert('Payout request submitted!');
+            }
+        }
+
+        function createLandingPage() {
+            // This would create a landing page
+            alert('Landing page creation would be implemented here');
+        }
+
+        function viewAnalytics() {
+            // This would show analytics
+            alert('Analytics view would be implemented here');
+        }
+
+        function shareBundle() {
+            // This would share a bundle
+            alert('Share functionality would be implemented here');
+        }
+
+        function editBundle() {
+            // This would edit a bundle
+            alert('Edit functionality would be implemented here');
+        }
+
+        function publishBundle() {
+            // This would publish a bundle
+            alert('Publish functionality would be implemented here');
+        }
+
+        function customizeLandingPage() {
+            // This would customize landing page
+            alert('Customize functionality would be implemented here');
+        }
+
+        function publishLandingPage() {
+            // This would publish landing page
+            alert('Publish functionality would be implemented here');
+        }
+    </script>
+</body>
+</html>

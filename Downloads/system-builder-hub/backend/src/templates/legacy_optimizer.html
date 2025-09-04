@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 Legacy Optimizer - System Build Hub OS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        }
+
+        .legacy-systems-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: #495057;
+            font-weight: 600;
+        }
+
+        .system-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .system-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            transition: border-color 0.3s ease;
+        }
+
+        .system-item:hover {
+            border-color: #667eea;
+        }
+
+        .system-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .system-name {
+            font-weight: 600;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+
+        .system-version {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .version-v1 { background: #f8d7da; color: #721c24; }
+        .version-v2 { background: #fff3cd; color: #856404; }
+        .version-v3 { background: #d1ecf1; color: #0c5460; }
+
+        .system-details {
+            margin-bottom: 15px;
+        }
+
+        .system-detail {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .system-detail-label {
+            color: #6c757d;
+        }
+
+        .system-detail-value {
+            color: #495057;
+            font-weight: 500;
+        }
+
+        .priority-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .priority-high { background: #dc3545; }
+        .priority-medium { background: #ffc107; }
+        .priority-low { background: #28a745; }
+
+        .system-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .upgrade-jobs-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .job-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .job-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .job-id {
+            font-weight: 600;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+
+        .job-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-running { background: #d1ecf1; color: #0c5460; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .reports-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .report-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .report-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .report-header {
+            margin-bottom: 15px;
+        }
+
+        .report-title {
+            font-weight: 600;
+            color: #495057;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .report-date {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+
+        .changes-list {
+            margin-bottom: 15px;
+        }
+
+        .change-item {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            font-size: 13px;
+            border-left: 3px solid #667eea;
+        }
+
+        .change-type {
+            font-weight: 600;
+            color: #667eea;
+            margin-right: 8px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .system-list,
+            .job-list,
+            .report-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Legacy Optimizer</h1>
+            <p>Upgrade legacy systems with latest agents and optimizations</p>
+        </div>
+
+        <!-- Scan and Upgrade Controls -->
+        <div class="main-content">
+            <div class="card">
+                <h2>🔍 Scan Legacy Systems</h2>
+                
+                <div class="form-group">
+                    <label for="scanPath">Scan Path:</label>
+                    <input type="text" id="scanPath" placeholder="/path/to/systems" value="/systems">
+                </div>
+                
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="includeV1" checked>
+                        <label for="includeV1">Include v1 Systems</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="includeV2" checked>
+                        <label for="includeV2">Include v2 Systems</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="includeV3">
+                        <label for="includeV3">Include v3 Systems</label>
+                    </div>
+                </div>
+                
+                <button class="btn btn-info" onclick="scanLegacySystems()">🔍 Scan Systems</button>
+                <button class="btn" onclick="clearScanResults()">🗑️ Clear</button>
+            </div>
+            
+            <div class="card">
+                <h2>⚡ Create Upgrade Job</h2>
+                
+                <div class="form-group">
+                    <label for="targetSystem">Target System:</label>
+                    <select id="targetSystem">
+                        <option value="">Select a system to upgrade...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="upgradeType">Upgrade Type:</label>
+                    <select id="upgradeType">
+                        <option value="security">Security Patches</option>
+                        <option value="performance">Performance Optimization</option>
+                        <option value="architecture">Architecture Upgrade</option>
+                        <option value="qa_coverage">QA Coverage Improvement</option>
+                        <option value="compliance">Compliance Updates</option>
+                        <option value="full">Full System Upgrade</option>
+                    </select>
+                </div>
+                
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="createBackup" checked>
+                        <label for="createBackup">Create Backup</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="autoDeploy">
+                        <label for="autoDeploy">Auto Deploy</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="notifyClient">
+                        <label for="notifyClient">Notify Client</label>
+                    </div>
+                </div>
+                
+                <button class="btn btn-success" onclick="createUpgradeJob()">🚀 Create Job</button>
+                <button class="btn btn-warning" onclick="startUpgradeJob()">▶️ Start Job</button>
+            </div>
+        </div>
+
+        <!-- Legacy Systems -->
+        <div class="legacy-systems-section">
+            <div class="section-header">
+                <h2 class="section-title">📋 Legacy Systems</h2>
+                <button class="btn" onclick="refreshSystems()">🔄 Refresh</button>
+            </div>
+            
+            <div class="system-list" id="systemList">
+                <p>No legacy systems found. Run a scan to discover systems.</p>
+            </div>
+        </div>
+
+        <!-- Upgrade Jobs -->
+        <div class="upgrade-jobs-section">
+            <div class="section-header">
+                <h2 class="section-title">⚙️ Upgrade Jobs</h2>
+                <button class="btn" onclick="refreshJobs()">🔄 Refresh</button>
+            </div>
+            
+            <div class="job-list" id="jobList">
+                <p>No upgrade jobs created yet.</p>
+            </div>
+        </div>
+
+        <!-- Upgrade Reports -->
+        <div class="reports-section">
+            <div class="section-header">
+                <h2 class="section-title">📊 Upgrade Reports</h2>
+                <button class="btn" onclick="refreshReports()">🔄 Refresh</button>
+            </div>
+            
+            <div class="report-list" id="reportList">
+                <p>No upgrade reports generated yet.</p>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div id="alerts"></div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let legacySystems = [];
+        let upgradeJobs = [];
+        let upgradeReports = [];
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSystems();
+            loadJobs();
+            loadReports();
+        });
+        
+        // Scan legacy systems
+        async function scanLegacySystems() {
+            const scanPath = document.getElementById('scanPath').value;
+            const includeV1 = document.getElementById('includeV1').checked;
+            const includeV2 = document.getElementById('includeV2').checked;
+            const includeV3 = document.getElementById('includeV3').checked;
+            
+            if (!scanPath) {
+                showAlert('Please enter a scan path', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const response = await fetch('/api/legacy/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        scan_path: scanPath,
+                        include_v1: includeV1,
+                        include_v2: includeV2,
+                        include_v3: includeV3
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`Scan completed! Found ${data.systems.length} legacy systems`, 'success');
+                    loadSystems();
+                    updateSystemSelect();
+                } else {
+                    showAlert(`Scan failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Clear scan results
+        function clearScanResults() {
+            legacySystems = [];
+            displaySystems();
+            updateSystemSelect();
+            showAlert('Scan results cleared', 'info');
+        }
+        
+        // Create upgrade job
+        async function createUpgradeJob() {
+            const targetSystem = document.getElementById('targetSystem').value;
+            const upgradeType = document.getElementById('upgradeType').value;
+            const createBackup = document.getElementById('createBackup').checked;
+            const autoDeploy = document.getElementById('autoDeploy').checked;
+            const notifyClient = document.getElementById('notifyClient').checked;
+            
+            if (!targetSystem) {
+                showAlert('Please select a target system', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const response = await fetch('/api/legacy/upgrade', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        system_id: targetSystem,
+                        upgrade_type: upgradeType,
+                        create_backup: createBackup,
+                        auto_deploy: autoDeploy,
+                        notify_client: notifyClient
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Upgrade job created successfully!', 'success');
+                    loadJobs();
+                } else {
+                    showAlert(`Failed to create job: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Start upgrade job
+        async function startUpgradeJob() {
+            const jobId = document.getElementById('targetSystem').value;
+            
+            if (!jobId) {
+                showAlert('Please select a job to start', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const response = await fetch(`/api/legacy/upgrade/${jobId}/start`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Upgrade job started!', 'success');
+                    loadJobs();
+                } else {
+                    showAlert(`Failed to start job: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Load systems
+        async function loadSystems() {
+            try {
+                // This would load from the backend
+                // For now, we'll use mock data
+                legacySystems = [
+                    {
+                        system_id: "sys_123",
+                        system_name: "E-commerce Platform",
+                        version: "v1",
+                        created_at: "2023-01-15T10:30:00Z",
+                        last_updated: "2023-06-20T14:45:00Z",
+                        file_count: 45,
+                        total_size: 10240000,
+                        qa_score: 0.65,
+                        security_score: 0.72,
+                        performance_score: 0.58,
+                        upgrade_priority: "high",
+                        known_issues: ["Outdated dependencies", "Security vulnerabilities", "Performance bottlenecks"]
+                    },
+                    {
+                        system_id: "sys_124",
+                        system_name: "CRM System",
+                        version: "v2",
+                        created_at: "2023-03-10T09:15:00Z",
+                        last_updated: "2023-08-05T16:20:00Z",
+                        file_count: 32,
+                        total_size: 8192000,
+                        qa_score: 0.78,
+                        security_score: 0.85,
+                        performance_score: 0.72,
+                        upgrade_priority: "medium",
+                        known_issues: ["Minor performance issues", "Missing test coverage"]
+                    }
+                ];
+                displaySystems();
+                updateSystemSelect();
+            } catch (error) {
+                showAlert(`Error loading systems: ${error.message}`, 'error');
+            }
+        }
+        
+        // Display systems
+        function displaySystems() {
+            const container = document.getElementById('systemList');
+            
+            if (legacySystems.length === 0) {
+                container.innerHTML = '<p>No legacy systems found. Run a scan to discover systems.</p>';
+                return;
+            }
+            
+            container.innerHTML = legacySystems.map(system => `
+                <div class="system-item">
+                    <div class="system-header">
+                        <div class="system-name">${system.system_name}</div>
+                        <div class="system-version version-${system.version}">${system.version}</div>
+                    </div>
+                    
+                    <div class="system-details">
+                        <div class="system-detail">
+                            <span class="system-detail-label">Priority:</span>
+                            <span class="system-detail-value">
+                                <span class="priority-indicator priority-${system.upgrade_priority}"></span>
+                                ${system.upgrade_priority}
+                            </span>
+                        </div>
+                        <div class="system-detail">
+                            <span class="system-detail-label">Files:</span>
+                            <span class="system-detail-value">${system.file_count}</span>
+                        </div>
+                        <div class="system-detail">
+                            <span class="system-detail-label">Size:</span>
+                            <span class="system-detail-value">${(system.total_size / 1024 / 1024).toFixed(1)} MB</span>
+                        </div>
+                        <div class="system-detail">
+                            <span class="system-detail-label">QA Score:</span>
+                            <span class="system-detail-value">${(system.qa_score * 100).toFixed(0)}%</span>
+                        </div>
+                        <div class="system-detail">
+                            <span class="system-detail-label">Security Score:</span>
+                            <span class="system-detail-value">${(system.security_score * 100).toFixed(0)}%</span>
+                        </div>
+                        <div class="system-detail">
+                            <span class="system-detail-label">Performance Score:</span>
+                            <span class="system-detail-value">${(system.performance_score * 100).toFixed(0)}%</span>
+                        </div>
+                        <div class="system-detail">
+                            <span class="system-detail-label">Last Updated:</span>
+                            <span class="system-detail-value">${new Date(system.last_updated).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="system-actions">
+                        <button class="btn" onclick="viewSystem('${system.system_id}')">👁️ View</button>
+                        <button class="btn btn-info" onclick="analyzeSystem('${system.system_id}')">🔍 Analyze</button>
+                        <button class="btn btn-success" onclick="upgradeSystem('${system.system_id}')">⚡ Upgrade</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Update system select
+        function updateSystemSelect() {
+            const select = document.getElementById('targetSystem');
+            select.innerHTML = '<option value="">Select a system to upgrade...</option>';
+            
+            legacySystems.forEach(system => {
+                const option = document.createElement('option');
+                option.value = system.system_id;
+                option.textContent = `${system.system_name} (${system.version})`;
+                select.appendChild(option);
+            });
+        }
+        
+        // Load jobs
+        async function loadJobs() {
+            try {
+                // This would load from the backend
+                upgradeJobs = [
+                    {
+                        job_id: "job_123",
+                        system_id: "sys_123",
+                        system_name: "E-commerce Platform",
+                        upgrade_type: "full",
+                        status: "running",
+                        progress: 65,
+                        created_at: "2024-01-15T10:30:00Z",
+                        started_at: "2024-01-15T10:35:00Z",
+                        estimated_completion: "2024-01-15T11:30:00Z",
+                        current_step: "Applying security patches"
+                    }
+                ];
+                displayJobs();
+            } catch (error) {
+                showAlert(`Error loading jobs: ${error.message}`, 'error');
+            }
+        }
+        
+        // Display jobs
+        function displayJobs() {
+            const container = document.getElementById('jobList');
+            
+            if (upgradeJobs.length === 0) {
+                container.innerHTML = '<p>No upgrade jobs created yet.</p>';
+                return;
+            }
+            
+            container.innerHTML = upgradeJobs.map(job => `
+                <div class="job-item">
+                    <div class="job-header">
+                        <div class="job-id">${job.system_name}</div>
+                        <div class="job-status status-${job.status}">${job.status}</div>
+                    </div>
+                    
+                    <div class="system-details">
+                        <div class="system-detail">
+                            <span class="system-detail-label">Job ID:</span>
+                            <span class="system-detail-value">${job.job_id}</span>
+                        </div>
+                        <div class="system-detail">
+                            <span class="system-detail-label">Upgrade Type:</span>
+                            <span class="system-detail-value">${job.upgrade_type}</span>
+                        </div>
+                        <div class="system-detail">
+                            <span class="system-detail-label">Current Step:</span>
+                            <span class="system-detail-value">${job.current_step}</span>
+                        </div>
+                        <div class="system-detail">
+                            <span class="system-detail-label">Started:</span>
+                            <span class="system-detail-value">${new Date(job.started_at).toLocaleString()}</span>
+                        </div>
+                        <div class="system-detail">
+                            <span class="system-detail-label">ETA:</span>
+                            <span class="system-detail-value">${new Date(job.estimated_completion).toLocaleString()}</span>
+                        </div>
+                    </div>
+                    
+                    ${job.status === 'running' ? `
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${job.progress}%"></div>
+                    </div>
+                    <div class="system-detail">
+                        <span class="system-detail-label">Progress:</span>
+                        <span class="system-detail-value">${job.progress}%</span>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="system-actions">
+                        <button class="btn" onclick="viewJob('${job.job_id}')">👁️ View</button>
+                        ${job.status === 'pending' ? `
+                        <button class="btn btn-success" onclick="startJob('${job.job_id}')">▶️ Start</button>
+                        ` : ''}
+                        ${job.status === 'completed' ? `
+                        <button class="btn btn-info" onclick="generateReport('${job.job_id}')">📊 Report</button>
+                        ` : ''}
+                        <button class="btn btn-danger" onclick="cancelJob('${job.job_id}')">❌ Cancel</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Load reports
+        async function loadReports() {
+            try {
+                // This would load from the backend
+                upgradeReports = [
+                    {
+                        report_id: "report_123",
+                        job_id: "job_123",
+                        system_name: "E-commerce Platform",
+                        upgrade_type: "full",
+                        created_at: "2024-01-15T11:30:00Z",
+                        metrics: {
+                            files_modified: 23,
+                            new_features: 8,
+                            bugs_fixed: 12,
+                            performance_improvement: 35
+                        },
+                        changes: [
+                            "Updated all dependencies to latest versions",
+                            "Implemented new security measures",
+                            "Optimized database queries",
+                            "Added comprehensive test coverage"
+                        ],
+                        improvements: [
+                            "Security score improved from 72% to 95%",
+                            "Performance score improved from 58% to 87%",
+                            "QA coverage increased from 65% to 92%"
+                        ],
+                        fixed_issues: [
+                            "Resolved SQL injection vulnerabilities",
+                            "Fixed memory leaks in image processing",
+                            "Eliminated race conditions in payment processing"
+                        ]
+                    }
+                ];
+                displayReports();
+            } catch (error) {
+                showAlert(`Error loading reports: ${error.message}`, 'error');
+            }
+        }
+        
+        // Display reports
+        function displayReports() {
+            const container = document.getElementById('reportList');
+            
+            if (upgradeReports.length === 0) {
+                container.innerHTML = '<p>No upgrade reports generated yet.</p>';
+                return;
+            }
+            
+            container.innerHTML = upgradeReports.map(report => `
+                <div class="report-item">
+                    <div class="report-header">
+                        <div class="report-title">${report.system_name} - ${report.upgrade_type} Upgrade</div>
+                        <div class="report-date">${new Date(report.created_at).toLocaleDateString()}</div>
+                    </div>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">${report.metrics.files_modified}</div>
+                            <div class="metric-label">Files Modified</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${report.metrics.new_features}</div>
+                            <div class="metric-label">New Features</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${report.metrics.bugs_fixed}</div>
+                            <div class="metric-label">Bugs Fixed</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${report.metrics.performance_improvement}%</div>
+                            <div class="metric-label">Performance Gain</div>
+                        </div>
+                    </div>
+                    
+                    <div class="changes-list">
+                        <strong>Key Changes:</strong>
+                        ${report.changes.map(change => `
+                            <div class="change-item">
+                                <span class="change-type">✓</span>${change}
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="changes-list">
+                        <strong>Improvements:</strong>
+                        ${report.improvements.map(improvement => `
+                            <div class="change-item">
+                                <span class="change-type">📈</span>${improvement}
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="changes-list">
+                        <strong>Fixed Issues:</strong>
+                        ${report.fixed_issues.map(issue => `
+                            <div class="change-item">
+                                <span class="change-type">🔧</span>${issue}
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="system-actions">
+                        <button class="btn" onclick="viewReport('${report.report_id}')">👁️ View Full</button>
+                        <button class="btn btn-success" onclick="downloadReport('${report.report_id}')">📥 Download</button>
+                        <button class="btn btn-info" onclick="shareReport('${report.report_id}')">📤 Share</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Utility functions
+        function viewSystem(systemId) {
+            showAlert('Viewing system details...', 'info');
+        }
+        
+        function analyzeSystem(systemId) {
+            showAlert('Analyzing system...', 'info');
+        }
+        
+        function upgradeSystem(systemId) {
+            document.getElementById('targetSystem').value = systemId;
+            showAlert('System selected for upgrade', 'success');
+        }
+        
+        function viewJob(jobId) {
+            showAlert('Viewing job details...', 'info');
+        }
+        
+        function startJob(jobId) {
+            showAlert('Starting job...', 'info');
+        }
+        
+        function generateReport(jobId) {
+            showAlert('Generating report...', 'info');
+        }
+        
+        function cancelJob(jobId) {
+            if (confirm('Are you sure you want to cancel this job?')) {
+                showAlert('Job cancelled', 'success');
+                loadJobs();
+            }
+        }
+        
+        function viewReport(reportId) {
+            showAlert('Viewing full report...', 'info');
+        }
+        
+        function downloadReport(reportId) {
+            showAlert('Downloading report...', 'success');
+        }
+        
+        function shareReport(reportId) {
+            showAlert('Sharing report...', 'info');
+        }
+        
+        function refreshSystems() {
+            loadSystems();
+            showAlert('Systems refreshed!', 'success');
+        }
+        
+        function refreshJobs() {
+            loadJobs();
+            showAlert('Jobs refreshed!', 'success');
+        }
+        
+        function refreshReports() {
+            loadReports();
+            showAlert('Reports refreshed!', 'success');
+        }
+        
+        function showAlert(message, type) {
+            const alertsContainer = document.getElementById('alerts');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            alertsContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+        
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            loading.style.display = show ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

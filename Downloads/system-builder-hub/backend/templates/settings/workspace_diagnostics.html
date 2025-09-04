@@ -1,0 +1,258 @@
+{% extends "settings/layout.html" %}
+
+{% block content %}
+<div x-data="diagnosticsSettings()" x-init="init()">
+    <!-- System Health -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">System Health</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-lg border">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-database text-2xl" :class="healthData.components.database.status === 'healthy' ? 'text-green-500' : 'text-red-500'"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">Database</p>
+                        <p class="text-sm text-gray-500" x-text="healthData.components.database.status"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white p-4 rounded-lg border">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-memory text-2xl" :class="healthData.components.redis.status === 'healthy' ? 'text-green-500' : 'text-red-500'"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">Redis</p>
+                        <p class="text-sm text-gray-500" x-text="healthData.components.redis.status"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white p-4 rounded-lg border">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-cloud text-2xl" :class="healthData.components.s3.status === 'healthy' ? 'text-green-500' : 'text-red-500'"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">S3 Storage</p>
+                        <p class="text-sm text-gray-500" x-text="healthData.components.s3.status"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white p-4 rounded-lg border">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-envelope text-2xl" :class="healthData.components.ses.status === 'healthy' ? 'text-green-500' : 'text-red-500'"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">SES Email</p>
+                        <p class="text-sm text-gray-500" x-text="healthData.components.ses.status"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Privacy Status -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Privacy Status</h3>
+        <div class="bg-gray-50 rounded-lg p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-lg border">
+                    <h4 class="font-medium text-gray-900 mb-2">Privacy Mode</h4>
+                    <p class="text-sm text-gray-600" x-text="healthData.privacy.mode"></p>
+                </div>
+                <div class="bg-white p-4 rounded-lg border">
+                    <h4 class="font-medium text-gray-900 mb-2">Retention Enabled</h4>
+                    <p class="text-sm text-gray-600">
+                        <span x-show="healthData.privacy.retention_enabled" class="text-green-600">Yes</span>
+                        <span x-show="!healthData.privacy.retention_enabled" class="text-red-600">No</span>
+                    </p>
+                </div>
+                <div class="bg-white p-4 rounded-lg border">
+                    <h4 class="font-medium text-gray-900 mb-2">Redaction Enabled</h4>
+                    <p class="text-sm text-gray-600">
+                        <span x-show="healthData.privacy.redaction_enabled" class="text-green-600">Yes</span>
+                        <span x-show="!healthData.privacy.redaction_enabled" class="text-red-600">No</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Feature Flags -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Feature Flags</h3>
+        <div class="bg-gray-50 rounded-lg p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <template x-for="(enabled, feature) in healthData.feature_flags" :key="feature">
+                    <div class="bg-white p-4 rounded-lg border">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-900" x-text="formatFeatureName(feature)"></span>
+                            <span class="text-sm" :class="enabled ? 'text-green-600' : 'text-red-600'">
+                                <i class="fas" :class="enabled ? 'fa-check' : 'fa-times'"></i>
+                            </span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Queue Status -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Queue Status</h3>
+        <div class="bg-gray-50 rounded-lg p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-lg border">
+                    <h4 class="font-medium text-gray-900 mb-2">Status</h4>
+                    <p class="text-sm text-gray-600" x-text="healthData.queue_status.status"></p>
+                </div>
+                <div class="bg-white p-4 rounded-lg border">
+                    <h4 class="font-medium text-gray-900 mb-2">Pending Jobs</h4>
+                    <p class="text-sm text-gray-600" x-text="healthData.queue_status.pending_jobs"></p>
+                </div>
+                <div class="bg-white p-4 rounded-lg border">
+                    <h4 class="font-medium text-gray-900 mb-2">Active Workers</h4>
+                    <p class="text-sm text-gray-600" x-text="healthData.queue_status.workers"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Error Summary -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Error Summary</h3>
+        <div class="bg-gray-50 rounded-lg p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-lg border">
+                    <h4 class="font-medium text-gray-900 mb-2">Last Error</h4>
+                    <p class="text-sm text-gray-600" x-text="healthData.error_summary.last_error || 'None'"></p>
+                </div>
+                <div class="bg-white p-4 rounded-lg border">
+                    <h4 class="font-medium text-gray-900 mb-2">Errors (24h)</h4>
+                    <p class="text-sm text-gray-600" x-text="healthData.error_summary.error_count_24h"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Version Information -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Version Information</h3>
+        <div class="bg-gray-50 rounded-lg p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-lg border">
+                    <h4 class="font-medium text-gray-900 mb-2">Version</h4>
+                    <p class="text-sm text-gray-600" x-text="healthData.version_info.version"></p>
+                </div>
+                <div class="bg-white p-4 rounded-lg border">
+                    <h4 class="font-medium text-gray-900 mb-2">Build ID</h4>
+                    <p class="text-sm text-gray-600" x-text="healthData.version_info.build_id"></p>
+                </div>
+                <div class="bg-white p-4 rounded-lg border">
+                    <h4 class="font-medium text-gray-900 mb-2">Environment</h4>
+                    <p class="text-sm text-gray-600" x-text="healthData.version_info.deployment_env"></p>
+                </div>
+                <div class="bg-white p-4 rounded-lg border">
+                    <h4 class="font-medium text-gray-900 mb-2">Git Commit</h4>
+                    <p class="text-sm text-gray-600" x-text="healthData.version_info.git_commit"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+        <div class="bg-gray-50 rounded-lg p-6">
+            <div class="flex flex-wrap gap-4">
+                <a href="/metrics" 
+                   class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                    <i class="fas fa-chart-bar mr-2"></i>
+                    View Metrics
+                </a>
+                <a href="/readiness" 
+                   class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
+                    <i class="fas fa-heartbeat mr-2"></i>
+                    Health Check
+                </a>
+                <button @click="refreshDiagnostics()"
+                        class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">
+                    <i class="fas fa-sync-alt mr-2"></i>
+                    Refresh Data
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function diagnosticsSettings() {
+    return {
+        healthData: {
+            status: 'healthy',
+            timestamp: '',
+            components: {
+                database: { status: 'unknown' },
+                redis: { status: 'unknown' },
+                s3: { status: 'unknown' },
+                ses: { status: 'unknown' }
+            },
+            privacy: {
+                mode: 'unknown',
+                retention_enabled: false,
+                redaction_enabled: false
+            },
+            feature_flags: {},
+            queue_status: {
+                status: 'unknown',
+                pending_jobs: 0,
+                workers: 0
+            },
+            error_summary: {
+                last_error: null,
+                error_count_24h: 0
+            },
+            version_info: {
+                version: 'unknown',
+                build_id: 'unknown',
+                deployment_env: 'unknown',
+                git_commit: 'unknown'
+            }
+        },
+        
+        async init() {
+            this.setPageInfo('Diagnostics', 'System health and diagnostic information', 'Workspace Diagnostics');
+            await this.loadDiagnosticsData();
+        },
+        
+        async loadDiagnosticsData() {
+            try {
+                const response = await fetch('/api/settings/workspace/diagnostics?tenant_id=current');
+                const data = await response.json();
+                
+                this.healthData = data.data.health;
+            } catch (error) {
+                console.error('Failed to load diagnostics data:', error);
+            }
+        },
+        
+        async refreshDiagnostics() {
+            await this.loadDiagnosticsData();
+            this.showToast('success', 'Success', 'Diagnostics data refreshed');
+        },
+        
+        formatFeatureName(feature) {
+            return feature
+                .split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+    };
+}
+</script>
+{% endblock %}

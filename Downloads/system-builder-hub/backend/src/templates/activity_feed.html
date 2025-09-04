@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Feed - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .activity-timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        .activity-timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #dee2e6;
+        }
+        .activity-item {
+            position: relative;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .activity-item::before {
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 20px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #007bff;
+            border: 2px solid #fff;
+        }
+        .activity-item.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .activity-item.error::before {
+            background: #dc3545;
+        }
+        .activity-item.warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .activity-item.warning::before {
+            background: #ffc107;
+        }
+        .activity-item.info {
+            border-left-color: #17a2b8;
+            background: #d1ecf1;
+        }
+        .activity-item.info::before {
+            background: #17a2b8;
+        }
+        .activity-item.success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .activity-item.success::before {
+            background: #28a745;
+        }
+        .activity-meta {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        .activity-actor {
+            font-weight: 600;
+            color: #495057;
+        }
+        .activity-description {
+            margin: 8px 0;
+            color: #212529;
+        }
+        .activity-details {
+            font-size: 0.875rem;
+            color: #6c757d;
+            background: rgba(0,0,0,0.05);
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+        .filter-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .real-time-indicator {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .new-activity {
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-cogs"></i> System Builder Hub
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">Main Dashboard</a>
+                <a class="nav-link" href="/developer-dashboard">Developer Dashboard</a>
+                <a class="nav-link active" href="/activity-feed">Activity Feed</a>
+                <a class="nav-link" href="/diagnostics">Diagnostics</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-stream"></i> Activity Feed
+                    <span class="badge bg-success real-time-indicator">Live</span>
+                </h1>
+            </div>
+        </div>
+
+        <!-- Filters and Controls -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card filter-card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="form-label">Activity Type</label>
+                                <select id="activity-type-filter" class="form-select" multiple>
+                                    <option value="prompt_run">Prompt Run</option>
+                                    <option value="code_change">Code Change</option>
+                                    <option value="component_create">Component Create</option>
+                                    <option value="component_delete">Component Delete</option>
+                                    <option value="system_state_change">System State Change</option>
+                                    <option value="agent_action">Agent Action</option>
+                                    <option value="llm_call">LLM Call</option>
+                                    <option value="api_request">API Request</option>
+                                    <option value="ui_update">UI Update</option>
+                                    <option value="build_start">Build Start</option>
+                                    <option value="build_complete">Build Complete</option>
+                                    <option value="build_fail">Build Fail</option>
+                                    <option value="error">Error</option>
+                                    <option value="warning">Warning</option>
+                                    <option value="info">Info</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Actor Type</label>
+                                <select id="actor-type-filter" class="form-select" multiple>
+                                    <option value="user">User</option>
+                                    <option value="support_agent">Support Agent</option>
+                                    <option value="automation">Automation</option>
+                                    <option value="ai_component">AI Component</option>
+                                    <option value="system">System</option>
+                                    <option value="agent">Agent</option>
+                                    <option value="llm">LLM</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Severity</label>
+                                <select id="severity-filter" class="form-select" multiple>
+                                    <option value="info">Info</option>
+                                    <option value="warning">Warning</option>
+                                    <option value="error">Error</option>
+                                    <option value="critical">Critical</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">System ID</label>
+                                <input type="text" id="system-id-filter" class="form-control" placeholder="System ID">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Actions</label>
+                                <div class="d-grid gap-2">
+                                    <button id="apply-filters" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-filter"></i> Apply
+                                    </button>
+                                    <button id="clear-filters" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-times"></i> Clear
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <input type="text" id="search-input" class="form-control" placeholder="Search activities...">
+                                    <button id="search-btn" class="btn btn-outline-primary">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <button id="export-activities" class="btn btn-success">
+                                    <i class="fas fa-download"></i> Export
+                                </button>
+                                <button id="refresh-activities" class="btn btn-info">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Summary -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h4 id="total-events">0</h4>
+                        <small>Total Events</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h4 id="success-events">0</h4>
+                        <small>Success</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h4 id="warning-events">0</h4>
+                        <small>Warnings</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <h4 id="error-events">0</h4>
+                        <small>Errors</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Timeline -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-clock"></i> Activity Timeline</h5>
+                        <div>
+                            <span class="badge bg-secondary" id="events-count">0 events</span>
+                            <span class="badge bg-info" id="time-range">Last 24h</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="activity-timeline" class="activity-timeline">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-spinner fa-spin"></i> Loading activities...
+                            </div>
+                        </div>
+                        <div id="load-more-container" class="text-center mt-3" style="display: none;">
+                            <button id="load-more" class="btn btn-outline-primary">
+                                <i class="fas fa-plus"></i> Load More
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentFilters = {};
+        let currentOffset = 0;
+        let hasMoreActivities = true;
+        let updateInterval;
+
+        // Initialize activity feed
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeFilters();
+            loadActivities();
+            loadActivitySummary();
+            startRealTimeUpdates();
+        });
+
+        function initializeFilters() {
+            // Filter event listeners
+            document.getElementById('apply-filters').addEventListener('click', applyFilters);
+            document.getElementById('clear-filters').addEventListener('click', clearFilters);
+            document.getElementById('search-btn').addEventListener('click', performSearch);
+            document.getElementById('export-activities').addEventListener('click', exportActivities);
+            document.getElementById('refresh-activities').addEventListener('click', refreshActivities);
+            document.getElementById('load-more').addEventListener('click', loadMoreActivities);
+
+            // Search on Enter key
+            document.getElementById('search-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+        }
+
+        function applyFilters() {
+            currentFilters = {
+                activity_types: Array.from(document.getElementById('activity-type-filter').selectedOptions).map(opt => opt.value),
+                actor_types: Array.from(document.getElementById('actor-type-filter').selectedOptions).map(opt => opt.value),
+                severity_levels: Array.from(document.getElementById('severity-filter').selectedOptions).map(opt => opt.value),
+                system_id: document.getElementById('system-id-filter').value
+            };
+
+            currentOffset = 0;
+            hasMoreActivities = true;
+            loadActivities();
+        }
+
+        function clearFilters() {
+            document.getElementById('activity-type-filter').selectedIndex = -1;
+            document.getElementById('actor-type-filter').selectedIndex = -1;
+            document.getElementById('severity-filter').selectedIndex = -1;
+            document.getElementById('system-id-filter').value = '';
+            document.getElementById('search-input').value = '';
+
+            currentFilters = {};
+            currentOffset = 0;
+            hasMoreActivities = true;
+            loadActivities();
+        }
+
+        function performSearch() {
+            const searchTerm = document.getElementById('search-input').value;
+            if (searchTerm.trim()) {
+                searchActivities(searchTerm);
+            } else {
+                loadActivities();
+            }
+        }
+
+        function loadActivities() {
+            const queryParams = new URLSearchParams();
+            
+            if (currentFilters.activity_types.length > 0) {
+                queryParams.append('activity_types', currentFilters.activity_types.join(','));
+            }
+            if (currentFilters.actor_types.length > 0) {
+                queryParams.append('actor_types', currentFilters.actor_types.join(','));
+            }
+            if (currentFilters.severity_levels.length > 0) {
+                queryParams.append('severity_levels', currentFilters.severity_levels.join(','));
+            }
+            if (currentFilters.system_id) {
+                queryParams.append('system_id', currentFilters.system_id);
+            }
+            
+            queryParams.append('limit', '50');
+            queryParams.append('offset', currentOffset);
+
+            fetch(`/api/activity-feed/events?${queryParams}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayActivities(data.data, currentOffset === 0);
+                        hasMoreActivities = data.data.length === 50;
+                        updateLoadMoreButton();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading activities:', error);
+                    document.getElementById('activity-timeline').innerHTML = 
+                        '<div class="alert alert-danger">Error loading activities</div>';
+                });
+        }
+
+        function loadMoreActivities() {
+            currentOffset += 50;
+            loadActivities();
+        }
+
+        function searchActivities(searchTerm) {
+            fetch(`/api/activity-feed/events?search=${encodeURIComponent(searchTerm)}&limit=100`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayActivities(data.data, true);
+                        hasMoreActivities = false;
+                        updateLoadMoreButton();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error searching activities:', error);
+                });
+        }
+
+        function displayActivities(activities, clearExisting = false) {
+            const timeline = document.getElementById('activity-timeline');
+            
+            if (clearExisting) {
+                timeline.innerHTML = '';
+            }
+
+            if (activities.length === 0) {
+                if (clearExisting) {
+                    timeline.innerHTML = '<div class="text-center text-muted">No activities found</div>';
+                }
+                return;
+            }
+
+            activities.forEach(activity => {
+                const activityElement = createActivityElement(activity);
+                if (clearExisting) {
+                    timeline.appendChild(activityElement);
+                } else {
+                    timeline.insertBefore(activityElement, timeline.firstChild);
+                    activityElement.classList.add('new-activity');
+                }
+            });
+        }
+
+        function createActivityElement(activity) {
+            const div = document.createElement('div');
+            div.className = `activity-item ${activity.severity}`;
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="activity-meta">
+                        <span class="activity-actor">
+                            <i class="fas fa-${getActorIcon(activity.actor_type)}"></i>
+                            ${activity.actor_id}
+                        </span>
+                        <span class="ms-2">•</span>
+                        <span>${new Date(activity.timestamp).toLocaleString()}</span>
+                        ${activity.system_id ? `<span class="ms-2">•</span><span>System: ${activity.system_id}</span>` : ''}
+                    </div>
+                    <span class="badge bg-${getSeverityBadgeClass(activity.severity)}">${activity.severity}</span>
+                </div>
+                <div class="activity-description">
+                    <strong>${activity.activity_type.replace('_', ' ').toUpperCase()}:</strong>
+                    ${activity.description}
+                </div>
+                ${activity.details && Object.keys(activity.details).length > 0 ? 
+                    `<div class="activity-details">
+                        <strong>Details:</strong> ${JSON.stringify(activity.details, null, 2)}
+                    </div>` : ''}
+            `;
+            return div;
+        }
+
+        function getActorIcon(actorType) {
+            const icons = {
+                'user': 'user',
+                'support_agent': 'headset',
+                'automation': 'cogs',
+                'ai_component': 'brain',
+                'system': 'server',
+                'agent': 'robot',
+                'llm': 'microchip'
+            };
+            return icons[actorType] || 'question';
+        }
+
+        function getSeverityBadgeClass(severity) {
+            const classes = {
+                'info': 'secondary',
+                'warning': 'warning',
+                'error': 'danger',
+                'critical': 'dark'
+            };
+            return classes[severity] || 'secondary';
+        }
+
+        function updateLoadMoreButton() {
+            const container = document.getElementById('load-more-container');
+            if (hasMoreActivities) {
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        function loadActivitySummary() {
+            fetch('/api/activity-feed/summary')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateSummary(data.data);
+                    }
+                })
+                .catch(error => console.error('Error loading summary:', error));
+        }
+
+        function updateSummary(summary) {
+            document.getElementById('total-events').textContent = summary.total_events;
+            document.getElementById('success-events').textContent = summary.events_by_severity.info || 0;
+            document.getElementById('warning-events').textContent = summary.events_by_severity.warning || 0;
+            document.getElementById('error-events').textContent = 
+                (summary.events_by_severity.error || 0) + (summary.events_by_severity.critical || 0);
+            
+            document.getElementById('events-count').textContent = `${summary.total_events} events`;
+        }
+
+        function exportActivities() {
+            const queryParams = new URLSearchParams();
+            
+            if (currentFilters.activity_types.length > 0) {
+                queryParams.append('activity_types', currentFilters.activity_types.join(','));
+            }
+            if (currentFilters.actor_types.length > 0) {
+                queryParams.append('actor_types', currentFilters.actor_types.join(','));
+            }
+            if (currentFilters.severity_levels.length > 0) {
+                queryParams.append('severity_levels', currentFilters.severity_levels.join(','));
+            }
+            if (currentFilters.system_id) {
+                queryParams.append('system_id', currentFilters.system_id);
+            }
+
+            // Create download link
+            const link = document.createElement('a');
+            link.href = `/api/activity-feed/export?${queryParams}`;
+            link.download = `activity-feed-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function refreshActivities() {
+            currentOffset = 0;
+            hasMoreActivities = true;
+            loadActivities();
+            loadActivitySummary();
+        }
+
+        function startRealTimeUpdates() {
+            updateInterval = setInterval(() => {
+                // Check for new activities
+                fetch('/api/activity-feed/events?limit=10')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success' && data.data.length > 0) {
+                            // Add new activities to the top
+                            displayActivities(data.data, false);
+                        }
+                    })
+                    .catch(error => console.error('Error checking for new activities:', error));
+            }, 10000); // Check every 10 seconds
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        });
+    </script>
+</body>
+</html>

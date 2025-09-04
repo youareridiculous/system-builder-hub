@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONSTEL - Compliance & Ethical Framework Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --dark-bg: #2c3e50;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--light-bg) 0%, #bdc3c7 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .main-container {
+            padding: 2rem 0;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 1.5rem;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--accent-color) 0%, #2980b9 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 1.5rem;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .status-passed {
+            background: linear-gradient(135deg, var(--success-color) 0%, #229954 100%);
+            color: white;
+        }
+
+        .status-warning {
+            background: linear-gradient(135deg, var(--warning-color) 0%, #d68910 100%);
+            color: white;
+        }
+
+        .status-failed {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .status-pending {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+            color: white;
+        }
+
+        .risk-score {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .risk-low {
+            color: var(--success-color);
+        }
+
+        .risk-medium {
+            color: var(--warning-color);
+        }
+
+        .risk-high {
+            color: var(--danger-color);
+        }
+
+        .violation-item {
+            background: #f8f9fa;
+            border-left: 4px solid var(--danger-color);
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .violation-item.warning {
+            border-left-color: var(--warning-color);
+        }
+
+        .violation-item.info {
+            border-left-color: var(--accent-color);
+        }
+
+        .cost-card {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+            color: white;
+        }
+
+        .cost-amount {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .framework-badge {
+            background: var(--accent-color);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin: 0.2rem;
+            display: inline-block;
+        }
+
+        .live-audit {
+            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+            color: white;
+        }
+
+        .progress-ring {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+        }
+
+        .progress-ring circle {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+        }
+
+        .progress-ring .bg {
+            stroke: #ecf0f1;
+        }
+
+        .progress-ring .progress {
+            stroke: var(--accent-color);
+            stroke-dasharray: 283;
+            stroke-dashoffset: 283;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .btn-constel {
+            background: linear-gradient(135deg, var(--accent-color) 0%, #2980b9 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-constel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+            color: white;
+        }
+
+        .alert-constel {
+            border: none;
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--accent-color);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 1.5rem;
+            padding-left: 1.5rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -0.5rem;
+            top: 0.5rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-color);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-shield-alt me-2"></i>
+                CONSTEL - Compliance & Ethical Framework
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text">
+                    <i class="fas fa-user-circle me-2"></i>
+                    System Builder Hub
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container main-container">
+        <!-- Header Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h1 class="display-4 mb-3">
+                            <i class="fas fa-star me-3"></i>
+                            CONSTEL Compliance Dashboard
+                        </h1>
+                        <p class="lead text-muted">
+                            Ensuring every system meets legal, moral, and ethical standards
+                        </p>
+                        <div class="row mt-4">
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                                    <h5>Legal Compliance</h5>
+                                    <small class="text-muted">GDPR, HIPAA, AI Act</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <i class="fas fa-balance-scale text-primary fa-2x mb-2"></i>
+                                    <h5>Ethical Standards</h5>
+                                    <small class="text-muted">Bias, Fairness, Transparency</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <i class="fas fa-chart-line text-warning fa-2x mb-2"></i>
+                                    <h5>Cost Analysis</h5>
+                                    <small class="text-muted">Build, Runtime, Scaling</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <i class="fas fa-exclamation-triangle text-danger fa-2x mb-2"></i>
+                                    <h5>Risk Assessment</h5>
+                                    <small class="text-muted">ERS, RRS, Trust Score</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Compliance Status -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-shield-check me-2"></i>
+                            System Compliance Status
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 text-center">
+                                <div class="progress-ring">
+                                    <svg width="120" height="120">
+                                        <circle class="bg" cx="60" cy="60" r="45"></circle>
+                                        <circle class="progress" cx="60" cy="60" r="45" 
+                                                data-progress="85"></circle>
+                                    </svg>
+                                </div>
+                                <h5 class="mt-3">Overall Score</h5>
+                                <span class="status-badge status-passed">85% Compliant</span>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="risk-score risk-low">0.15</div>
+                                <h5>Ethical Risk Score</h5>
+                                <small class="text-muted">ERS (0-1, lower is better)</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="risk-score risk-medium">0.32</div>
+                                <h5>Regulatory Risk Score</h5>
+                                <small class="text-muted">RRS (0-1, lower is better)</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="risk-score risk-low">0.87</div>
+                                <h5>Trust Score</h5>
+                                <small class="text-muted">Trust (0-1, higher is better)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Framework Auditor -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card live-audit">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-search me-2"></i>
+                            Live Framework Auditor
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Real-time Validation</h5>
+                                <div class="alert alert-constel alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Active Monitoring:</strong> System is being validated against compliance frameworks
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Select Frameworks to Check:</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="gdpr" checked>
+                                        <label class="form-check-label" for="gdpr">
+                                            GDPR (General Data Protection Regulation)
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="hipaa" checked>
+                                        <label class="form-check-label" for="hipaa">
+                                            HIPAA (Health Insurance Portability and Accountability Act)
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="ai_act" checked>
+                                        <label class="form-check-label" for="ai_act">
+                                            EU AI Act
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="ethical_ai" checked>
+                                        <label class="form-check-label" for="ethical_ai">
+                                            Ethical AI Principles
+                                        </label>
+                                    </div>
+                                </div>
+                                <button class="btn btn-constel" onclick="runLiveAudit()">
+                                    <i class="fas fa-play me-2"></i>
+                                    Run Live Audit
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Current Violations</h5>
+                                <div id="violations-container">
+                                    <div class="violation-item warning">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <strong>Data Minimization Warning</strong>
+                                                <p class="mb-1">System collects 15 personal data fields, exceeding minimization principle</p>
+                                                <small class="text-muted">Framework: GDPR | Severity: Medium</small>
+                                            </div>
+                                            <span class="badge bg-warning">Medium</span>
+                                        </div>
+                                    </div>
+                                    <div class="violation-item info">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <strong>Bias Detection Recommended</strong>
+                                                <p class="mb-1">Enable bias detection and monitoring for AI components</p>
+                                                <small class="text-muted">Framework: Ethical AI | Severity: Low</small>
+                                            </div>
+                                            <span class="badge bg-info">Low</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cost & Risk Forecast -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Cost & Risk Forecast
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Projected Costs</h5>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="text-center">
+                                            <div class="cost-amount text-primary">$2,450</div>
+                                            <small class="text-muted">Monthly Runtime</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-center">
+                                            <div class="cost-amount text-success">$29,400</div>
+                                            <small class="text-muted">Annual Runtime</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-6">
+                                        <div class="text-center">
+                                            <div class="cost-amount text-warning">$8,500</div>
+                                            <small class="text-muted">Build Cost</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-center">
+                                            <div class="cost-amount text-danger">$37,900</div>
+                                            <small class="text-muted">First Year Total</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Risk Projection</h5>
+                                <canvas id="riskChart" width="300" height="200"></canvas>
+                            </div>
+                        </div>
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5>Cost Breakdown</h5>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <i class="fas fa-server text-primary fa-2x mb-2"></i>
+                                            <h6>Compute</h6>
+                                            <strong>$1,200/month</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <i class="fas fa-database text-success fa-2x mb-2"></i>
+                                            <h6>Storage</h6>
+                                            <strong>$150/month</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <i class="fas fa-robot text-warning fa-2x mb-2"></i>
+                                            <h6>API Calls</h6>
+                                            <strong>$800/month</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <i class="fas fa-network-wired text-info fa-2x mb-2"></i>
+                                            <h6>Bandwidth</h6>
+                                            <strong>$300/month</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card cost-card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-dollar-sign me-2"></i>
+                            Cost Estimator
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label text-white">Expected Users:</label>
+                            <input type="number" class="form-control" id="userCount" value="1000" min="1">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white">Data Volume (GB):</label>
+                            <input type="number" class="form-control" id="dataVolume" value="100" min="1">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white">Compute Intensity:</label>
+                            <select class="form-select" id="computeIntensity">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                                <option value="very_high">Very High</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-light w-100" onclick="estimateCosts()">
+                            <i class="fas fa-calculator me-2"></i>
+                            Estimate Costs
+                        </button>
+                        <div id="costEstimate" class="mt-3" style="display: none;">
+                            <div class="alert alert-light">
+                                <h6>Estimated Monthly Cost:</h6>
+                                <div class="cost-amount text-dark">$2,450</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Framework Builder -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-cogs me-2"></i>
+                            Framework Builder
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Compliance Presets</h5>
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="preset" id="eu_gdpr" checked>
+                                        <label class="form-check-label" for="eu_gdpr">
+                                            <strong>EU GDPR</strong> - European Data Protection
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="preset" id="us_hipaa">
+                                        <label class="form-check-label" for="us_hipaa">
+                                            <strong>US HIPAA</strong> - Healthcare Data Protection
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="preset" id="ethical_ai_lab">
+                                        <label class="form-check-label" for="ethical_ai_lab">
+                                            <strong>Ethical AI Lab</strong> - Research & Development
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="preset" id="custom">
+                                        <label class="form-check-label" for="custom">
+                                            <strong>Custom Framework</strong> - Upload your own
+                                        </label>
+                                    </div>
+                                </div>
+                                <button class="btn btn-constel" onclick="applyFramework()">
+                                    <i class="fas fa-check me-2"></i>
+                                    Apply Framework
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Custom Framework Upload</h5>
+                                <div class="mb-3">
+                                    <label class="form-label">Framework Name:</label>
+                                    <input type="text" class="form-control" id="frameworkName" placeholder="Enter framework name">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Framework File (JSON):</label>
+                                    <input type="file" class="form-control" id="frameworkFile" accept=".json">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Description:</label>
+                                    <textarea class="form-control" id="frameworkDescription" rows="3" placeholder="Describe your custom framework"></textarea>
+                                </div>
+                                <button class="btn btn-outline-primary" onclick="uploadCustomFramework()">
+                                    <i class="fas fa-upload me-2"></i>
+                                    Upload Framework
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audit History -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-history me-2"></i>
+                            Audit History
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline">
+                            <div class="timeline-item">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6>Comprehensive Compliance Audit</h6>
+                                        <p class="mb-1">Full system audit completed with 85% compliance score</p>
+                                        <small class="text-muted">2 hours ago</small>
+                                    </div>
+                                    <span class="status-badge status-passed">Passed</span>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6>GDPR Framework Check</h6>
+                                        <p class="mb-1">Data protection compliance validated</p>
+                                        <small class="text-muted">1 day ago</small>
+                                    </div>
+                                    <span class="status-badge status-warning">Warning</span>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6>Initial System Assessment</h6>
+                                        <p class="mb-1">First compliance check performed</p>
+                                        <small class="text-muted">3 days ago</small>
+                                    </div>
+                                    <span class="status-badge status-passed">Passed</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeRiskChart();
+            updateProgressRings();
+        });
+
+        function initializeRiskChart() {
+            const ctx = document.getElementById('riskChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Privacy', 'Security', 'Bias', 'Fairness', 'Explainability', 'Safety'],
+                    datasets: [{
+                        label: 'Current Risk',
+                        data: [0.15, 0.22, 0.18, 0.25, 0.30, 0.12],
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(52, 152, 219, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(52, 152, 219, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 1,
+                            ticks: {
+                                stepSize: 0.2
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateProgressRings() {
+            const progressRings = document.querySelectorAll('.progress');
+            progressRings.forEach(ring => {
+                const progress = ring.getAttribute('data-progress');
+                const circumference = 2 * Math.PI * 45;
+                const offset = circumference - (progress / 100) * circumference;
+                ring.style.strokeDashoffset = offset;
+            });
+        }
+
+        function runLiveAudit() {
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '<span class="loading-spinner me-2"></span>Running Audit...';
+            button.disabled = true;
+            
+            // Simulate audit process
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                
+                // Show success message
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-constel';
+                alert.innerHTML = '<i class="fas fa-check-circle me-2"></i><strong>Audit Complete!</strong> System compliance validated successfully.';
+                
+                document.querySelector('.live-audit .card-body').insertBefore(alert, document.querySelector('.live-audit .card-body').firstChild);
+                
+                setTimeout(() => alert.remove(), 5000);
+            }, 3000);
+        }
+
+        function estimateCosts() {
+            const userCount = parseInt(document.getElementById('userCount').value);
+            const dataVolume = parseInt(document.getElementById('dataVolume').value);
+            const computeIntensity = document.getElementById('computeIntensity').value;
+            
+            // Simple cost estimation logic
+            let baseCost = 500;
+            baseCost += userCount * 0.5;
+            baseCost += dataVolume * 2;
+            
+            if (computeIntensity === 'high') baseCost *= 1.5;
+            if (computeIntensity === 'very_high') baseCost *= 2;
+            
+            const estimateDiv = document.getElementById('costEstimate');
+            const amountDiv = estimateDiv.querySelector('.cost-amount');
+            amountDiv.textContent = `$${baseCost.toLocaleString()}`;
+            estimateDiv.style.display = 'block';
+        }
+
+        function applyFramework() {
+            const selectedPreset = document.querySelector('input[name="preset"]:checked').id;
+            
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-info alert-constel';
+            alert.innerHTML = `<i class="fas fa-info-circle me-2"></i><strong>Framework Applied!</strong> ${selectedPreset.replace('_', ' ').toUpperCase()} framework has been applied to the system.`;
+            
+            document.querySelector('.card-body').insertBefore(alert, document.querySelector('.card-body').firstChild);
+            
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        function uploadCustomFramework() {
+            const name = document.getElementById('frameworkName').value;
+            const file = document.getElementById('frameworkFile').files[0];
+            const description = document.getElementById('frameworkDescription').value;
+            
+            if (!name || !file || !description) {
+                alert('Please fill in all fields and select a file.');
+                return;
+            }
+            
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-constel';
+            alert.innerHTML = `<i class="fas fa-check-circle me-2"></i><strong>Framework Uploaded!</strong> Custom framework "${name}" has been successfully uploaded.`;
+            
+            document.querySelector('.card-body').insertBefore(alert, document.querySelector('.card-body').firstChild);
+            
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        // Auto-refresh compliance status every 30 seconds
+        setInterval(() => {
+            // Simulate status update
+            console.log('Refreshing compliance status...');
+        }, 30000);
+    </script>
+</body>
+</html>

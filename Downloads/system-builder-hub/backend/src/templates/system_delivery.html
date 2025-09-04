@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 System Delivery - System Build Hub OS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .form-section h3 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 15px;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .checkbox-item.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .checkbox-content {
+            flex: 1;
+        }
+
+        .checkbox-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .checkbox-description {
+            font-size: 13px;
+            color: #6c757d;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        }
+
+        .packages-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .packages-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .packages-title {
+            font-size: 1.5rem;
+            color: #495057;
+            font-weight: 600;
+        }
+
+        .package-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .package-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            transition: border-color 0.3s ease;
+        }
+
+        .package-item:hover {
+            border-color: #667eea;
+        }
+
+        .package-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .package-name {
+            font-weight: 600;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+
+        .package-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-ready { background: #d4edda; color: #155724; }
+        .status-generating { background: #fff3cd; color: #856404; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+
+        .package-details {
+            margin-bottom: 15px;
+        }
+
+        .package-detail {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .package-detail-label {
+            color: #6c757d;
+        }
+
+        .package-detail-value {
+            color: #495057;
+            font-weight: 500;
+        }
+
+        .package-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .deployment-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .deployment-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .deployment-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .deployment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .deployment-name {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .deployment-domain {
+            color: #667eea;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .deployment-config {
+            margin-bottom: 15px;
+        }
+
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .config-label {
+            color: #6c757d;
+        }
+
+        .config-value {
+            color: #495057;
+            font-weight: 500;
+        }
+
+        .portal-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .portal-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .portal-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .portal-header {
+            margin-bottom: 15px;
+        }
+
+        .portal-client {
+            font-weight: 600;
+            color: #495057;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .portal-domain {
+            color: #667eea;
+            font-size: 14px;
+        }
+
+        .portal-systems {
+            margin-bottom: 15px;
+        }
+
+        .system-tag {
+            display: inline-block;
+            background: #e9ecef;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin: 2px;
+        }
+
+        .portal-features {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .feature-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .feature-billing { background: #d4edda; color: #155724; }
+        .feature-support { background: #d1ecf1; color: #0c5460; }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .license-preview {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .package-list,
+            .deployment-list,
+            .portal-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 System Delivery</h1>
+            <p>Export, package, and deploy systems with professional delivery pipeline</p>
+        </div>
+
+        <!-- Export Package Creation -->
+        <div class="main-content">
+            <div class="card">
+                <h2>📦 Export Package</h2>
+                
+                <div class="form-section">
+                    <h3>System Selection</h3>
+                    <div class="form-group">
+                        <label for="systemId">System ID:</label>
+                        <select id="systemId">
+                            <option value="">Select a system...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="deliveryMode">Delivery Mode:</label>
+                        <select id="deliveryMode">
+                            <option value="self_hosted">Self-Hosted</option>
+                            <option value="hosted">Hosted Deployment</option>
+                            <option value="github_handoff">GitHub Handoff</option>
+                            <option value="docker_compose">Docker Compose</option>
+                            <option value="kubernetes">Kubernetes</option>
+                            <option value="cloud_init">Cloud Init</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="exportFormat">Export Format:</label>
+                        <select id="exportFormat">
+                            <option value="zip">ZIP Archive</option>
+                            <option value="github_repo">GitHub Repository</option>
+                            <option value="docker_image">Docker Image</option>
+                            <option value="helm_chart">Helm Chart</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Package Contents</h3>
+                    <label>Select what to include:</label>
+                    <div class="checkbox-grid">
+                        <div class="checkbox-item" onclick="toggleContent(this)">
+                            <input type="checkbox" id="includeSource" checked>
+                            <div class="checkbox-content">
+                                <div class="checkbox-title">Source Code</div>
+                                <div class="checkbox-description">Complete source code with all files</div>
+                            </div>
+                        </div>
+                        
+                        <div class="checkbox-item" onclick="toggleContent(this)">
+                            <input type="checkbox" id="includeDocs" checked>
+                            <div class="checkbox-content">
+                                <div class="checkbox-title">Documentation</div>
+                                <div class="checkbox-description">Architecture docs, API docs, README</div>
+                            </div>
+                        </div>
+                        
+                        <div class="checkbox-item" onclick="toggleContent(this)">
+                            <input type="checkbox" id="includeTests" checked>
+                            <div class="checkbox-content">
+                                <div class="checkbox-title">Tests</div>
+                                <div class="checkbox-description">Unit tests, integration tests, test reports</div>
+                            </div>
+                        </div>
+                        
+                        <div class="checkbox-item" onclick="toggleContent(this)">
+                            <input type="checkbox" id="includeDeployment" checked>
+                            <div class="checkbox-content">
+                                <div class="checkbox-title">Deployment Files</div>
+                                <div class="checkbox-description">Docker, K8s, cloud configs</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>License & Watermark</h3>
+                    <div class="form-group">
+                        <label for="licenseType">License Type:</label>
+                        <select id="licenseType" onchange="updateLicensePreview()">
+                            <option value="mit">MIT License</option>
+                            <option value="apache_2">Apache 2.0</option>
+                            <option value="gpl_3">GPL 3.0</option>
+                            <option value="proprietary">Proprietary</option>
+                            <option value="custom">Custom License</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="customLicenseGroup" style="display: none;">
+                        <label for="customLicense">Custom License Text:</label>
+                        <textarea id="customLicense" placeholder="Enter your custom license text..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="checkbox-item" onclick="toggleWatermark(this)">
+                            <input type="checkbox" id="watermark" checked>
+                            <div class="checkbox-content">
+                                <div class="checkbox-title">Add Watermark</div>
+                                <div class="checkbox-description">Include System Build Hub OS watermark in files</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="license-preview" id="licensePreview">
+                        <!-- License preview will be shown here -->
+                    </div>
+                </div>
+                
+                <button class="btn btn-success" onclick="createExportPackage()">📦 Create Export Package</button>
+            </div>
+            
+            <div class="card">
+                <h2>⚙️ Deployment Configuration</h2>
+                
+                <div class="form-section">
+                    <h3>Domain & Infrastructure</h3>
+                    <div class="form-group">
+                        <label for="domain">Domain:</label>
+                        <input type="text" id="domain" placeholder="e.g., myapp.example.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sslEnabled">SSL Certificate:</label>
+                        <select id="sslEnabled">
+                            <option value="true">Auto-generate SSL certificate</option>
+                            <option value="false">No SSL (HTTP only)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="autoScale">Auto-scaling:</label>
+                        <select id="autoScale">
+                            <option value="true">Enabled</option>
+                            <option value="false">Disabled</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="monitoring">Monitoring:</label>
+                        <select id="monitoring">
+                            <option value="true">Enabled</option>
+                            <option value="false">Disabled</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Database Configuration</h3>
+                    <div class="form-group">
+                        <label for="dbHost">Database Host:</label>
+                        <input type="text" id="dbHost" value="localhost">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dbName">Database Name:</label>
+                        <input type="text" id="dbName" placeholder="app_database">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dbUser">Database User:</label>
+                        <input type="text" id="dbUser" placeholder="app_user">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dbPassword">Database Password:</label>
+                        <input type="password" id="dbPassword" placeholder="secure_password">
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Email Configuration</h3>
+                    <div class="form-group">
+                        <label for="smtpHost">SMTP Host:</label>
+                        <input type="text" id="smtpHost" placeholder="smtp.gmail.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="smtpPort">SMTP Port:</label>
+                        <input type="number" id="smtpPort" value="587">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="smtpUser">SMTP User:</label>
+                        <input type="text" id="smtpUser" placeholder="your-email@gmail.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="smtpPassword">SMTP Password:</label>
+                        <input type="password" id="smtpPassword" placeholder="app_password">
+                    </div>
+                </div>
+                
+                <button class="btn btn-info" onclick="createDeploymentConfig()">⚙️ Create Deployment Config</button>
+            </div>
+        </div>
+
+        <!-- Client Portal Creation -->
+        <div class="card">
+            <h2>👥 Client Portal</h2>
+            
+            <div class="form-section">
+                <h3>Portal Configuration</h3>
+                <div class="form-group">
+                    <label for="clientId">Client ID:</label>
+                    <input type="text" id="clientId" placeholder="e.g., acme-corp">
+                </div>
+                
+                <div class="form-group">
+                    <label for="customDomain">Custom Domain (Optional):</label>
+                    <input type="text" id="customDomain" placeholder="e.g., portal.acme.com">
+                </div>
+                
+                <div class="form-group">
+                    <label>Systems to Include:</label>
+                    <div class="checkbox-grid" id="systemSelection">
+                        <!-- Systems will be loaded dynamically -->
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Portal Features:</label>
+                    <div class="checkbox-grid">
+                        <div class="checkbox-item" onclick="toggleFeature(this)">
+                            <input type="checkbox" id="billingEnabled" checked>
+                            <div class="checkbox-content">
+                                <div class="checkbox-title">Billing Integration</div>
+                                <div class="checkbox-description">Stripe billing and subscription management</div>
+                            </div>
+                        </div>
+                        
+                        <div class="checkbox-item" onclick="toggleFeature(this)">
+                            <input type="checkbox" id="supportEnabled" checked>
+                            <div class="checkbox-content">
+                                <div class="checkbox-title">Support Integration</div>
+                                <div class="checkbox-description">Live chat and ticket system</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-warning" onclick="createClientPortal()">👥 Create Client Portal</button>
+            </div>
+        </div>
+
+        <!-- Export Packages -->
+        <div class="packages-section">
+            <div class="packages-header">
+                <h2 class="packages-title">📦 Export Packages</h2>
+                <button class="btn" onclick="refreshPackages()">🔄 Refresh</button>
+            </div>
+            
+            <div class="package-list" id="packageList">
+                <p>No export packages created yet.</p>
+            </div>
+        </div>
+
+        <!-- Deployment Configurations -->
+        <div class="deployment-section">
+            <h2>⚙️ Deployment Configurations</h2>
+            
+            <div class="deployment-list" id="deploymentList">
+                <p>No deployment configurations created yet.</p>
+            </div>
+        </div>
+
+        <!-- Client Portals -->
+        <div class="portal-section">
+            <h2>👥 Client Portals</h2>
+            
+            <div class="portal-list" id="portalList">
+                <p>No client portals created yet.</p>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div id="alerts"></div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let availableSystems = [];
+        let exportPackages = [];
+        let deploymentConfigs = [];
+        let clientPortals = [];
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAvailableSystems();
+            loadExportPackages();
+            loadDeploymentConfigs();
+            loadClientPortals();
+            updateLicensePreview();
+        });
+        
+        // Load available systems
+        async function loadAvailableSystems() {
+            try {
+                const response = await fetch('/api/systems');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    availableSystems = data.systems || [];
+                    populateSystemSelect();
+                    populateSystemSelection();
+                } else {
+                    showAlert(`Failed to load systems: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Populate system select dropdown
+        function populateSystemSelect() {
+            const select = document.getElementById('systemId');
+            select.innerHTML = '<option value="">Select a system...</option>';
+            
+            availableSystems.forEach(system => {
+                const option = document.createElement('option');
+                option.value = system.system_id;
+                option.textContent = system.name || system.system_id;
+                select.appendChild(option);
+            });
+        }
+        
+        // Populate system selection for portal
+        function populateSystemSelection() {
+            const container = document.getElementById('systemSelection');
+            container.innerHTML = '';
+            
+            availableSystems.forEach(system => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.onclick = function() { toggleSystem(this); };
+                div.innerHTML = `
+                    <input type="checkbox" id="system_${system.system_id}" value="${system.system_id}">
+                    <div class="checkbox-content">
+                        <div class="checkbox-title">${system.name || system.system_id}</div>
+                        <div class="checkbox-description">${system.description || 'No description'}</div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        // Toggle functions
+        function toggleContent(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        function toggleWatermark(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        function toggleFeature(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        function toggleSystem(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        // Update license preview
+        function updateLicensePreview() {
+            const licenseType = document.getElementById('licenseType').value;
+            const customLicenseGroup = document.getElementById('customLicenseGroup');
+            const licensePreview = document.getElementById('licensePreview');
+            
+            if (licenseType === 'custom') {
+                customLicenseGroup.style.display = 'block';
+                licensePreview.textContent = 'Enter custom license text above...';
+            } else {
+                customLicenseGroup.style.display = 'none';
+                
+                const licenseTexts = {
+                    'mit': `MIT License
+
+Copyright (c) 2024 System Build Hub OS
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.`,
+                    'apache_2': `Apache License 2.0
+
+Copyright (c) 2024 System Build Hub OS
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.`,
+                    'proprietary': `Proprietary License
+
+Copyright (c) 2024 System Build Hub OS. All rights reserved.
+
+This software is proprietary and confidential. Unauthorized copying, distribution,
+or use of this software is strictly prohibited.`
+                };
+                
+                licensePreview.textContent = licenseTexts[licenseType] || '';
+            }
+        }
+        
+        // Create export package
+        async function createExportPackage() {
+            const systemId = document.getElementById('systemId').value;
+            if (!systemId) {
+                showAlert('Please select a system', 'error');
+                return;
+            }
+            
+            const packageData = {
+                system_id: systemId,
+                delivery_mode: document.getElementById('deliveryMode').value,
+                export_format: document.getElementById('exportFormat').value,
+                include_source: document.getElementById('includeSource').checked,
+                include_docs: document.getElementById('includeDocs').checked,
+                include_tests: document.getElementById('includeTests').checked,
+                include_deployment: document.getElementById('includeDeployment').checked,
+                license_type: document.getElementById('licenseType').value,
+                custom_license: document.getElementById('customLicense').value || null,
+                watermark: document.getElementById('watermark').checked
+            };
+            
+            showLoading(true);
+            
+            try {
+                const response = await fetch('/api/delivery/export', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(packageData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Export package created successfully!', 'success');
+                    loadExportPackages();
+                } else {
+                    showAlert(`Failed to create package: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Create deployment configuration
+        async function createDeploymentConfig() {
+            const packageId = prompt('Enter the package ID to deploy:');
+            if (!packageId) return;
+            
+            const domain = document.getElementById('domain').value;
+            if (!domain) {
+                showAlert('Please enter a domain', 'error');
+                return;
+            }
+            
+            const deploymentData = {
+                package_id: packageId,
+                domain: domain,
+                database_config: {
+                    host: document.getElementById('dbHost').value,
+                    name: document.getElementById('dbName').value,
+                    user: document.getElementById('dbUser').value,
+                    password: document.getElementById('dbPassword').value
+                },
+                api_keys: {
+                    main: `sk-${Math.random().toString(36).substr(2, 32)}`
+                },
+                email_config: {
+                    host: document.getElementById('smtpHost').value,
+                    port: parseInt(document.getElementById('smtpPort').value),
+                    user: document.getElementById('smtpUser').value,
+                    password: document.getElementById('smtpPassword').value
+                },
+                ssl_enabled: document.getElementById('sslEnabled').value === 'true',
+                auto_scale: document.getElementById('autoScale').value === 'true',
+                monitoring_enabled: document.getElementById('monitoring').value === 'true'
+            };
+            
+            showLoading(true);
+            
+            try {
+                const response = await fetch('/api/delivery/deploy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(deploymentData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Deployment configuration created successfully!', 'success');
+                    loadDeploymentConfigs();
+                } else {
+                    showAlert(`Failed to create deployment: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Create client portal
+        async function createClientPortal() {
+            const clientId = document.getElementById('clientId').value;
+            if (!clientId) {
+                showAlert('Please enter a client ID', 'error');
+                return;
+            }
+            
+            const selectedSystems = Array.from(document.querySelectorAll('#systemSelection input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            
+            if (selectedSystems.length === 0) {
+                showAlert('Please select at least one system', 'error');
+                return;
+            }
+            
+            const portalData = {
+                client_id: clientId,
+                system_ids: selectedSystems,
+                custom_domain: document.getElementById('customDomain').value || null,
+                billing_enabled: document.getElementById('billingEnabled').checked,
+                support_enabled: document.getElementById('supportEnabled').checked
+            };
+            
+            showLoading(true);
+            
+            try {
+                const response = await fetch('/api/delivery/portal', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(portalData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Client portal created successfully!', 'success');
+                    loadClientPortals();
+                } else {
+                    showAlert(`Failed to create portal: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Load export packages
+        async function loadExportPackages() {
+            // This would load from the backend
+            // For now, we'll use mock data
+            exportPackages = [
+                {
+                    package_id: "pkg_123",
+                    system_id: "system_1",
+                    delivery_mode: "self_hosted",
+                    export_format: "zip",
+                    status: "ready",
+                    file_size: 1024000,
+                    created_at: "2024-01-15T10:30:00Z"
+                }
+            ];
+            displayExportPackages();
+        }
+        
+        // Display export packages
+        function displayExportPackages() {
+            const container = document.getElementById('packageList');
+            
+            if (exportPackages.length === 0) {
+                container.innerHTML = '<p>No export packages created yet.</p>';
+                return;
+            }
+            
+            container.innerHTML = exportPackages.map(pkg => `
+                <div class="package-item">
+                    <div class="package-header">
+                        <div class="package-name">${pkg.system_id}</div>
+                        <div class="package-status status-${pkg.status}">${pkg.status}</div>
+                    </div>
+                    
+                    <div class="package-details">
+                        <div class="package-detail">
+                            <span class="package-detail-label">Delivery Mode:</span>
+                            <span class="package-detail-value">${pkg.delivery_mode}</span>
+                        </div>
+                        <div class="package-detail">
+                            <span class="package-detail-label">Format:</span>
+                            <span class="package-detail-value">${pkg.export_format}</span>
+                        </div>
+                        <div class="package-detail">
+                            <span class="package-detail-label">Size:</span>
+                            <span class="package-detail-value">${(pkg.file_size / 1024).toFixed(1)} KB</span>
+                        </div>
+                        <div class="package-detail">
+                            <span class="package-detail-label">Created:</span>
+                            <span class="package-detail-value">${new Date(pkg.created_at).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="package-actions">
+                        <button class="btn" onclick="downloadPackage('${pkg.package_id}')">📥 Download</button>
+                        <button class="btn btn-info" onclick="viewPackage('${pkg.package_id}')">👁️ View</button>
+                        <button class="btn btn-warning" onclick="deployPackage('${pkg.package_id}')">🚀 Deploy</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Load deployment configs
+        async function loadDeploymentConfigs() {
+            // This would load from the backend
+            deploymentConfigs = [
+                {
+                    config_id: "deploy_123",
+                    package_id: "pkg_123",
+                    domain: "myapp.example.com",
+                    ssl_enabled: true,
+                    auto_scale: true,
+                    monitoring_enabled: true,
+                    created_at: "2024-01-15T11:00:00Z"
+                }
+            ];
+            displayDeploymentConfigs();
+        }
+        
+        // Display deployment configs
+        function displayDeploymentConfigs() {
+            const container = document.getElementById('deploymentList');
+            
+            if (deploymentConfigs.length === 0) {
+                container.innerHTML = '<p>No deployment configurations created yet.</p>';
+                return;
+            }
+            
+            container.innerHTML = deploymentConfigs.map(config => `
+                <div class="deployment-item">
+                    <div class="deployment-header">
+                        <div class="deployment-name">${config.config_id}</div>
+                        <div class="deployment-domain">${config.domain}</div>
+                    </div>
+                    
+                    <div class="deployment-config">
+                        <div class="config-item">
+                            <span class="config-label">SSL:</span>
+                            <span class="config-value">${config.ssl_enabled ? 'Enabled' : 'Disabled'}</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="config-label">Auto-scale:</span>
+                            <span class="config-value">${config.auto_scale ? 'Enabled' : 'Disabled'}</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="config-label">Monitoring:</span>
+                            <span class="config-value">${config.monitoring_enabled ? 'Enabled' : 'Disabled'}</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="config-label">Created:</span>
+                            <span class="config-value">${new Date(config.created_at).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="package-actions">
+                        <button class="btn" onclick="viewDeployment('${config.config_id}')">👁️ View</button>
+                        <button class="btn btn-success" onclick="deployConfig('${config.config_id}')">🚀 Deploy</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Load client portals
+        async function loadClientPortals() {
+            // This would load from the backend
+            clientPortals = [
+                {
+                    portal_id: "portal_123",
+                    client_id: "acme-corp",
+                    system_ids: ["system_1", "system_2"],
+                    custom_domain: "portal.acme.com",
+                    billing_enabled: true,
+                    support_enabled: true,
+                    created_at: "2024-01-15T12:00:00Z"
+                }
+            ];
+            displayClientPortals();
+        }
+        
+        // Display client portals
+        function displayClientPortals() {
+            const container = document.getElementById('portalList');
+            
+            if (clientPortals.length === 0) {
+                container.innerHTML = '<p>No client portals created yet.</p>';
+                return;
+            }
+            
+            container.innerHTML = clientPortals.map(portal => `
+                <div class="portal-item">
+                    <div class="portal-header">
+                        <div class="portal-client">${portal.client_id}</div>
+                        <div class="portal-domain">${portal.custom_domain || 'Default domain'}</div>
+                    </div>
+                    
+                    <div class="portal-systems">
+                        <strong>Systems:</strong>
+                        ${portal.system_ids.map(sys => `<span class="system-tag">${sys}</span>`).join('')}
+                    </div>
+                    
+                    <div class="portal-features">
+                        ${portal.billing_enabled ? '<span class="feature-badge feature-billing">Billing</span>' : ''}
+                        ${portal.support_enabled ? '<span class="feature-badge feature-support">Support</span>' : ''}
+                    </div>
+                    
+                    <div class="package-actions">
+                        <button class="btn" onclick="viewPortal('${portal.portal_id}')">👁️ View</button>
+                        <button class="btn btn-info" onclick="managePortal('${portal.portal_id}')">⚙️ Manage</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Utility functions
+        function downloadPackage(packageId) {
+            window.open(`/api/delivery/download/${packageId}`, '_blank');
+        }
+        
+        function viewPackage(packageId) {
+            showAlert('Viewing package details...', 'info');
+        }
+        
+        function deployPackage(packageId) {
+            showAlert('Starting deployment...', 'info');
+        }
+        
+        function viewDeployment(configId) {
+            showAlert('Viewing deployment configuration...', 'info');
+        }
+        
+        function deployConfig(configId) {
+            showAlert('Deploying configuration...', 'info');
+        }
+        
+        function viewPortal(portalId) {
+            showAlert('Opening client portal...', 'info');
+        }
+        
+        function managePortal(portalId) {
+            showAlert('Opening portal management...', 'info');
+        }
+        
+        function refreshPackages() {
+            loadExportPackages();
+            showAlert('Packages refreshed!', 'success');
+        }
+        
+        function showAlert(message, type) {
+            const alertsContainer = document.getElementById('alerts');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            alertsContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+        
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            loading.style.display = show ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

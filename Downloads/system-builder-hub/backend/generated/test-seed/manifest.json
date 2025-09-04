@@ -1,0 +1,10 @@
+{
+  "name": "Test CRM",
+  "template": "crm_flagship",
+  "created_at": "2025-08-28T08:19:51.070276",
+  "build_id": "test-seed",
+  "ports": {
+    "backend": 8000,
+    "frontend": 3000
+  }
+}

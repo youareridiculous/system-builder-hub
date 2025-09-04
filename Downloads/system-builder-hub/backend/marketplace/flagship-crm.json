@@ -1,0 +1,279 @@
+{
+  "slug": "flagship-crm",
+  "name": "Flagship CRM & Ops",
+  "version": "1.01",
+  "description": "Enterprise-grade CRM and operations platform with AI-powered insights, automation, and comprehensive integrations",
+  "long_description": "The Flagship CRM & Ops template provides a complete customer relationship management and operations solution designed for modern businesses. Built on SBH's secure, multi-tenant platform, it includes advanced features like AI copilots, conversational analytics, smart reporting, voice interface, and comprehensive external integrations.",
+  "category": "Business",
+  "tags": ["crm", "operations", "sales", "customer-success", "automation", "ai", "analytics"],
+  "badges": [
+    "multi-tenant",
+    "stripe",
+    "s3",
+    "rbac",
+    "ai",
+    "automations",
+    "integrations",
+    "audit-logging"
+  ],
+  "min_sbh_version": "1.0.0",
+  "author": "SBH Team",
+  "author_url": "https://sbh.com",
+  "repository_url": "https://github.com/sbh/flagship-crm",
+  "documentation_url": "/ui/docs/crm",
+  "support_url": "https://support.sbh.com",
+  "license": "MIT",
+  "plans": {
+    "starter": {
+      "name": "Starter",
+      "price": 29,
+      "billing": "monthly",
+      "features": [
+        "Up to 1,000 contacts",
+        "Basic CRM features",
+        "Email support",
+        "Standard integrations"
+      ],
+      "feature_flags": {
+        "ai_copilot": false,
+        "advanced_analytics": false,
+        "voice_interface": false,
+        "custom_integrations": false
+      }
+    },
+    "pro": {
+      "name": "Professional",
+      "price": 99,
+      "billing": "monthly",
+      "features": [
+        "Up to 10,000 contacts",
+        "Advanced CRM features",
+        "AI Copilot",
+        "Conversational Analytics",
+        "Smart Reporting",
+        "Priority support",
+        "All integrations"
+      ],
+      "feature_flags": {
+        "ai_copilot": true,
+        "advanced_analytics": true,
+        "voice_interface": true,
+        "custom_integrations": true
+      }
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": 299,
+      "billing": "monthly",
+      "features": [
+        "Unlimited contacts",
+        "All CRM features",
+        "Full AI capabilities",
+        "Custom integrations",
+        "Dedicated support",
+        "SLA guarantee",
+        "Custom branding"
+      ],
+      "feature_flags": {
+        "ai_copilot": true,
+        "advanced_analytics": true,
+        "voice_interface": true,
+        "custom_integrations": true,
+        "custom_branding": true,
+        "dedicated_support": true
+      }
+    }
+  },
+  "guided_prompts": {
+    "onboarding": {
+      "title": "Welcome to SBH CRM",
+      "description": "Let's get you set up with your new CRM system",
+      "steps": [
+        {
+          "id": "company_setup",
+          "title": "Company Information",
+          "description": "Tell us about your company",
+          "fields": [
+            {"name": "company_name", "type": "text", "required": true},
+            {"name": "industry", "type": "select", "options": ["Technology", "Finance", "Healthcare", "Other"]},
+            {"name": "team_size", "type": "number", "required": true}
+          ]
+        },
+        {
+          "id": "team_invite",
+          "title": "Invite Your Team",
+          "description": "Add team members to your CRM",
+          "fields": [
+            {"name": "emails", "type": "email_list", "required": false}
+          ]
+        },
+        {
+          "id": "import_data",
+          "title": "Import Your Data",
+          "description": "Import contacts and deals from your existing system",
+          "fields": [
+            {"name": "import_type", "type": "select", "options": ["CSV", "Salesforce", "HubSpot", "None"]},
+            {"name": "import_file", "type": "file", "required": false}
+          ]
+        }
+      ]
+    },
+    "first_contact": {
+      "title": "Add Your First Contact",
+      "description": "Create your first contact in the CRM",
+      "fields": [
+        {"name": "first_name", "type": "text", "required": true},
+        {"name": "last_name", "type": "text", "required": true},
+        {"name": "email", "type": "email", "required": true},
+        {"name": "company", "type": "text", "required": false},
+        {"name": "phone", "type": "tel", "required": false}
+      ]
+    },
+    "first_deal": {
+      "title": "Create Your First Deal",
+      "description": "Set up your first deal in the pipeline",
+      "fields": [
+        {"name": "title", "type": "text", "required": true},
+        {"name": "value", "type": "number", "required": true},
+        {"name": "contact_id", "type": "contact_picker", "required": true},
+        {"name": "pipeline_stage", "type": "select", "options": ["qualification", "proposal", "negotiation"]}
+      ]
+    }
+  },
+  "screenshots": [
+    {
+      "title": "Dashboard",
+      "description": "Main CRM dashboard with key metrics and insights",
+      "url": "/marketplace/assets/flagship-crm/dashboard.png",
+      "alt": "CRM Dashboard showing key metrics and charts"
+    },
+    {
+      "title": "Contacts Manager",
+      "description": "Comprehensive contact management with search and filtering",
+      "url": "/marketplace/assets/flagship-crm/contacts.png",
+      "alt": "Contacts list with search and filter options"
+    },
+    {
+      "title": "Deal Pipeline",
+      "description": "Kanban-style deal pipeline with drag-and-drop functionality",
+      "url": "/marketplace/assets/flagship-crm/pipeline.png",
+      "alt": "Deal pipeline kanban board"
+    },
+    {
+      "title": "AI Copilot",
+      "description": "AI-powered assistant for sales, operations, and customer success",
+      "url": "/marketplace/assets/flagship-crm/copilot.png",
+      "alt": "AI Copilot interface with chat and tools"
+    },
+    {
+      "title": "Analytics",
+      "description": "Conversational analytics with natural language queries",
+      "url": "/marketplace/assets/flagship-crm/analytics.png",
+      "alt": "Analytics dashboard with charts and insights"
+    },
+    {
+      "title": "Automations",
+      "description": "No-code automation builder for workflows and triggers",
+      "url": "/marketplace/assets/flagship-crm/automations.png",
+      "alt": "Automation builder interface"
+    }
+  ],
+  "demo_video_url": "https://www.youtube.com/watch?v=flagship-crm-demo",
+  "rbac_matrix": {
+    "owner": {
+      "description": "Full system access",
+      "permissions": ["*"]
+    },
+    "admin": {
+      "description": "Administrative access",
+      "permissions": [
+        "contacts.*",
+        "deals.*",
+        "tasks.*",
+        "projects.*",
+        "reports.*",
+        "integrations.*",
+        "users.manage",
+        "settings.*"
+      ]
+    },
+    "member": {
+      "description": "Standard user access",
+      "permissions": [
+        "contacts.read",
+        "contacts.write",
+        "deals.read",
+        "deals.write",
+        "tasks.read",
+        "tasks.write",
+        "projects.read",
+        "projects.write",
+        "reports.read",
+        "ai_copilot.use",
+        "analytics.query"
+      ]
+    },
+    "viewer": {
+      "description": "Read-only access",
+      "permissions": [
+        "contacts.read",
+        "deals.read",
+        "tasks.read",
+        "projects.read",
+        "reports.read",
+        "analytics.query"
+      ]
+    }
+  },
+  "integrations": [
+    {
+      "name": "Slack",
+      "description": "Real-time notifications and slash commands",
+      "status": "available"
+    },
+    {
+      "name": "Zapier",
+      "description": "Connect with 5000+ apps and services",
+      "status": "available"
+    },
+    {
+      "name": "Salesforce",
+      "description": "Import data from Salesforce CRM",
+      "status": "available"
+    },
+    {
+      "name": "HubSpot",
+      "description": "Import data from HubSpot CRM",
+      "status": "available"
+    },
+    {
+      "name": "Google Drive",
+      "description": "Attach and sync Google Docs/Sheets",
+      "status": "available"
+    }
+  ],
+  "security": {
+    "data_encryption": "AES-256",
+    "data_residency": "configurable",
+    "compliance": ["GDPR", "SOC2", "ISO27001"],
+    "audit_logging": true,
+    "backup_frequency": "daily",
+    "retention_policy": "configurable"
+  },
+  "performance": {
+    "max_contacts": "unlimited",
+    "max_deals": "unlimited",
+    "api_rate_limit": "1000 requests/minute",
+    "response_time": "<200ms",
+    "uptime": "99.9%"
+  },
+  "deployment": {
+    "deployment_type": "single_click",
+    "estimated_setup_time": "5 minutes",
+    "requirements": {
+      "database": "PostgreSQL 12+",
+      "redis": "6.0+",
+      "storage": "S3-compatible"
+    }
+  }
+}

@@ -1,0 +1,940 @@
+#!/usr/bin/env python3
+"""
+P34: Visual Builder & Multimodal System Design
+Business-friendly builder that supports natural language + voice + images/files
+and a drag-and-drop visual editor to assemble dashboards, CRUD, and workflows.
+"""
+
+import os
+import json
+import sqlite3
+import logging
+import uuid
+import time
+import base64
+import hashlib
+from datetime import datetime, timedelta
+from dataclasses import dataclass, asdict
+from enum import Enum
+from typing import Dict, List, Optional, Any, Union
+from pathlib import Path
+from werkzeug.utils import secure_filename
+from flask import Blueprint, request, jsonify, g, current_app
+from flask_cors import cross_origin
+import tempfile
+
+# Import infrastructure components
+from config import config
+from metrics import metrics
+from feature_flags import flag_required
+from idempotency import idempotent, require_idempotency_key
+from trace_context import get_current_trace
+from costs import cost_accounted, log_with_redaction
+from multi_tenancy import require_tenant_context, enforce_tenant_isolation
+
+# Import multimodal ingest service
+from multimodal_ingest import multimodal_ingest_service
+
+logger = logging.getLogger(__name__)
+
+# Create blueprint
+visual_builder_bp = Blueprint('visual_builder', __name__, url_prefix='/api/builder')
+
+# Data Models
+class BuilderProjectStatus(Enum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+    DELETED = "deleted"
+
+class ComponentType(Enum):
+    TABLE = "table"
+    CHART = "chart"
+    FORM = "form"
+    FILTER = "filter"
+    BUTTON = "button"
+    CARD = "card"
+    NAVIGATION = "navigation"
+    DASHBOARD = "dashboard"
+    WORKFLOW = "workflow"
+
+class IngestType(Enum):
+    VOICE = "voice"
+    FILE = "file"
+    TEXT = "text"
+    IMAGE = "image"
+
+@dataclass
+class BuilderProject:
+    id: str
+    tenant_id: str
+    system_id: str
+    name: str
+    description: str
+    status: BuilderProjectStatus
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    metadata: Dict[str, Any]
+
+@dataclass
+class BuilderCanvas:
+    id: str
+    project_id: str
+    version: int
+    layout_json: Dict[str, Any]
+    components_json: Dict[str, Any]
+    updated_at: datetime
+
+@dataclass
+class BuilderWorkflow:
+    id: str
+    project_id: str
+    name: str
+    dsl_json: Dict[str, Any]
+    enabled: bool
+    updated_at: datetime
+
+@dataclass
+class BuilderAsset:
+    id: str
+    project_id: str
+    kind: str  # file, image, spec
+    uri: str
+    meta_json: Dict[str, Any]
+    created_at: datetime
+
+class VisualBuilderService:
+    """Service layer for visual builder functionality"""
+    
+    def __init__(self):
+        self._init_database()
+    
+    def _init_database(self):
+        """Initialize visual builder database tables"""
+        try:
+            with sqlite3.connect(config.DATABASE_URL.replace('sqlite:///', '')) as conn:
+                cursor = conn.cursor()
+                
+                # Create builder_projects table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS builder_projects (
+                        id TEXT PRIMARY KEY,
+                        tenant_id TEXT NOT NULL,
+                        system_id TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        description TEXT,
+                        status TEXT NOT NULL,
+                        created_by TEXT NOT NULL,
+                        created_at TIMESTAMP NOT NULL,
+                        updated_at TIMESTAMP NOT NULL,
+                        metadata TEXT
+                    )
+                ''')
+                
+                # Create builder_canvases table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS builder_canvases (
+                        id TEXT PRIMARY KEY,
+                        project_id TEXT NOT NULL,
+                        version INTEGER NOT NULL,
+                        layout_json TEXT NOT NULL,
+                        components_json TEXT NOT NULL,
+                        updated_at TIMESTAMP NOT NULL,
+                        FOREIGN KEY (project_id) REFERENCES builder_projects (id)
+                    )
+                ''')
+                
+                # Create builder_workflows table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS builder_workflows (
+                        id TEXT PRIMARY KEY,
+                        project_id TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        dsl_json TEXT NOT NULL,
+                        enabled BOOLEAN DEFAULT TRUE,
+                        updated_at TIMESTAMP NOT NULL,
+                        FOREIGN KEY (project_id) REFERENCES builder_projects (id)
+                    )
+                ''')
+                
+                # Create builder_assets table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS builder_assets (
+                        id TEXT PRIMARY KEY,
+                        project_id TEXT NOT NULL,
+                        kind TEXT NOT NULL,
+                        uri TEXT NOT NULL,
+                        meta_json TEXT,
+                        created_at TIMESTAMP NOT NULL,
+                        FOREIGN KEY (project_id) REFERENCES builder_projects (id)
+                    )
+                ''')
+                
+                conn.commit()
+                logger.info("Visual builder database tables initialized")
+                
+        except Exception as e:
+            logger.error(f"Failed to initialize visual builder database: {e}")
+    
+    def create_project(self, tenant_id: str, system_id: str, name: str, 
+                      description: str = "", metadata: Dict[str, Any] = None) -> BuilderProject:
+        """Create a new builder project"""
+        project_id = f"project_{int(time.time())}"
+        now = datetime.now()
+        
+        project = BuilderProject(
+            id=project_id,
+            tenant_id=tenant_id,
+            system_id=system_id,
+            name=name,
+            description=description,
+            status=BuilderProjectStatus.DRAFT,
+            created_by=getattr(g, 'user_id', 'system'),
+            created_at=now,
+            updated_at=now,
+            metadata=metadata or {}
+        )
+        
+        try:
+            with sqlite3.connect(config.DATABASE_URL.replace('sqlite:///', '')) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO builder_projects 
+                    (id, tenant_id, system_id, name, description, status, created_by, created_at, updated_at, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    project.id,
+                    project.tenant_id,
+                    project.system_id,
+                    project.name,
+                    project.description,
+                    project.status.value,
+                    project.created_by,
+                    project.created_at.isoformat(),
+                    project.updated_at.isoformat(),
+                    json.dumps(project.metadata)
+                ))
+                conn.commit()
+                
+                # Update metrics
+                metrics.increment_counter('sbh_builder_project_create_total', {'tenant_id': tenant_id})
+                
+                logger.info(f"Created builder project: {project_id}")
+                return project
+                
+        except Exception as e:
+            logger.error(f"Failed to create builder project: {e}")
+            raise
+    
+    def get_project(self, project_id: str, tenant_id: str) -> Optional[BuilderProject]:
+        """Get a builder project by ID with tenant isolation"""
+        try:
+            with sqlite3.connect(config.DATABASE_URL.replace('sqlite:///', '')) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT id, tenant_id, system_id, name, description, status, created_by, created_at, updated_at, metadata
+                    FROM builder_projects 
+                    WHERE id = ? AND tenant_id = ?
+                ''', (project_id, tenant_id))
+                row = cursor.fetchone()
+                
+                if row:
+                    return BuilderProject(
+                        id=row[0],
+                        tenant_id=row[1],
+                        system_id=row[2],
+                        name=row[3],
+                        description=row[4],
+                        status=BuilderProjectStatus(row[5]),
+                        created_by=row[6],
+                        created_at=datetime.fromisoformat(row[7]),
+                        updated_at=datetime.fromisoformat(row[8]),
+                        metadata=json.loads(row[9]) if row[9] else {}
+                    )
+                return None
+                
+        except Exception as e:
+            logger.error(f"Failed to get builder project: {e}")
+            return None
+    
+    def list_projects(self, tenant_id: str, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
+        """List builder projects with pagination"""
+        try:
+            offset = (page - 1) * page_size
+            
+            with sqlite3.connect(config.DATABASE_URL.replace('sqlite:///', '')) as conn:
+                cursor = conn.cursor()
+                
+                # Get total count
+                cursor.execute('''
+                    SELECT COUNT(*) FROM builder_projects WHERE tenant_id = ?
+                ''', (tenant_id,))
+                total_count = cursor.fetchone()[0]
+                
+                # Get projects
+                cursor.execute('''
+                    SELECT id, tenant_id, system_id, name, description, status, created_by, created_at, updated_at, metadata
+                    FROM builder_projects 
+                    WHERE tenant_id = ?
+                    ORDER BY updated_at DESC
+                    LIMIT ? OFFSET ?
+                ''', (tenant_id, page_size, offset))
+                
+                projects = []
+                for row in cursor.fetchall():
+                    projects.append(BuilderProject(
+                        id=row[0],
+                        tenant_id=row[1],
+                        system_id=row[2],
+                        name=row[3],
+                        description=row[4],
+                        status=BuilderProjectStatus(row[5]),
+                        created_by=row[6],
+                        created_at=datetime.fromisoformat(row[7]),
+                        updated_at=datetime.fromisoformat(row[8]),
+                        metadata=json.loads(row[9]) if row[9] else {}
+                    ))
+                
+                return {
+                    'projects': [asdict(p) for p in projects],
+                    'pagination': {
+                        'page': page,
+                        'page_size': page_size,
+                        'total_count': total_count,
+                        'total_pages': (total_count + page_size - 1) // page_size
+                    }
+                }
+                
+        except Exception as e:
+            logger.error(f"Failed to list builder projects: {e}")
+            return {'projects': [], 'pagination': {'page': page, 'page_size': page_size, 'total_count': 0, 'total_pages': 0}}
+    
+    def save_canvas(self, project_id: str, tenant_id: str, layout_json: Dict[str, Any], 
+                   components_json: Dict[str, Any]) -> Optional[BuilderCanvas]:
+        """Save canvas layout and components"""
+        try:
+            # Verify project exists and belongs to tenant
+            project = self.get_project(project_id, tenant_id)
+            if not project:
+                return None
+            
+            # Get current version
+            with sqlite3.connect(config.DATABASE_URL.replace('sqlite:///', '')) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT MAX(version) FROM builder_canvases WHERE project_id = ?
+                ''', (project_id,))
+                result = cursor.fetchone()
+                current_version = (result[0] or 0) + 1
+                
+                # Create new canvas version
+                canvas_id = f"canvas_{int(time.time())}"
+                now = datetime.now()
+                
+                canvas = BuilderCanvas(
+                    id=canvas_id,
+                    project_id=project_id,
+                    version=current_version,
+                    layout_json=layout_json,
+                    components_json=components_json,
+                    updated_at=now
+                )
+                
+                cursor.execute('''
+                    INSERT INTO builder_canvases 
+                    (id, project_id, version, layout_json, components_json, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (
+                    canvas.id,
+                    canvas.project_id,
+                    canvas.version,
+                    json.dumps(canvas.layout_json),
+                    json.dumps(canvas.components_json),
+                    canvas.updated_at.isoformat()
+                ))
+                conn.commit()
+                
+                # Update metrics
+                metrics.increment_counter('sbh_builder_canvas_save_total', {'tenant_id': tenant_id})
+                
+                logger.info(f"Saved canvas version {current_version} for project: {project_id}")
+                return canvas
+                
+        except Exception as e:
+            logger.error(f"Failed to save canvas: {e}")
+            return None
+    
+    def get_canvas(self, project_id: str, tenant_id: str, version: Optional[int] = None) -> Optional[BuilderCanvas]:
+        """Get canvas by project ID and optional version"""
+        try:
+            # Verify project exists and belongs to tenant
+            project = self.get_project(project_id, tenant_id)
+            if not project:
+                return None
+            
+            with sqlite3.connect(config.DATABASE_URL.replace('sqlite:///', '')) as conn:
+                cursor = conn.cursor()
+                
+                if version:
+                    cursor.execute('''
+                        SELECT id, project_id, version, layout_json, components_json, updated_at
+                        FROM builder_canvases 
+                        WHERE project_id = ? AND version = ?
+                        ORDER BY version DESC
+                    ''', (project_id, version))
+                else:
+                    cursor.execute('''
+                        SELECT id, project_id, version, layout_json, components_json, updated_at
+                        FROM builder_canvases 
+                        WHERE project_id = ?
+                        ORDER BY version DESC
+                        LIMIT 1
+                    ''', (project_id,))
+                
+                row = cursor.fetchone()
+                if row:
+                    return BuilderCanvas(
+                        id=row[0],
+                        project_id=row[1],
+                        version=row[2],
+                        layout_json=json.loads(row[3]),
+                        components_json=json.loads(row[4]),
+                        updated_at=datetime.fromisoformat(row[5])
+                    )
+                return None
+                
+        except Exception as e:
+            logger.error(f"Failed to get canvas: {e}")
+            return None
+    
+    def save_workflow(self, project_id: str, tenant_id: str, name: str, 
+                     dsl_json: Dict[str, Any], enabled: bool = True) -> Optional[BuilderWorkflow]:
+        """Save workflow DSL"""
+        try:
+            # Verify project exists and belongs to tenant
+            project = self.get_project(project_id, tenant_id)
+            if not project:
+                return None
+            
+            workflow_id = f"workflow_{int(time.time())}"
+            now = datetime.now()
+            
+            workflow = BuilderWorkflow(
+                id=workflow_id,
+                project_id=project_id,
+                name=name,
+                dsl_json=dsl_json,
+                enabled=enabled,
+                updated_at=now
+            )
+            
+            with sqlite3.connect(config.DATABASE_URL.replace('sqlite:///', '')) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO builder_workflows 
+                    (id, project_id, name, dsl_json, enabled, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (
+                    workflow.id,
+                    workflow.project_id,
+                    workflow.name,
+                    json.dumps(workflow.dsl_json),
+                    workflow.enabled,
+                    workflow.updated_at.isoformat()
+                ))
+                conn.commit()
+                
+                # Update metrics
+                metrics.increment_counter('sbh_builder_workflow_save_total', {'tenant_id': tenant_id})
+                
+                logger.info(f"Saved workflow: {workflow_id}")
+                return workflow
+                
+        except Exception as e:
+            logger.error(f"Failed to save workflow: {e}")
+            return None
+    
+    def validate_workflow_dsl(self, dsl_json: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate workflow DSL and return validation result"""
+        try:
+            errors = []
+            warnings = []
+            
+            # Basic structure validation
+            if not isinstance(dsl_json, dict):
+                errors.append("DSL must be a JSON object")
+                return {'valid': False, 'errors': errors, 'warnings': warnings}
+            
+            # Check for required fields
+            if 'nodes' not in dsl_json:
+                errors.append("DSL must contain 'nodes' array")
+            if 'edges' not in dsl_json:
+                errors.append("DSL must contain 'edges' array")
+            
+            # Validate nodes
+            if 'nodes' in dsl_json and isinstance(dsl_json['nodes'], list):
+                for i, node in enumerate(dsl_json['nodes']):
+                    if not isinstance(node, dict):
+                        errors.append(f"Node {i} must be an object")
+                        continue
+                    
+                    if 'id' not in node:
+                        errors.append(f"Node {i} must have 'id' field")
+                    if 'type' not in node:
+                        errors.append(f"Node {i} must have 'type' field")
+            
+            # Validate edges
+            if 'edges' in dsl_json and isinstance(dsl_json['edges'], list):
+                for i, edge in enumerate(dsl_json['edges']):
+                    if not isinstance(edge, dict):
+                        errors.append(f"Edge {i} must be an object")
+                        continue
+                    
+                    if 'source' not in edge:
+                        errors.append(f"Edge {i} must have 'source' field")
+                    if 'target' not in edge:
+                        errors.append(f"Edge {i} must have 'target' field")
+            
+            valid = len(errors) == 0
+            
+            # Update metrics
+            if not valid:
+                metrics.increment_counter('sbh_builder_workflow_validate_fail_total')
+            
+            return {
+                'valid': valid,
+                'errors': errors,
+                'warnings': warnings
+            }
+            
+        except Exception as e:
+            logger.error(f"Workflow DSL validation error: {e}")
+            return {
+                'valid': False,
+                'errors': [f"Validation error: {str(e)}"],
+                'warnings': []
+            }
+    
+    def generate_system(self, project_id: str, tenant_id: str) -> Dict[str, Any]:
+        """Generate system from builder project (hooks into P6 builder & P30 preview)"""
+        try:
+            # Get project and canvas
+            project = self.get_project(project_id, tenant_id)
+            if not project:
+                return {'error': 'Project not found'}
+            
+            canvas = self.get_canvas(project_id, tenant_id)
+            if not canvas:
+                return {'error': 'No canvas found for project'}
+            
+            # Get workflows
+            with sqlite3.connect(config.DATABASE_URL.replace('sqlite:///', '')) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT id, name, dsl_json, enabled
+                    FROM builder_workflows 
+                    WHERE project_id = ? AND enabled = TRUE
+                ''', (project_id,))
+                workflows = cursor.fetchall()
+            
+            # Prepare generation payload
+            generation_payload = {
+                'project_id': project_id,
+                'system_id': project.system_id,
+                'canvas': {
+                    'layout': canvas.layout_json,
+                    'components': canvas.components_json
+                },
+                'workflows': [
+                    {
+                        'id': w[0],
+                        'name': w[1],
+                        'dsl': json.loads(w[2])
+                    }
+                    for w in workflows
+                ],
+                'metadata': project.metadata
+            }
+            
+            # TODO: Hook into P6 builder system
+            # system_builder = SystemBuilder()
+            # result = system_builder.build_from_visual(generation_payload)
+            
+            # TODO: Hook into P30 preview system
+            # preview_engine = PreviewEngine()
+            # preview_session = preview_engine.create_preview_from_builder(result)
+            
+            # For now, return mock result
+            result = {
+                'success': True,
+                'system_id': project.system_id,
+                'generated_at': datetime.now().isoformat(),
+                'preview_url': f"/preview/{project.system_id}",
+                'build_log': "System generation completed successfully"
+            }
+            
+            # Update metrics
+            metrics.increment_counter('sbh_builder_generate_total', {'tenant_id': tenant_id})
+            
+            logger.info(f"Generated system from builder project: {project_id}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to generate system: {e}")
+            return {'error': str(e)}
+
+# Initialize service
+visual_builder_service = VisualBuilderService()
+
+# API Routes
+@visual_builder_bp.route('/project', methods=['POST'])
+@cross_origin()
+@flag_required('visual_builder')
+@require_tenant_context
+@idempotent
+@cost_accounted
+def create_project():
+    """Create a new builder project"""
+    try:
+        data = request.get_json()
+        system_id = data.get('system_id')
+        name = data.get('name')
+        description = data.get('description', '')
+        metadata = data.get('metadata', {})
+        
+        if not all([system_id, name]):
+            return jsonify({'error': 'system_id and name are required'}), 400
+        
+        tenant_id = getattr(g, 'tenant_id', 'default')
+        
+        project = visual_builder_service.create_project(
+            tenant_id=tenant_id,
+            system_id=system_id,
+            name=name,
+            description=description,
+            metadata=metadata
+        )
+        
+        return jsonify({
+            'success': True,
+            'project': asdict(project)
+        })
+        
+    except Exception as e:
+        logger.error(f"Create project error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@visual_builder_bp.route('/project/<project_id>', methods=['GET'])
+@cross_origin()
+@flag_required('visual_builder')
+@require_tenant_context
+def get_project(project_id):
+    """Get a builder project"""
+    try:
+        tenant_id = getattr(g, 'tenant_id', 'default')
+        project = visual_builder_service.get_project(project_id, tenant_id)
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'project': asdict(project)
+        })
+        
+    except Exception as e:
+        logger.error(f"Get project error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@visual_builder_bp.route('/projects', methods=['GET'])
+@cross_origin()
+@flag_required('visual_builder')
+@require_tenant_context
+def list_projects():
+    """List builder projects with pagination"""
+    try:
+        tenant_id = getattr(g, 'tenant_id', 'default')
+        page = int(request.args.get('page', 1))
+        page_size = int(request.args.get('page_size', 20))
+        
+        result = visual_builder_service.list_projects(tenant_id, page, page_size)
+        
+        return jsonify({
+            'success': True,
+            **result
+        })
+        
+    except Exception as e:
+        logger.error(f"List projects error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@visual_builder_bp.route('/canvas/<project_id>', methods=['POST'])
+@cross_origin()
+@flag_required('visual_builder')
+@require_tenant_context
+@idempotent
+@cost_accounted
+def save_canvas(project_id):
+    """Save canvas layout and components"""
+    try:
+        data = request.get_json()
+        layout_json = data.get('layout')
+        components_json = data.get('components')
+        
+        if not all([layout_json, components_json]):
+            return jsonify({'error': 'layout and components are required'}), 400
+        
+        tenant_id = getattr(g, 'tenant_id', 'default')
+        
+        canvas = visual_builder_service.save_canvas(
+            project_id=project_id,
+            tenant_id=tenant_id,
+            layout_json=layout_json,
+            components_json=components_json
+        )
+        
+        if not canvas:
+            return jsonify({'error': 'Project not found or access denied'}), 404
+        
+        return jsonify({
+            'success': True,
+            'canvas': asdict(canvas)
+        })
+        
+    except Exception as e:
+        logger.error(f"Save canvas error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@visual_builder_bp.route('/canvas/<project_id>', methods=['GET'])
+@cross_origin()
+@flag_required('visual_builder')
+@require_tenant_context
+def get_canvas(project_id):
+    """Get canvas by project ID"""
+    try:
+        tenant_id = getattr(g, 'tenant_id', 'default')
+        version = request.args.get('version')
+        version = int(version) if version else None
+        
+        canvas = visual_builder_service.get_canvas(project_id, tenant_id, version)
+        
+        if not canvas:
+            return jsonify({'error': 'Canvas not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'canvas': asdict(canvas)
+        })
+        
+    except Exception as e:
+        logger.error(f"Get canvas error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@visual_builder_bp.route('/workflow/<project_id>', methods=['POST'])
+@cross_origin()
+@flag_required('visual_builder')
+@require_tenant_context
+@idempotent
+@cost_accounted
+def save_workflow(project_id):
+    """Save workflow DSL"""
+    try:
+        data = request.get_json()
+        name = data.get('name')
+        dsl_json = data.get('dsl')
+        enabled = data.get('enabled', True)
+        
+        if not all([name, dsl_json]):
+            return jsonify({'error': 'name and dsl are required'}), 400
+        
+        # Validate DSL
+        validation = visual_builder_service.validate_workflow_dsl(dsl_json)
+        if not validation['valid']:
+            return jsonify({
+                'error': 'Invalid workflow DSL',
+                'validation': validation
+            }), 400
+        
+        tenant_id = getattr(g, 'tenant_id', 'default')
+        
+        workflow = visual_builder_service.save_workflow(
+            project_id=project_id,
+            tenant_id=tenant_id,
+            name=name,
+            dsl_json=dsl_json,
+            enabled=enabled
+        )
+        
+        if not workflow:
+            return jsonify({'error': 'Project not found or access denied'}), 404
+        
+        return jsonify({
+            'success': True,
+            'workflow': asdict(workflow)
+        })
+        
+    except Exception as e:
+        logger.error(f"Save workflow error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@visual_builder_bp.route('/generate', methods=['POST'])
+@cross_origin()
+@flag_required('visual_builder')
+@require_tenant_context
+@idempotent
+@cost_accounted
+def generate_system():
+    """Generate system from builder project"""
+    try:
+        data = request.get_json()
+        project_id = data.get('project_id')
+        
+        if not project_id:
+            return jsonify({'error': 'project_id is required'}), 400
+        
+        tenant_id = getattr(g, 'tenant_id', 'default')
+        
+        result = visual_builder_service.generate_system(project_id, tenant_id)
+        
+        if 'error' in result:
+            return jsonify(result), 400
+        
+        return jsonify({
+            'success': True,
+            **result
+        })
+        
+    except Exception as e:
+        logger.error(f"Generate system error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@visual_builder_bp.route('/ingest/voice', methods=['POST'])
+@cross_origin()
+@flag_required('visual_builder')
+@require_tenant_context
+@idempotent
+@cost_accounted
+def ingest_voice():
+    """Process voice input for project"""
+    try:
+        if 'audio_file' not in request.files:
+            return jsonify({'error': 'No audio file provided'}), 400
+        
+        audio_file = request.files['audio_file']
+        project_id = request.form.get('project_id')
+        
+        if not project_id:
+            return jsonify({'error': 'project_id is required'}), 400
+        
+        if audio_file.filename == '':
+            return jsonify({'error': 'No audio file selected'}), 400
+        
+        # Save audio file temporarily
+        temp_path = Path(tempfile.gettempdir()) / f"voice_{uuid.uuid4()}.wav"
+        audio_file.save(temp_path)
+        
+        tenant_id = getattr(g, 'tenant_id', 'default')
+        
+        # Process voice input
+        result = multimodal_ingest_service.process_voice_input(
+            project_id=project_id,
+            audio_file_path=str(temp_path),
+            tenant_id=tenant_id
+        )
+        
+        # Clean up temp file
+        temp_path.unlink()
+        
+        if not result:
+            return jsonify({'error': 'Failed to process voice input'}), 500
+        
+        return jsonify({
+            'success': True,
+            'result': asdict(result)
+        })
+        
+    except Exception as e:
+        logger.error(f"Ingest voice error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@visual_builder_bp.route('/ingest/file', methods=['POST'])
+@cross_origin()
+@flag_required('visual_builder')
+@require_tenant_context
+@idempotent
+@cost_accounted
+def ingest_file():
+    """Process file input for project"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        project_id = request.form.get('project_id')
+        
+        if not project_id:
+            return jsonify({'error': 'project_id is required'}), 400
+        
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Check file type
+        file_extension = Path(file.filename).suffix.lower().lstrip('.')
+        if file_extension not in multimodal_ingest_service.supported_file_types:
+            return jsonify({'error': f'Unsupported file type: {file_extension}'}), 400
+        
+        # Save file temporarily
+        temp_path = Path(tempfile.gettempdir()) / f"file_{uuid.uuid4()}_{file.filename}"
+        file.save(temp_path)
+        
+        tenant_id = getattr(g, 'tenant_id', 'default')
+        
+        # Process file input
+        result = multimodal_ingest_service.process_file_input(
+            project_id=project_id,
+            file_path=str(temp_path),
+            tenant_id=tenant_id
+        )
+        
+        # Clean up temp file
+        temp_path.unlink()
+        
+        if not result:
+            return jsonify({'error': 'Failed to process file input'}), 500
+        
+        return jsonify({
+            'success': True,
+            'result': asdict(result)
+        })
+        
+    except Exception as e:
+        logger.error(f"Ingest file error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@visual_builder_bp.route('/ingest/result/<ingest_id>', methods=['GET'])
+@cross_origin()
+@flag_required('visual_builder')
+@require_tenant_context
+def get_ingest_result(ingest_id):
+    """Get ingest result by ID"""
+    try:
+        project_id = request.args.get('project_id')
+        if not project_id:
+            return jsonify({'error': 'project_id is required'}), 400
+        
+        tenant_id = getattr(g, 'tenant_id', 'default')
+        
+        result = multimodal_ingest_service.get_ingest_result(ingest_id, project_id, tenant_id)
+        
+        if not result:
+            return jsonify({'error': 'Ingest result not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'result': asdict(result)
+        })
+        
+    except Exception as e:
+        logger.error(f"Get ingest result error: {e}")
+        return jsonify({'error': str(e)}), 500

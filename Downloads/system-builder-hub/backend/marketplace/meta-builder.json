@@ -1,0 +1,220 @@
+{
+  "slug": "meta-builder",
+  "name": "SBH Meta-Builder",
+  "version": "1.0.0",
+  "description": "Natural language to production-ready scaffold generation with guided prompts, template composition, and evaluation.",
+  "category": "Development Tools",
+  "tags": ["scaffolding", "code-generation", "ai", "templates", "patterns"],
+  "badges": ["Multi-tenant", "AI-Powered", "Template Composition", "Evaluation"],
+  "min_sbh_version": "1.0.0",
+  "author": "SBH Team",
+  "repository": "https://github.com/sbh/meta-builder",
+  "documentation": "/ui/docs/meta-builder",
+  "screenshots": [
+    "/marketplace/assets/meta-builder/screenshot-1.png",
+    "/marketplace/assets/meta-builder/screenshot-2.png",
+    "/marketplace/assets/meta-builder/screenshot-3.png"
+  ],
+  "demo_video_url": "https://example.com/meta-builder-demo",
+  "features": [
+    "Natural language scaffold generation",
+    "Guided prompt composer",
+    "Pattern library with 10+ patterns",
+    "Template composition engine",
+    "Visual plan inspector",
+    "Golden test evaluation",
+    "Multi-tenant isolation",
+    "RBAC enforcement",
+    "Audit logging",
+    "Rate limiting"
+  ],
+  "plans": {
+    "starter": {
+      "name": "Starter",
+      "price": 0,
+      "features": [
+        "5 scaffold generations per month",
+        "Basic patterns (CRUD, Analytics)",
+        "Community templates",
+        "Basic evaluation"
+      ]
+    },
+    "pro": {
+      "name": "Pro",
+      "price": 49,
+      "features": [
+        "50 scaffold generations per month",
+        "All patterns and templates",
+        "Advanced composition",
+        "Full evaluation suite",
+        "Priority support"
+      ]
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": 199,
+      "features": [
+        "Unlimited scaffold generations",
+        "Custom patterns and templates",
+        "Advanced composition rules",
+        "Full evaluation suite",
+        "Dedicated support",
+        "Custom integrations"
+      ]
+    }
+  },
+  "guided_prompt_schema": {
+    "role": {
+      "type": "string",
+      "required": true,
+      "description": "Your role (e.g., Developer, Product Manager)"
+    },
+    "context": {
+      "type": "string",
+      "required": true,
+      "description": "Current situation and constraints"
+    },
+    "task": {
+      "type": "string",
+      "required": true,
+      "description": "What system to build"
+    },
+    "audience": {
+      "type": "string",
+      "required": true,
+      "description": "Target users"
+    },
+    "output": {
+      "type": "string",
+      "required": true,
+      "description": "Desired output type"
+    }
+  },
+  "rbac_matrix": {
+    "owner": ["read", "write", "admin", "evaluate"],
+    "admin": ["read", "write", "evaluate"],
+    "member": ["read", "write"],
+    "viewer": ["read"]
+  },
+  "api_endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/meta/scaffold/plan",
+      "description": "Generate scaffold plan"
+    },
+    {
+      "method": "POST",
+      "path": "/api/meta/scaffold/build",
+      "description": "Build scaffold from plan"
+    },
+    {
+      "method": "POST",
+      "path": "/api/meta/scaffold/revise",
+      "description": "Revise scaffold plan"
+    },
+    {
+      "method": "GET",
+      "path": "/api/meta/patterns",
+      "description": "List available patterns"
+    },
+    {
+      "method": "GET",
+      "path": "/api/meta/templates",
+      "description": "List available templates"
+    },
+    {
+      "method": "POST",
+      "path": "/api/meta/eval/run",
+      "description": "Run evaluation cases"
+    }
+  ],
+  "ui_routes": [
+    {
+      "path": "/ui/meta/scaffold",
+      "name": "Scaffold Composer",
+      "description": "Main scaffold generation interface"
+    },
+    {
+      "path": "/ui/meta/patterns",
+      "name": "Pattern Browser",
+      "description": "Browse and select patterns"
+    },
+    {
+      "path": "/ui/meta/templates",
+      "name": "Template Browser",
+      "description": "Browse and select templates"
+    },
+    {
+      "path": "/ui/meta/evaluations",
+      "name": "Evaluation Dashboard",
+      "description": "View evaluation results"
+    }
+  ],
+  "dependencies": [],
+  "conflicts": [],
+  "installation": {
+    "type": "builtin",
+    "steps": [
+      "Meta-Builder is built into SBH platform",
+      "Access via /ui/meta/scaffold",
+      "No additional installation required"
+    ]
+  },
+  "configuration": {
+    "llm_provider": {
+      "type": "string",
+      "default": "openai",
+      "description": "LLM provider for planning"
+    },
+    "max_planning_requests": {
+      "type": "integer",
+      "default": 20,
+      "description": "Max planning requests per minute"
+    },
+    "max_build_requests": {
+      "type": "integer",
+      "default": 10,
+      "description": "Max build requests per minute"
+    }
+  },
+  "examples": [
+    {
+      "name": "Helpdesk System",
+      "prompt": "Build a helpdesk system with knowledge base and AI search",
+      "patterns": ["helpdesk", "ai-rag-app"],
+      "templates": ["flagship-crm"]
+    },
+    {
+      "name": "E-commerce Marketplace",
+      "prompt": "Create a marketplace with vendor management and payments",
+      "patterns": ["marketplace"],
+      "templates": ["flagship-crm", "stripe-payments"]
+    },
+    {
+      "name": "Learning Management System",
+      "prompt": "Build an LMS with courses, quizzes, and payment processing",
+      "patterns": ["lms"],
+      "templates": ["flagship-crm", "stripe-payments"]
+    }
+  ],
+  "support": {
+    "documentation": "/ui/docs/meta-builder",
+    "community": "https://community.sbh.com",
+    "email": "support@sbh.com",
+    "slack": "https://sbh.slack.com"
+  },
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2024-01-01",
+      "changes": [
+        "Initial release",
+        "Natural language scaffold generation",
+        "Pattern library with 10 patterns",
+        "Template composition engine",
+        "Evaluation harness",
+        "Guided prompt composer UI"
+      ]
+    }
+  ]
+}

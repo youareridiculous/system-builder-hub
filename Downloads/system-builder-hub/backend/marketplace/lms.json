@@ -1,0 +1,47 @@
+{
+  "slug": "lms",
+  "name": "Learning Management System",
+  "description": "Build me a lightweight LMS with courses, lessons, quizzes, and student progress tracking",
+  "category": "Education",
+  "tags": [
+    "lms",
+    "education"
+  ],
+  "version": "1.0.0",
+  "author": "SBH Team",
+  "features": [
+    "courses",
+    "lessons",
+    "quizzes",
+    "progress"
+  ],
+  "plans": {
+    "starter": {
+      "name": "Starter",
+      "price": 99,
+      "billing_cycle": "monthly",
+      "features": [
+        "Up to 1000 lms items"
+      ]
+    },
+    "pro": {
+      "name": "Pro",
+      "price": 299,
+      "billing_cycle": "monthly",
+      "features": [
+        "Up to 10000 lms items"
+      ]
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": 799,
+      "billing_cycle": "monthly",
+      "features": [
+        "Up to unlimited lms items"
+      ]
+    }
+  },
+  "is_active": true,
+  "created_at": "2025-09-01T22:04:57.951137Z",
+  "updated_at": "2025-09-01T22:04:57.951144Z"
+}

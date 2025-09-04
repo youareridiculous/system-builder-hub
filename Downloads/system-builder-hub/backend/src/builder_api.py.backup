@@ -1,0 +1,693 @@
+"""
+Builder API - Backend endpoints for Visual Builder
+"""
+import logging
+import os
+import json
+import uuid
+from datetime import datetime
+from typing import Dict, Any, Optional
+from flask import Blueprint, request, jsonify, current_app
+from flask_limiter.util import get_remote_address
+from builder_schema import (
+    BuilderState, Node, Edge, normalize_state, coerce_defaults,
+    slugify, route_to_slug, create_minimal_builder_state
+)
+from db import get_db, ensure_table, select_all, insert_row, ensure_users_table
+from file_store_api import register_file_store
+
+logger = logging.getLogger(__name__)
+
+# Create blueprint
+builder_api_bp = Blueprint("builder_api", __name__, url_prefix="/api/builder")
+
+# In-memory storage for builder states and builds
+builder_states = {}
+builds = {}
+generated_apis = {}
+generated_tables = {}
+generated_file_stores = {}
+
+def _add_route_once(app, rule: str, endpoint: str, view_func, methods=None):
+    """Add route once, removing any existing routes with same endpoint"""
+    # Remove existing rule(s) with same endpoint to avoid duplicates
+    try:
+        existing = [r for r in app.url_map.iter_rules() if r.endpoint == endpoint]
+        for r in existing:
+            app.url_map._rules.remove(r)
+            try:
+                del app.view_functions[endpoint]
+            except KeyError:
+                pass
+    except Exception:
+        pass # Log this in production
+    app.add_url_rule(rule, endpoint=endpoint, view_func=view_func, methods=methods)
+
+def generate_rest_endpoint(node: Node) -> Optional[Dict[str, Any]]:
+    """Generate REST API endpoint for a node"""
+    try:
+        props = node.props
+        route = props.get('route', '/api/endpoint')
+        method = props.get('method', 'GET')
+        sample_response = props.get('sample_response', '{"ok": true}')
+        
+        # Parse sample response
+        try:
+            response_data = json.loads(sample_response)
+        except json.JSONDecodeError:
+            response_data = {"error": "Invalid JSON in sample_response"}
+        
+        # Store in generated APIs
+        generated_apis[route] = {
+            'method': method,
+            'response': response_data,
+            'node_id': node.id
+        }
+        
+        return {
+            'route': route,
+            'method': method,
+            'response': response_data
+        }
+    except Exception as e:
+        logger.error(f"Error generating REST endpoint for {node.id}: {e}")
+        return None
+
+def generate_db_table(node: Node) -> Optional[Dict[str, Any]]:
+    """Generate database table for a node"""
+    try:
+        props = node.props
+        table_name = props.get('name', 'table')
+        columns = props.get('columns', [])
+        
+        # Ensure table exists
+        db = get_db(current_app.config.get('DATABASE', 'instance/app.db'))
+        ensure_table(db, table_name, columns)
+        
+        # Get column names for insert operations
+        insertable_columns = [col['name'] for col in columns if 'AUTOINCREMENT' not in col['type']]
+        
+        # Store table info
+        generated_tables[table_name] = {
+            'name': table_name,
+            'columns': columns,
+            'insertable_columns': insertable_columns,
+            'node_id': node.id
+        }
+        
+        return {
+            'table': table_name,
+            'route': f'/api/{table_name}',
+            'columns': columns
+        }
+    except Exception as e:
+        logger.error(f"Error generating DB table for {node.id}: {e}")
+        return None
+
+def generate_auth_system(node: Node) -> Optional[Dict[str, Any]]:
+    """Generate auth system for a node"""
+    try:
+        props = node.props
+        strategy = props.get('strategy', 'jwt')
+        roles = props.get('roles', ['admin', 'user'])
+        user_table = props.get('user_table', 'users')
+        user_columns = props.get('user_columns', [])
+        
+        # Ensure users table exists
+        db = get_db(current_app.config.get('DATABASE', 'instance/app.db'))
+        ensure_users_table(db)
+        
+        # Store auth info
+        auth_info = {
+            'strategy': strategy,
+            'roles': roles,
+            'user_table': user_table,
+            'node_id': node.id
+        }
+        
+        return auth_info
+    except Exception as e:
+        logger.error(f"Error generating auth system for {node.id}: {e}")
+        return None
+
+def generate_payment_system(node: Node) -> Optional[Dict[str, Any]]:
+    """Generate payment system for a node"""
+    try:
+        props = node.props
+        provider = props.get('provider', 'stripe')
+        plans = props.get('plans', [])
+        trial_days = props.get('trial_days', 14)
+        currency = props.get('currency', 'usd')
+        
+        # Store payment info
+        payment_info = {
+            'provider': provider,
+            'plans': plans,
+            'trial_days': trial_days,
+            'currency': currency,
+            'node_id': node.id
+        }
+        
+        return payment_info
+    except Exception as e:
+        logger.error(f"Error generating payment system for {node.id}: {e}")
+        return None
+
+def generate_file_store(node: Node) -> Optional[Dict[str, Any]]:
+    """Generate file store for a node"""
+    try:
+        props = node.props
+        name = props.get('name', 'FileStore')
+        provider = props.get('provider', 'local')
+        local_path = props.get('local_path', './instance/uploads')
+        allowed_types = props.get('allowed_types', ['*'])
+        max_size_mb = props.get('max_size_mb', 20)
+        bucket = props.get('bucket')
+        
+        # Create store slug
+        store_slug = slugify(name)
+        
+        # Check if S3 is configured when provider is s3
+        if provider == 's3':
+            s3_bucket = current_app.config.get('S3_BUCKET_NAME')
+            if not s3_bucket:
+                logger.warning(f"S3_BUCKET_NAME not configured for file store '{name}', falling back to local")
+                provider = 'local'
+        
+        # Ensure upload directory exists for local storage
+        if provider == 'local':
+            store_path = os.path.join(current_app.instance_path, 'uploads', store_slug)
+            os.makedirs(store_path, exist_ok=True)
+        
+        # Register file store configuration
+        store_config = {
+            'name': name,
+            'provider': provider,
+            'local_path': local_path,
+            'allowed_types': allowed_types,
+            'max_size_mb': max_size_mb,
+            'bucket': bucket,
+            'node_id': node.id
+        }
+        
+        register_file_store(store_slug, store_config)
+        
+        # Store file store info
+        generated_file_stores[store_slug] = store_config
+        
+        return {
+            'name': name,
+            'store_slug': store_slug,
+            'provider': provider,
+            'local_path': local_path,
+            'allowed_types': allowed_types,
+            'max_size_mb': max_size_mb,
+            'node_id': node.id
+        }
+    except Exception as e:
+        logger.error(f"Error generating file store for {node.id}: {e}")
+        return None
+
+def generate_ui_page_template(node: Node, templates_dir: str, api_routes: Dict[str, str], table_info: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Generate UI page template for a node"""
+    try:
+        props = node.props
+        name = props.get('name', 'Page')
+        route = props.get('route', '/page')
+        title = props.get('title', name)
+        content = props.get('content', f'<h1>{title}</h1><p>Content goes here.</p>')
+        consumes = props.get('consumes', {})
+        bind_table = props.get('bind_table')
+        bind_file_store = props.get('bind_file_store')
+        form = props.get('form', {'enabled': False, 'fields': []})
+        requires_auth = props.get('requires_auth', False)
+        requires_subscription = props.get('requires_subscription', False)
+        
+        # Compute slug and aliases
+        slug = route_to_slug(route)
+        slug_from_name = slugify(name)
+        aliases = set([slug_from_name]) - {slug}
+        
+        # Build file upload UI if bound to file store
+        file_upload_ui = ""
+        if bind_file_store:
+            file_upload_ui = f"""
+        <div class="file-upload-section">
+            <h2>File Upload</h2>
+            <form id="upload-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="file">Select File:</label>
+                    <input type="file" id="file" name="file" required>
+                </div>
+                <button type="submit">Upload File</button>
+            </form>
+            <div id="upload-status"></div>
+        </div>
+        
+        <div class="file-list-section">
+            <h2>Uploaded Files</h2>
+            <div id="file-list">Loading...</div>
+        </div>
+        
+        <script>
+        // File upload functionality
+        document.getElementById('upload-form').addEventListener('submit', async (e) => {{
+            e.preventDefault();
+            const formData = new FormData();
+            const fileInput = document.getElementById('file');
+            formData.append('file', fileInput.files[0]);
+            
+            const statusEl = document.getElementById('upload-status');
+            statusEl.textContent = 'Uploading...';
+            
+            try {{
+                const response = await fetch('/api/files/{bind_file_store}/upload', {{
+                    method: 'POST',
+                    headers: {{
+                        'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')
+                    }},
+                    body: formData
+                }});
+                
+                if (response.ok) {{
+                    statusEl.textContent = 'Upload successful!';
+                    fileInput.value = '';
+                    loadFiles();
+                }} else {{
+                    const error = await response.json();
+                    statusEl.textContent = 'Upload failed: ' + error.error;
+                }}
+            }} catch(e) {{
+                statusEl.textContent = 'Upload failed: ' + e;
+            }}
+        }});
+        
+        // Load files
+        async function loadFiles() {{
+            const fileListEl = document.getElementById('file-list');
+            try {{
+                const response = await fetch('/api/files/{bind_file_store}', {{
+                    headers: {{
+                        'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')
+                    }}
+                }});
+                
+                if (response.ok) {{
+                    const data = await response.json();
+                    const files = data.files;
+                    
+                    if (files.length === 0) {{
+                        fileListEl.innerHTML = '<p>No files uploaded yet.</p>';
+                    }} else {{
+                        const fileList = files.map(file => {{
+                            const downloadLink = file.url || `/api/files/{bind_file_store}/${{file.name}}`;
+                            return `
+                                <div class="file-item">
+                                    <span>${{file.name}}</span>
+                                    <span>(${{(file.size / 1024).toFixed(1)}} KB)</span>
+                                    <a href="${{downloadLink}}" target="_blank">Download</a>
+                                </div>
+                            `;
+                        }}).join('');
+                        fileListEl.innerHTML = fileList;
+                    }}
+                }} else {{
+                    fileListEl.innerHTML = '<p>Failed to load files.</p>';
+                }}
+            }} catch(e) {{
+                fileListEl.innerHTML = '<p>Failed to load files: ' + e + '</p>';
+            }}
+        }}
+        
+        // Load files on page load
+        loadFiles();
+        </script>
+        """
+        
+        # Build template content
+        template_content = f"""<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{title}</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 2rem; }}
+        .container {{ max-width: 800px; margin: auto; }}
+        .form-group {{ margin-bottom: 1rem; }}
+        label {{ display: block; margin-bottom: 0.5rem; }}
+        input, textarea {{ width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }}
+        button {{ background: #007bff; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }}
+        .data-section {{ margin-top: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 4px; }}
+        .auth-required {{ background: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }}
+        .subscription-required {{ background: #f8d7da; border: 1px solid #f5c6cb; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }}
+        .file-upload-section {{ margin-top: 2rem; padding: 1rem; background: #e9ecef; border-radius: 4px; }}
+        .file-list-section {{ margin-top: 1rem; }}
+        .file-item {{ display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid #ddd; }}
+        .file-item a {{ color: #007bff; text-decoration: none; }}
+        .file-item a:hover {{ text-decoration: underline; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        {f'<div class="auth-required"><strong>Authentication Required:</strong> This page requires authentication.</div>' if requires_auth else ''}
+        {f'<div class="subscription-required"><strong>Subscription Required:</strong> This page requires an active subscription.</div>' if requires_subscription else ''}
+        
+        {content}
+        
+        {file_upload_ui}
+        
+        {f'''
+        <div class="data-section">
+            <h2>Data</h2>
+            <div id="data-content">Loading...</div>
+        </div>
+        
+        <script>
+        (async () => {{
+            try {{
+                const response = await fetch('{consumes.get("api", "")}');
+                const data = await response.json();
+                const el = document.getElementById('data-content');
+                {f'el.innerHTML = "<ul>" + data.map(item => `<li>${{item.title || item.name || JSON.stringify(item)}}</li>`).join("") + "</ul>";' if consumes.get("render") == "list" else 'el.textContent = JSON.stringify(data, null, 2);'}
+            }} catch(e) {{
+                document.getElementById('data-content').textContent = "Failed to load: " + e;
+            }}
+        }})();
+        </script>
+        ''' if consumes.get("api") else ''}
+    </div>
+</body>
+</html>"""
+        
+        # Write template file
+        template_path = os.path.join(templates_dir, f"{slug}.html")
+        os.makedirs(os.path.dirname(template_path), exist_ok=True)
+        
+        with open(template_path, 'w') as f:
+            f.write(template_content)
+        
+        return {
+            'route': route,
+            'slug': slug,
+            'aliases': list(aliases),
+            'title': title
+        }
+    except Exception as e:
+        logger.error(f"Error generating UI page template for {node.id}: {e}")
+        return None
+
+@builder_api_bp.route("/state/<project_id>", methods=["GET"])
+def get_builder_state(project_id: str):
+    """Get builder state for a project"""
+    try:
+        state = builder_states.get(project_id)
+        if not state:
+            # Return empty state if not found
+            empty_state = create_minimal_builder_state(project_id)
+            return jsonify({
+                "success": True,
+                "state": {
+                    "project_id": project_id,
+                    "version": "v1",
+                    "nodes": [],
+                    "edges": [],
+                    "metadata": {},
+                    "exists": False
+                }
+            }), 200
+        
+        # Convert to dict for JSON serialization
+        state_dict = {
+            "project_id": state.project_id,
+            "version": state.version,
+            "nodes": [
+                {
+                    "id": node.id,
+                    "type": node.type,
+                    "props": node.props,
+                    "meta": node.meta
+                }
+                for node in state.nodes
+            ],
+            "edges": [
+                {
+                    "source": edge.source,
+                    "target": edge.target,
+                    "kind": edge.kind
+                }
+                for edge in state.edges
+            ],
+            "metadata": state.metadata,
+            "exists": state.exists
+        }
+        
+        return jsonify({
+            "success": True,
+            "state": state_dict
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting builder state: {e}")
+        return jsonify({
+            "error": "Failed to get builder state",
+            "details": str(e)
+        }), 500
+
+@builder_api_bp.route("/save", methods=["POST"])
+def save_builder_state():
+    """Save builder state"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+        
+        # Normalize and validate state
+        try:
+            state = normalize_state(data)
+        except Exception as e:
+            return jsonify({
+                "error": "Invalid builder state",
+                "details": str(e)
+            }), 422
+        
+        # Store state
+        builder_states[state.project_id] = state
+        
+        logger.info(f"Saved builder state for project {state.project_id}: {len(state.nodes)} nodes")
+        
+        return jsonify({
+            "success": True,
+            "project_id": state.project_id,
+            "message": "Builder state saved successfully"
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error saving builder state: {e}")
+        return jsonify({
+            "error": "Failed to save builder state",
+            "details": str(e)
+        }), 500
+
+@builder_api_bp.route("/generate-build", methods=["POST"])
+@limiter.limit("10/minute")
+def generate_build():
+    """Generate build from builder state"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+        
+        project_id = data.get("project_id")
+        if not project_id:
+            return jsonify({"error": "project_id is required"}), 400
+        
+        # Check for async mode
+        async_mode = request.args.get('async', '0').lower() in ('1', 'true', 'yes')
+        
+        if async_mode:
+            # Enqueue background job
+            try:
+                from redis_core import redis_available, get_rq_queue
+                from jobs.tasks import generate_build_job
+                
+                if redis_available():
+                    queue = get_rq_queue()
+                    if queue:
+                        # Enqueue the job
+                        job = queue.enqueue(generate_build_job, project_id)
+                        return jsonify({
+                            "success": True,
+                            "status": "queued",
+                            "job_id": job.id,
+                            "message": "Build generation queued for background processing"
+                        }), 202
+                    else:
+                        logger.warning("Queue not available, falling back to sync mode")
+                else:
+                    logger.warning("Redis not available for async mode, falling back to sync mode")
+            except Exception as e:
+                logger.warning(f"Async mode failed, falling back to sync: {e}")
+                async_mode = False
+        
+        # Get builder state
+        state = builder_states.get(project_id)
+        if not state:
+            return jsonify({"error": "Builder state not found"}), 404
+        
+        # Create build record
+        build_id = str(uuid.uuid4())
+        build = {
+            'id': build_id,
+            'project_id': project_id,
+            'status': 'completed',
+            'created_at': datetime.utcnow().isoformat(),
+            'version': state.version,
+            'node_count': len(state.nodes),
+            'edge_count': len(state.edges)
+        }
+        builds[build_id] = build
+        
+        # Generate artifacts
+        artifacts = []
+        emitted_pages = []
+        emitted_apis = []
+        emitted_tables = []
+        auth_systems = []
+        payment_systems = []
+        file_stores = []
+        preview_url = None
+        
+        # Get templates directory
+        templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'templates', 'ui')
+        
+        # Generate REST API endpoints
+        api_routes = {}
+        for node in state.nodes:
+            if node.type == "rest_api":
+                api_info = generate_rest_endpoint(node)
+                if api_info:
+                    artifacts.append({
+                        'type': 'rest_api',
+                        'id': node.id,
+                        'route': api_info['route'],
+                        'name': node.props.get('name', 'API'),
+                        'method': api_info['method']
+                    })
+                    emitted_apis.append(api_info)
+                    api_routes[node.id] = api_info['route']
+        
+        # Generate DB tables
+        table_info = {}
+        for node in state.nodes:
+            if node.type == "db_table":
+                table_info_result = generate_db_table(node)
+                if table_info_result:
+                    artifacts.append({
+                        'type': 'db_table',
+                        'id': node.id,
+                        'table': table_info_result['table'],
+                        'route': table_info_result['route'],
+                        'name': node.props.get('name', 'Table'),
+                        'columns': table_info_result['columns']
+                    })
+                    emitted_tables.append(table_info_result)
+                    table_info[node.id] = table_info_result
+        
+        # Generate auth systems
+        for node in state.nodes:
+            if node.type == "auth":
+                auth_info = generate_auth_system(node)
+                if auth_info:
+                    artifacts.append({
+                        'type': 'auth',
+                        'id': node.id,
+                        'strategy': auth_info['strategy'],
+                        'roles': auth_info['roles'],
+                        'user_table': auth_info['user_table']
+                    })
+                    auth_systems.append(auth_info)
+        
+        # Generate payment systems
+        for node in state.nodes:
+            if node.type == "payment":
+                payment_info = generate_payment_system(node)
+                if payment_info:
+                    artifacts.append({
+                        'type': 'payment',
+                        'id': node.id,
+                        'provider': payment_info['provider'],
+                        'plans': payment_info['plans'],
+                        'trial_days': payment_info['trial_days']
+                    })
+                    payment_systems.append(payment_info)
+        
+        # Generate file stores
+        for node in state.nodes:
+            if node.type == "file_store":
+                file_store_info = generate_file_store(node)
+                if file_store_info:
+                    artifacts.append({
+                        'type': 'file_store',
+                        'id': node.id,
+                        'name': file_store_info['name'],
+                        'store_slug': file_store_info['store_slug'],
+                        'provider': file_store_info['provider'],
+                        'allowed_types': file_store_info['allowed_types'],
+                        'max_size_mb': file_store_info['max_size_mb']
+                    })
+                    file_stores.append(file_store_info)
+        
+        # Generate UI pages
+        for node in state.nodes:
+            if node.type == "ui_page":
+                page_info = generate_ui_page_template(node, templates_dir, api_routes, table_info)
+                if page_info:
+                    artifacts.append({
+                        'type': 'ui_page',
+                        'id': node.id,
+                        'route': page_info['route'],
+                        'name': page_info['title'],
+                        'slug': page_info['slug']
+                    })
+                    emitted_pages.append({
+                        'route': page_info['route'],
+                        'slug': page_info['slug'],
+                        'aliases': page_info['aliases'],
+                        'title': page_info['title']
+                    })
+                    
+                    if not preview_url:
+                        preview_url = f"/ui/{page_info['slug']}"
+        
+        # Default preview URL
+        if not preview_url:
+            preview_url = f'/ui/preview/{project_id}'
+        
+        result = {
+            'success': True,
+            'project_id': project_id,
+            'build_id': build_id,
+            'artifacts': artifacts,
+            'emitted_pages': emitted_pages,
+            'apis': emitted_apis,
+            'tables': emitted_tables,
+            'auth_systems': auth_systems,
+            'payment_systems': payment_systems,
+            'file_stores': file_stores,
+            'preview_url': preview_url,
+            'preview_url_project': f"/preview/{project_id}",
+            'node_count': len(state.nodes),
+            'edge_count': len(state.edges)
+        }
+        
+        logger.info(f"Generated build for project {project_id}: {len(emitted_pages)} pages, {len(emitted_apis)} APIs, {len(emitted_tables)} tables, {len(file_stores)} file stores")
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        logger.error(f"Error generating build: {e}")
+        return jsonify({
+            "error": "Failed to generate build",
+            "details": str(e)
+        }), 500

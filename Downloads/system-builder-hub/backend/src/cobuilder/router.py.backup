@@ -1,0 +1,855 @@
+"""
+Co-Builder Router for intent classification and action routing
+
+Routes natural language messages to appropriate SBH actions:
+- Build new modules (Phase 9)
+- Provision existing modules (Phase 5-6)
+- Resume projects (Phase 10)
+- Status and health checks
+"""
+
+import re
+import logging
+import subprocess
+import requests
+from typing import Dict, List, Any, Optional
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+    
+    def _classify_intent(self, message: str) -> str:
+        """Classify the intent of a message"""
+class CoBuilderRouter:
+    """Routes Co-Builder messages to appropriate SBH actions"""
+    
+    def __init__(self):
+        self.build_keywords = [
+            'build', 'create', 'add', 'generate', 'make', 'new module',
+            'scaffold', 'set up', 'initialize'
+        ]
+        
+        self.provision_keywords = [
+            'provision', 'enable', 'install', 'activate', 'deploy',
+            'set up', 'configure', 'start using'
+        ]
+        
+        self.resume_keywords = [
+            'resume', 'finish', 'complete', 'continue', 'pick up',
+            'restore', 'recover', 'handoff', 'existing project', 'incomplete', 'finish building'
+        ]
+        
+        self.gtm_keywords = [
+            "trial", "subscribe", "cancel", "billing", "payment", "plan", "pricing", "upgrade", "downgrade"
+        ]
+        
+        self.ops_keywords = [
+            "fix", "migration", "reseed", "restart", "worker", "health", "status", "diagnose", "remediate"
+        ]
+        
+        self.growth_keywords = [
+            "growth", "metrics", "insights", "churn", "trial", "conversion", "revenue", "usage", "analytics"
+        ]
+        
+        self.status_keywords = [
+            "status", "health", "what", "how", "check", "overview", "summary",
+            'status', 'health', 'what\'s installed', 'what is installed',
+            'show modules', 'list modules', 'system status', 'health check'
+        ]
+    
+    def route_message(self, message: str, tenant_id: str, dry_run: bool = False) -> Dict[str, Any]:
+        """Route a message to the appropriate action handler"""
+        message_lower = message.lower()
+        
+        # Classify intent
+        intent = self._classify_intent(message_lower)
+        
+        logger.info(f"Routing message: '{message}' -> {intent}")
+        
+        # Route to appropriate action
+        if intent == 'build':
+            return self._handle_build(message, tenant_id, dry_run)
+        elif intent == 'provision':
+            return self._handle_provision(message, tenant_id, dry_run)
+        elif intent == 'gtm':
+            return self._handle_gtm(message, tenant_id, dry_run)
+        elif intent == 'resume':
+            return self._handle_resume(message, tenant_id, dry_run)
+        elif intent == 'status':
+            return self._get_system_status(tenant_id)
+        elif intent == 'ops':
+            return self._handle_ops(message, tenant_id, dry_run)
+        elif intent == 'growth':
+            return self._handle_growth(message, tenant_id, dry_run)
+        else:
+            return self._handle_unknown(message, tenant_id, dry_run)        # Check for build intent
+        if any(keyword in message for keyword in self.build_keywords):
+            return 'build'
+        
+        # Check for provision intent
+        if any(keyword in message for keyword in self.provision_keywords):
+            return 'provision'
+        
+        return 'unknown'
+    
+    def _handle_build(self, message: str, tenant_id: str, dry_run: bool) -> Dict[str, Any]:
+        """Handle build new module requests"""
+        try:
+            logger.info(f"Handling build request: {message}")
+            
+            # Extract the specification from the message
+            # Remove common prefixes and focus on the actual spec
+            spec = self._extract_build_spec(message)
+            
+            if dry_run:
+                response = f"🔧 DRY RUN: Would build new module with specification: '{spec}'"
+                return {
+                    'action_type': 'build',
+                    'response': response,
+                    'success': True,
+                    'details': {
+                        'spec': spec,
+                        'dry_run': True
+                    }
+                }
+            
+            # Call the build natural command
+            result = subprocess.run([
+                'python', '-m', 'src.cli', 'build', 'natural',
+                '--spec', spec
+            ], capture_output=True, text=True, cwd='/Users/ericlarson/Downloads/system-builder-hub/backend')
+            
+            if result.returncode == 0:
+                # Try to provision the built module
+                module_name = self._extract_module_name(spec)
+                if module_name:
+                    self._provision_module(module_name, tenant_id)
+                
+                response = f"🎉 Successfully built and provisioned module from specification: '{spec}'"
+                return {
+                    'action_type': 'build',
+                    'response': response,
+                    'success': True,
+                    'details': {
+                        'spec': spec,
+                        'module_name': module_name,
+                        'stdout': result.stdout,
+                        'stderr': result.stderr
+                    }
+                }
+            else:
+                response = f"❌ Failed to build module: {result.stderr}"
+                return {
+                    'action_type': 'build',
+                    'response': response,
+                    'success': False,
+                    'details': {
+                        'spec': spec,
+                        'stdout': result.stdout,
+                        'stderr': result.stderr
+                    }
+                }
+                
+        except Exception as e:
+            logger.error(f"Build error: {e}")
+            return {
+                'action_type': 'build',
+                'response': f"❌ Build failed: {str(e)}",
+                'success': False,
+                'details': {'error': str(e)}
+            }
+    
+    def _handle_provision(self, message: str, tenant_id: str, dry_run: bool) -> Dict[str, Any]:
+        """Handle provision existing module requests"""
+        try:
+            logger.info(f"Handling provision request: {message}")
+            
+            # Extract module name from message
+            module_name = self._extract_module_name(message)
+            
+            if not module_name:
+                return {
+                    'action_type': 'provision',
+                    'response': "❌ Could not identify module to provision. Please specify a module name.",
+                    'success': False,
+                    'details': {'error': 'No module name found'}
+                }
+            
+            if dry_run:
+                response = f"🔧 DRY RUN: Would provision module '{module_name}' for tenant '{tenant_id}'"
+                return {
+                    'action_type': 'provision',
+                    'response': response,
+                    'success': True,
+                    'details': {
+                        'module_name': module_name,
+                        'tenant_id': tenant_id,
+                        'dry_run': True
+                    }
+                }
+            
+            # Provision the module
+            success = self._provision_module(module_name, tenant_id)
+            
+            if success:
+                response = f"✅ Successfully provisioned module '{module_name}' for tenant '{tenant_id}'"
+                return {
+                    'action_type': 'provision',
+                    'response': response,
+                    'success': True,
+                    'details': {
+                        'module_name': module_name,
+                        'tenant_id': tenant_id
+                    }
+                }
+            else:
+                response = f"❌ Failed to provision module '{module_name}'"
+                return {
+                    'action_type': 'provision',
+                    'response': response,
+                    'success': False,
+                    'details': {
+                        'module_name': module_name,
+                        'tenant_id': tenant_id
+                    }
+                }
+                
+        except Exception as e:
+            logger.error(f"Provision error: {e}")
+            return {
+                'action_type': 'provision',
+                'response': f"❌ Provision failed: {str(e)}",
+                'success': False,
+                'details': {'error': str(e)}
+            }
+    
+    def _handle_gtm(self, message: str, tenant_id: str, dry_run: bool) -> Dict[str, Any]:
+        """Handle GTM (trial/subscribe/cancel) requests"""
+        try:
+            logger.info(f"Handling GTM request: {message}")
+            
+            # Extract GTM action and module
+            gtm_action = self._extract_gtm_action(message)
+            module_name = self._extract_module_name(message)
+            
+            if not gtm_action:
+                return {
+                    'action_type': 'gtm',
+                    'response': "❌ Could not identify GTM action. Please specify trial, subscribe, or cancel.",
+                    'success': False,
+                    'details': {'error': 'No GTM action found'}
+                }
+            
+            if dry_run:
+                response = f"🔧 DRY RUN: Would {gtm_action} for module '{module_name}' and tenant '{tenant_id}'"
+                return {
+                    'action_type': 'gtm',
+                    'response': response,
+                    'success': True,
+                    'details': {
+                        'gtm_action': gtm_action,
+                        'module_name': module_name,
+                        'tenant_id': tenant_id,
+                        'dry_run': True
+                    }
+                }
+            
+            # Execute GTM action
+            success = self._execute_gtm_action(gtm_action, module_name, tenant_id)
+            
+            if success:
+                response = f"✅ Successfully executed {gtm_action} for module '{module_name}' and tenant '{tenant_id}'"
+                return {
+                    'action_type': 'gtm',
+                    'response': response,
+                    'success': True,
+                    'details': {
+                        'gtm_action': gtm_action,
+                        'module_name': module_name,
+                        'tenant_id': tenant_id
+                    }
+                }
+            else:
+                response = f"❌ Failed to execute {gtm_action} for module '{module_name}'"
+                return {
+                    'action_type': 'gtm',
+                    'response': response,
+                    'success': False,
+                    'details': {
+                        'gtm_action': gtm_action,
+                        'module_name': module_name,
+                        'tenant_id': tenant_id
+                    }
+                }
+                
+        except Exception as e:
+            logger.error(f"GTM error: {e}")
+            return {
+                'action_type': 'gtm',
+                'response': f"❌ GTM action failed: {str(e)}",
+                'success': False,
+                'details': {'error': str(e)}
+            }
+    
+    def _handle_resume(self, message: str, tenant_id: str, dry_run: bool) -> Dict[str, Any]:
+        """Handle resume project requests"""
+        try:
+            logger.info(f"Handling resume request: {message}")
+            
+            # Extract project path from message
+            project_path = self._extract_project_path(message)
+            
+            if not project_path:
+                return {
+                    'action_type': 'resume',
+                    'response': "❌ Could not identify project path to resume. Please specify a valid path.",
+                    'success': False,
+                    'details': {'error': 'No project path found'}
+                }
+            
+            if dry_run:
+                response = f"🔧 DRY RUN: Would resume project at '{project_path}'"
+                return {
+                    'action_type': 'resume',
+                    'response': response,
+                    'success': True,
+                    'details': {
+                        'project_path': project_path,
+                        'dry_run': True
+                    }
+                }
+            
+            # Call the project resume command
+            result = subprocess.run([
+                'python', '-m', 'src.cli', 'project', 'resume',
+                project_path
+            ], capture_output=True, text=True, cwd='/Users/ericlarson/Downloads/system-builder-hub/backend')
+            
+            if result.returncode == 0:
+                response = f"🎉 Successfully resumed project at '{project_path}'"
+                return {
+                    'action_type': 'resume',
+                    'response': response,
+                    'success': True,
+                    'details': {
+                        'project_path': project_path,
+                        'stdout': result.stdout,
+                        'stderr': result.stderr
+                    }
+                }
+            else:
+                response = f"❌ Failed to resume project: {result.stderr}"
+                return {
+                    'action_type': 'resume',
+                    'response': response,
+                    'success': False,
+                    'details': {
+                        'project_path': project_path,
+                        'stdout': result.stdout,
+                        'stderr': result.stderr
+                    }
+                }
+                
+        except Exception as e:
+            logger.error(f"Resume error: {e}")
+            return {
+                'action_type': 'resume',
+                'response': f"❌ Resume failed: {str(e)}",
+                'success': False,
+                'details': {'error': str(e)}
+            }
+    
+    def _handle_status(self, message: str, tenant_id: str, dry_run: bool) -> Dict[str, Any]:
+        """Handle status requests"""
+        try:
+            logger.info(f"Handling status request: {message}")
+            
+            # Get system status
+            status_data = self._get_system_status(tenant_id)
+            
+            response = f"📊 System Status:\n"
+            response += f"• Health: {'✅ OK' if status_data.get('health_ok') else '❌ Issues'}\n"
+            response += f"• Installed Modules: {status_data.get('installed_modules', 0)}\n"
+            response += f"• Available Modules: {len(status_data.get('available_modules', []))}\n"
+            response += f"• Recent Activity: {sum(status_data.get('recent_activity', {}).values())} actions in 24h"
+            
+            return {
+                'action_type': 'status',
+                'response': response,
+                'success': True,
+                'details': status_data
+            }
+                
+        except Exception as e:
+            logger.error(f"Status error: {e}")
+            return {
+                'action_type': 'status',
+                'response': f"❌ Status check failed: {str(e)}",
+                'success': False,
+                'details': {'error': str(e)}
+            }
+    
+    def _handle_unknown(self, message: str, tenant_id: str, dry_run: bool) -> Dict[str, Any]:
+        """Handle unknown intent"""
+        response = """🤖 I'm not sure what you'd like me to do. Here are some things I can help with:
+
+• **Build new modules**: "Build a lightweight LMS with courses and progress"
+• **Provision modules**: "Provision CRM for tenant demo"
+• **Start trials**: "Start a 14-day trial for CRM"
+• **Resume projects**: "Resume ./my-ecommerce-project"
+• **Check status**: "What's the system status?"
+
+Please try rephrasing your request with one of these actions."""
+        
+        return {
+            'action_type': 'unknown',
+            'response': response,
+            'success': False,
+            'details': {'message': message}
+        }
+    
+    def _extract_build_spec(self, message: str) -> str:
+        """Extract build specification from message"""
+        # Remove common prefixes
+        prefixes = [
+            'build', 'create', 'add', 'generate', 'make', 'new module',
+            'scaffold', 'set up', 'initialize'
+        ]
+        
+        spec = message.lower()
+        for prefix in prefixes:
+            if spec.startswith(prefix):
+                spec = spec[len(prefix):].strip()
+                break
+        
+        # Clean up the specification
+        spec = spec.strip('"\'')
+        return spec
+    
+    def _extract_module_name(self, message: str) -> Optional[str]:
+        """Extract module name from message"""
+        # Common module names (ordered by specificity - longer names first)
+        module_names = [
+            'learning_management_system', 'flagship_crm', 'meta_builder',
+            'analytics_dashboard', 'helpdesk_support', 'recruiting_ats',
+            'crm', 'erp', 'lms', 'helpdesk', 'analytics', 'recruiting'
+        ]
+        
+        message_lower = message.lower()
+        for module in module_names:
+            if module in message_lower:
+                return module
+        
+        return None
+    
+    def _extract_gtm_action(self, message: str) -> Optional[str]:
+        """Extract GTM action from message"""
+        message_lower = message.lower()
+        
+        if 'trial' in message_lower:
+            return 'trial'
+        elif 'subscribe' in message_lower:
+            return 'subscribe'
+        elif 'cancel' in message_lower:
+            return 'cancel'
+        
+        return None
+    
+    def _extract_project_path(self, message: str) -> Optional[str]:
+        """Extract project path from message"""
+        # Look for path patterns
+        path_patterns = [
+            r'\./[^\s]+',  # ./path
+            r'/[^\s]+',    # /absolute/path
+            r'[a-zA-Z]:\\[^\s]+',  # Windows path
+        ]
+        
+        for pattern in path_patterns:
+            match = re.search(pattern, message)
+            if match:
+                return match.group(0)
+        
+        return None
+    
+    def _provision_module(self, module_name: str, tenant_id: str) -> bool:
+        """Provision a module for a tenant"""
+        try:
+            response = requests.post(
+                'http://127.0.0.1:5001/api/marketplace/provision',
+                json={'module': module_name, 'tenant_id': tenant_id},
+                headers={'X-Tenant-ID': tenant_id},
+                timeout=30
+            )
+            return response.status_code == 201
+        except Exception as e:
+            logger.error(f"Provision error: {e}")
+            return False
+    
+    def _execute_gtm_action(self, action: str, module_name: str, tenant_id: str) -> bool:
+        """Execute a GTM action"""
+        try:
+            if action == 'trial':
+                response = requests.post(
+                    'http://127.0.0.1:5001/api/marketplace/trial',
+                    json={'tenant_id': tenant_id, 'module': module_name, 'plan': 'starter', 'days': 14},
+                    headers={'X-Tenant-ID': tenant_id},
+                    timeout=30
+                )
+            elif action == 'subscribe':
+                response = requests.post(
+                    'http://127.0.0.1:5001/api/marketplace/subscribe',
+                    json={'tenant_id': tenant_id, 'module': module_name, 'plan': 'pro'},
+                    headers={'X-Tenant-ID': tenant_id},
+                    timeout=30
+                )
+            elif action == 'cancel':
+                response = requests.post(
+                    'http://127.0.0.1:5001/api/marketplace/cancel',
+                    json={'tenant_id': tenant_id, 'module': module_name},
+                    headers={'X-Tenant-ID': tenant_id},
+                    timeout=30
+                )
+            else:
+                return False
+            
+            return response.status_code in [200, 201]
+        except Exception as e:
+            logger.error(f"GTM action error: {e}")
+            return False
+    
+    def _get_system_status(self, tenant_id: str) -> Dict[str, Any]:
+        """Get system status"""
+        try:
+            response = requests.get(
+                'http://127.0.0.1:5001/api/cobuilder/status',
+                headers={'X-Tenant-ID': tenant_id},
+                timeout=10
+            )
+            if response.status_code == 200:
+                return response.json()['data']
+            else:
+                return {}
+        except Exception as e:
+            logger.error(f"Status error: {e}")
+            return {}
+
+    def _handle_ops(self, message: str, tenant_id: str, dry_run: bool) -> Dict[str, Any]:
+        """Handle operations and health monitoring requests"""
+        try:
+            # Extract action and module from message
+            action = None
+            module = None
+            
+            if any(word in message.lower() for word in ["migration", "migrate"]):
+                action = "migrate"
+            elif any(word in message.lower() for word in ["reseed", "seed"]):
+                action = "reseed"
+            elif any(word in message.lower() for word in ["restart", "worker"]):
+                action = "restart_worker"
+            elif any(word in message.lower() for word in ["blueprint", "register"]):
+                action = "reregister"
+            
+            # Extract module name
+            module_names = ["flagship_crm", "crm", "erp_core", "erp", "lms"]
+            for module_name in module_names:
+                if module_name in message.lower():
+                    module = module_name
+                    break
+            
+            if not action:
+                # Default to status check
+                response = requests.get(
+                    f'http://127.0.0.1:5001/api/ops/status?tenant_id={tenant_id}',
+                    headers={'X-Tenant-ID': tenant_id},
+                    timeout=30
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()['data']
+                    return {
+                        "action_type": "ops_status",
+                        "success": True,
+                        "response": f"🔍 Operations Status:\n• Overall: {data['status']}\n• Database: {data['checks']['database']['status']}\n• Migrations: {data['checks']['migrations']['status']}\n• Module Tables: {data['checks']['module_tables']['status']}"
+                    }
+                else:
+                    return {
+                        "action_type": "ops_status",
+                        "success": False,
+                        "response": "❌ Failed to get operations status"
+                    }
+            
+            # Execute remediation action
+            payload = {
+                "action": action,
+                "module": module,
+                "tenant_id": tenant_id,
+                "dry_run": dry_run
+            }
+            
+            response = requests.post(
+                'http://127.0.0.1:5001/api/ops/remediate',
+                json=payload,
+                headers={'X-Tenant-ID': tenant_id},
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                data = response.json()['data']
+                status_emoji = "✅" if data['status'] == 'success' else "⚠️" if data['status'] == 'dry_run' else "❌"
+                return {
+                    "action_type": "ops_remediate",
+                    "success": True,
+                    "response": f"{status_emoji} {data['action']}: {data['status']}\n{data['message']}"
+                }
+            else:
+                return {
+                    "action_type": "ops_remediate",
+                    "success": False,
+                    "response": f"❌ Remediation failed: {response.text}"
+                }
+                
+        except Exception as e:
+            logger.error(f"Ops action error: {e}")
+            return {
+                "action_type": "ops",
+                "success": False,
+                "response": f"❌ Operations error: {str(e)}"
+            }
+
+    def _handle_growth(self, message: str, tenant_id: str, dry_run: bool) -> Dict[str, Any]:
+        """Handle growth intelligence requests"""
+        try:
+            # Determine what growth data to fetch
+            if any(word in message.lower() for word in ["metrics", "data"]):
+                # Get metrics for last 7 days
+                from_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+                to_date = datetime.now().strftime('%Y-%m-%d')
+                
+                response = requests.get(
+                    f'http://127.0.0.1:5001/api/growth/metrics?from={from_date}&to={to_date}&tenant_id={tenant_id}',
+                    headers={'X-Tenant-ID': tenant_id},
+                    timeout=30
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()['data']
+                    return {
+                        "action_type": "growth_metrics",
+                        "success": True,
+                        "response": f"📊 Growth Metrics (Last 7 Days):\n• Metrics collected: {data['count']}\n• Date range: {data['from_date']} to {data['to_date']}"
+                    }
+                else:
+                    return {
+                        "action_type": "growth_metrics",
+                        "success": False,
+                        "response": "❌ Failed to get growth metrics"
+                    }
+            else:
+                # Get insights
+                response = requests.get(
+                    f'http://127.0.0.1:5001/api/growth/insights?tenant_id={tenant_id}',
+                    headers={'X-Tenant-ID': tenant_id},
+                    timeout=30
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()['data']
+                    insights = data.get('conversion_rates', {})
+                    alerts = data.get('alerts', [])
+                    
+                    response_text = "📈 Growth Insights:\n"
+                    if insights.get('trial_to_paid'):
+                        response_text += f"• Trial→Paid Conversion: {insights['trial_to_paid']}%\n"
+                    
+                    if alerts:
+                        response_text += f"• Alerts: {len(alerts)} active\n"
+                    
+                    return {
+                        "action_type": "growth_insights",
+                        "success": True,
+                        "response": response_text
+                    }
+                else:
+                    return {
+                        "action_type": "growth_insights",
+                        "success": False,
+                        "response": "❌ Failed to get growth insights"
+                    }
+                    
+        except Exception as e:
+            logger.error(f"Growth action error: {e}")
+            return {
+                "action_type": "growth",
+                "success": False,
+                "response": f"❌ Growth analysis error: {str(e)}"
+            }
+        
+        self.provision_keywords = [
+            'provision', 'enable', 'install', 'activate', 'deploy',
+            'set up', 'configure', 'start using'
+        ]
+        
+        self.resume_keywords = [
+            'resume', 'finish', 'complete', 'continue', 'pick up',
+            'restore', 'recover', 'handoff'
+        ]
+        
+        self.gtm_keywords = [
+            "trial", "subscribe", "cancel", "billing", "payment", "plan", "pricing", "upgrade", "downgrade"
+        ]
+        
+        self.ops_keywords = [
+            "fix", "migration", "reseed", "restart", "worker", "health", "status", "diagnose", "remediate"
+        ]
+        
+        self.growth_keywords = [
+            "growth", "metrics", "insights", "churn", "trial", "conversion", "revenue", "usage", "analytics"
+        ]
+        
+        self.status_keywords = [
+            "status", "health", "what", "how", "check", "overview", "summary"
+        ]
+        # Check for GTM intent
+        if any(keyword in message for keyword in self.gtm_keywords):
+            return "gtm"
+        elif any(keyword in message for keyword in self.ops_keywords):
+            return "ops"
+        elif any(keyword in message for keyword in self.growth_keywords):
+            return "growth"
+        
+        # Check for resume intent
+        if any(keyword in message for keyword in self.resume_keywords):
+            return 'resume'
+        
+        # Check for status intent
+        if any(keyword in message for keyword in self.status_keywords):
+            return 'status'
+        
+        return 'unknown'
+class CoBuilderRouter:
+    """Routes Co-Builder messages to appropriate SBH actions"""
+    
+    def __init__(self):
+        self.build_keywords = [
+            'build', 'create', 'add', 'generate', 'make', 'new module',
+            'scaffold', 'set up', 'initialize'
+        ]
+        
+        self.provision_keywords = [
+            'provision', 'enable', 'install', 'activate', 'deploy',
+            'set up', 'configure', 'start using'
+        ]
+        
+        self.resume_keywords = [
+            'resume', 'finish', 'complete', 'continue', 'pick up',
+            'restore', 'recover', 'handoff', 'existing project', 'incomplete', 'finish building'
+        ]
+        
+        self.gtm_keywords = [
+            "trial", "subscribe", "cancel", "billing", "payment", "plan", "pricing", "upgrade", "downgrade"
+        ]
+        
+        self.ops_keywords = [
+            "fix", "migration", "reseed", "restart", "worker", "health", "status", "diagnose", "remediate"
+        ]
+        
+        self.growth_keywords = [
+            "growth", "metrics", "insights", "churn", "trial", "conversion", "revenue", "usage", "analytics"
+        ]
+        
+        self.status_keywords = [
+            "status", "health", "what", "how", "check", "overview", "summary",
+            'status', 'health', 'what\'s installed', 'what is installed',
+            'show modules', 'list modules', 'system status', 'health check'
+        ]
+    
+    def route_message(self, message: str, tenant_id: str, dry_run: bool = False) -> Dict[str, Any]:
+        """Route a message to the appropriate action handler"""
+        message_lower = message.lower()
+        
+        # Classify intent
+        intent = self._classify_intent(message_lower)
+        
+        logger.info(f"Routing message: '{message}' -> {intent}")
+        
+        # Route to appropriate action
+        if intent == 'build':
+            return self._handle_build(message, tenant_id, dry_run)
+        elif intent == 'provision':
+            return self._handle_provision(message, tenant_id, dry_run)
+        elif intent == 'gtm':
+            return self._handle_gtm(message, tenant_id, dry_run)
+        elif intent == 'resume':
+            return self._handle_resume(message, tenant_id, dry_run)
+        elif intent == 'status':
+            return self._get_system_status(tenant_id)
+        elif intent == 'ops':
+            return self._handle_ops(message, tenant_id, dry_run)
+        elif intent == 'growth':
+            return self._handle_growth(message, tenant_id, dry_run)
+        else:
+            return self._handle_unknown(message, tenant_id, dry_run)
+
+class CoBuilderRouter:
+    """Routes Co-Builder messages to appropriate SBH actions"""
+    
+    def __init__(self):
+        self.build_keywords = [
+            'build', 'create', 'add', 'generate', 'make', 'new module',
+            'scaffold', 'set up', 'initialize'
+        ]
+        
+        self.provision_keywords = [
+            'provision', 'enable', 'install', 'activate', 'deploy',
+            'set up', 'configure', 'start using'
+        ]
+        
+        self.resume_keywords = [
+            'resume', 'finish', 'complete', 'continue', 'pick up',
+            'restore', 'recover', 'handoff', 'existing project', 'incomplete', 'finish building'
+        ]
+        
+        self.gtm_keywords = [
+            "trial", "subscribe", "cancel", "billing", "payment", "plan", "pricing", "upgrade", "downgrade"
+        ]
+        
+        self.ops_keywords = [
+            "fix", "migration", "reseed", "restart", "worker", "health", "status", "diagnose", "remediate"
+        ]
+        
+        self.growth_keywords = [
+            "growth", "metrics", "insights", "churn", "trial", "conversion", "revenue", "usage", "analytics"
+        ]
+        
+        self.status_keywords = [
+            "status", "health", "what", "how", "check", "overview", "summary",
+            'status', 'health', 'what\'s installed', 'what is installed',
+            'show modules', 'list modules', 'system status', 'health check'
+        ]
+    
+    def route_message(self, message: str, tenant_id: str, dry_run: bool = False) -> Dict[str, Any]:
+        """Route a message to the appropriate action handler"""
+        message_lower = message.lower()
+        
+        # Classify intent
+        intent = self._classify_intent(message_lower)
+        
+        logger.info(f"Routing message: '{message}' -> {intent}")
+        
+        # Route to appropriate action
+        if intent == 'build':
+            return self._handle_build(message, tenant_id, dry_run)
+        elif intent == 'provision':
+            return self._handle_progress(message, tenant_id, dry_run)
+        elif intent == 'gtm':
+            return self._handle_gtm(message, tenant_id, dry_run)
+        elif intent == 'resume':
+            return self._handle_resume(message, tenant_id, dry_run)
+        elif intent == 'status':
+            return self._get_system_status(tenant_id)
+        elif intent == 'ops':
+            return self._handle_ops(message, tenant_id, dry_run)
+        elif intent == 'growth':
+            return self._handle_growth(message, tenant_id, dry_run)
+        else:
+            return self._handle_unknown(message, tenant_id, dry_run)

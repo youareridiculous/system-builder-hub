@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 System Builder Hub - Dashboard</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(180deg, #5a66ff 0%, #6a4cd9 50%, #7a3cc4 100%);
+            --surface: rgba(255, 255, 255, 0.06);
+            --surface-hover: rgba(255, 255, 255, 0.1);
+            --radius: 16px;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.25);
+            --gutter: 24px;
+            --gutter-tablet: 16px;
+            --gutter-mobile: 12px;
+            --text: #e9ecf1;
+            --text-muted: #b8bfd1;
+            --accent: #8b5cf6;
+            --accent-hover: #a78bfa;
+            --focus: 2px solid #a78bfa;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --header-height: 64px;
+            --sidebar-width: 280px;
+            --sidebar-collapsed: 60px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Global Layout */
+        .app-container {
+            display: grid;
+            grid-template-areas: 
+                "header header"
+                "sidebar main"
+                "footer footer";
+            grid-template-columns: var(--sidebar-width) 1fr;
+            grid-template-rows: var(--header-height) 1fr auto;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            grid-area: header;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0 var(--gutter);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .quick-action {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .quick-action:hover,
+        .quick-action:focus {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            outline: var(--focus);
+        }
+
+        .user-menu {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s ease;
+        }
+
+        .user-menu:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            grid-area: sidebar;
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: var(--gutter) 0;
+            overflow-y: auto;
+            height: calc(100vh - var(--header-height));
+        }
+
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+
+        .sidebar-section-header {
+            padding: 0 var(--gutter);
+            margin-bottom: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-group {
+            margin-bottom: 16px;
+        }
+
+        .sidebar-group-header {
+            padding: 8px var(--gutter);
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s ease;
+            border-radius: 0 8px 8px 0;
+            margin-right: 8px;
+        }
+
+        .sidebar-group-header:hover {
+            background: var(--surface-hover);
+        }
+
+        .sidebar-group-header[aria-expanded="false"] .group-icon {
+            transform: rotate(-90deg);
+        }
+
+        .group-icon {
+            transition: transform 0.2s ease;
+        }
+
+        .sidebar-group-content {
+            overflow: hidden;
+            transition: max-height 0.2s ease;
+        }
+
+        .sidebar-group-content[aria-hidden="true"] {
+            max-height: 0;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px var(--gutter);
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            border-radius: 0 8px 8px 0;
+            margin-right: 8px;
+            position: relative;
+        }
+
+        .sidebar-item:hover,
+        .sidebar-item:focus {
+            background: var(--surface-hover);
+            color: var(--text);
+            outline: var(--focus);
+        }
+
+        .sidebar-item.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .sidebar-item-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pinned-section {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+        }
+
+        /* Main Content */
+        .main-content {
+            grid-area: main;
+            padding: var(--gutter);
+            overflow-y: auto;
+        }
+
+        .welcome-section {
+            margin-bottom: 32px;
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .welcome-subtitle {
+            font-size: 1.125rem;
+            color: var(--text-muted);
+            max-width: 600px;
+        }
+
+        /* Hero Row */
+        .hero-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--gutter);
+            margin-bottom: 32px;
+        }
+
+        .hero-card {
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            padding: 24px;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .hero-card:hover::before,
+        .hero-card:focus::before {
+            transform: scaleX(1);
+        }
+
+        .hero-card:hover,
+        .hero-card:focus {
+            background: var(--surface-hover);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            outline: var(--focus);
+        }
+
+        .hero-card-icon {
+            font-size: 2rem;
+            margin-bottom: 16px;
+        }
+
+        .hero-card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .hero-card-description {
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .hero-card-cta {
+            color: var(--accent);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Feature Grid */
+        .features-section {
+            margin-bottom: 32px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--gutter);
+        }
+
+        .feature-card {
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            padding: 20px;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.3s ease;
+            position: relative;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feature-card:hover,
+        .feature-card:focus {
+            background: var(--surface-hover);
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: var(--shadow-hover);
+            outline: var(--focus);
+        }
+
+        .feature-status {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .feature-status.core {
+            background: var(--success);
+            color: white;
+        }
+
+        .feature-status.beta {
+            background: var(--warning);
+            color: white;
+        }
+
+        .feature-status.security {
+            background: var(--error);
+            color: white;
+        }
+
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+
+        .feature-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .feature-description {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            line-height: 1.4;
+            flex-grow: 1;
+            margin-bottom: 12px;
+        }
+
+        .feature-cta {
+            color: var(--accent);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-top: auto;
+        }
+
+        /* Footer */
+        .footer {
+            grid-area: footer;
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px var(--gutter);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 16px;
+        }
+
+        .footer-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer-link:hover,
+        .footer-link:focus {
+            color: var(--text);
+            outline: var(--focus);
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .status-indicator.degraded {
+            background: var(--warning);
+        }
+
+        .status-indicator.down {
+            background: var(--error);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1199px) {
+            .app-container {
+                grid-template-columns: var(--sidebar-collapsed) 1fr;
+            }
+
+            .sidebar-item span {
+                display: none;
+            }
+
+            .sidebar-group-header span {
+                display: none;
+            }
+
+            .sidebar-section-header {
+                display: none;
+            }
+        }
+
+        @media (max-width: 767px) {
+            :root {
+                --gutter: var(--gutter-mobile);
+            }
+
+            .app-container {
+                grid-template-areas: 
+                    "header"
+                    "main"
+                    "footer";
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .header {
+                padding: 0 var(--gutter-mobile);
+            }
+
+            .header-actions {
+                gap: 8px;
+            }
+
+            .quick-action {
+                padding: 6px 12px;
+                font-size: 0.875rem;
+            }
+
+            .welcome-title {
+                font-size: 2rem;
+            }
+
+            .hero-row {
+                grid-template-columns: 1fr;
+                gap: var(--gutter-mobile);
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: var(--gutter-mobile);
+            }
+
+            .footer {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Focus styles */
+        *:focus {
+            outline: var(--focus);
+            outline-offset: 2px;
+        }
+
+        /* Skip link */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 6px;
+            background: var(--accent);
+            color: white;
+            padding: 8px;
+            text-decoration: none;
+            border-radius: 4px;
+            z-index: 1000;
+        }
+
+        .skip-link:focus {
+            top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header" role="banner">
+            <a href="/" class="header-brand" data-testid="header-brand">
+                🧠 System Builder Hub
+            </a>
+            
+            <div class="header-actions">
+                <a href="/prompt-builder" class="quick-action" data-testid="header-build-new">
+                    🚀 Build New System
+                </a>
+                <a href="/preview" class="quick-action" data-testid="header-open-preview">
+                    👁️ Open Preview
+                </a>
+                <a href="/openapi.json" class="quick-action" data-testid="header-docs">
+                    📚 Docs
+                </a>
+                
+                <div class="user-menu" data-testid="user-menu">
+                    <div class="user-avatar">U</div>
+                    <span class="sr-only">User menu</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <nav class="sidebar" role="navigation" aria-label="Main navigation">
+            <!-- Pinned Section -->
+            <div class="sidebar-section pinned-section">
+                <div class="sidebar-section-header">
+                    📌 Pinned
+                </div>
+                <div class="sidebar-group-content" aria-hidden="false">
+                    <a href="/prompt-builder" class="sidebar-item" data-testid="sidebar-prompt-builder">
+                        <span class="sidebar-item-icon">🚀</span>
+                        <span>Prompt Builder</span>
+                    </a>
+                    <a href="/preview" class="sidebar-item" data-testid="sidebar-preview">
+                        <span class="sidebar-item-icon">👁️</span>
+                        <span>Preview</span>
+                    </a>
+                    <a href="/memory-browser" class="sidebar-item" data-testid="sidebar-memory">
+                        <span class="sidebar-item-icon">🧠</span>
+                        <span>Memory Browser</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Core Build -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    🔨 Core Build
+                </div>
+                <div class="sidebar-group">
+                    <button class="sidebar-group-header" aria-expanded="true" aria-controls="core-build-group">
+                        <span>Build Tools</span>
+                        <span class="group-icon">▼</span>
+                    </button>
+                    <div class="sidebar-group-content" id="core-build-group" aria-hidden="false">
+                        <a href="/project-loader" class="sidebar-item" data-testid="sidebar-project-loader">
+                            <span class="sidebar-item-icon">📂</span>
+                            <span>Project Loader</span>
+                        </a>
+                        <a href="/autonomous-builder" class="sidebar-item" data-testid="sidebar-autonomous-builder">
+                            <span class="sidebar-item-icon">🔄</span>
+                            <span>Autonomous Builder</span>
+                        </a>
+                        <a href="/visual-builder" class="sidebar-item" data-testid="sidebar-visual-builder">
+                            <span class="sidebar-item-icon">🎨</span>
+                            <span>Visual Builder</span>
+                        </a>
+                        <a href="/template-launcher" class="sidebar-item" data-testid="sidebar-template-launcher">
+                            <span class="sidebar-item-icon">📋</span>
+                            <span>Template Launcher</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Intelligence -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    🧠 Intelligence
+                </div>
+                <div class="sidebar-group">
+                    <button class="sidebar-group-header" aria-expanded="true" aria-controls="intelligence-group">
+                        <span>AI & Agents</span>
+                        <span class="group-icon">▼</span>
+                    </button>
+                    <div class="sidebar-group-content" id="intelligence-group" aria-hidden="false">
+                        <a href="/fastpath-agent" class="sidebar-item" data-testid="sidebar-fastpath-agent">
+                            <span class="sidebar-item-icon">🚀</span>
+                            <span>FastPath Agent</span>
+                        </a>
+                        <a href="/agent-ecosystem" class="sidebar-item" data-testid="sidebar-agent-ecosystem">
+                            <span class="sidebar-item-icon">🤖</span>
+                            <span>Agent Ecosystem</span>
+                        </a>
+                        <a href="/agent-training" class="sidebar-item" data-testid="sidebar-agent-training">
+                            <span class="sidebar-item-icon">🎓</span>
+                            <span>Agent Training</span>
+                        </a>
+                        <a href="/predictive-dashboard" class="sidebar-item" data-testid="sidebar-predictive">
+                            <span class="sidebar-item-icon">🔮</span>
+                            <span>Predictive Intelligence</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    📊 Data
+                </div>
+                <div class="sidebar-group">
+                    <button class="sidebar-group-header" aria-expanded="true" aria-controls="data-group">
+                        <span>Data Management</span>
+                        <span class="group-icon">▼</span>
+                    </button>
+                    <div class="sidebar-group-content" id="data-group" aria-hidden="false">
+                        <a href="/data-refinery" class="sidebar-item" data-testid="sidebar-data-refinery">
+                            <span class="sidebar-item-icon">⚙️</span>
+                            <span>Data Refinery</span>
+                        </a>
+                        <a href="/memory-upload" class="sidebar-item" data-testid="sidebar-memory-upload">
+                            <span class="sidebar-item-icon">📤</span>
+                            <span>Memory Upload</span>
+                        </a>
+                        <a href="/quality-gates" class="sidebar-item" data-testid="sidebar-quality-gates">
+                            <span class="sidebar-item-icon">✅</span>
+                            <span>Quality Gates</span>
+                        </a>
+                        <a href="/residency-router" class="sidebar-item" data-testid="sidebar-residency">
+                            <span class="sidebar-item-icon">🌍</span>
+                            <span>Data Residency</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security & Governance -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    🛡️ Security & Governance
+                </div>
+                <div class="sidebar-group">
+                    <button class="sidebar-group-header" aria-expanded="true" aria-controls="security-group">
+                        <span>Security</span>
+                        <span class="group-icon">▼</span>
+                    </button>
+                    <div class="sidebar-group-content" id="security-group" aria-hidden="false">
+                        <a href="/access-control" class="sidebar-item" data-testid="sidebar-access-control">
+                            <span class="sidebar-item-icon">🔐</span>
+                            <span>Access Control</span>
+                        </a>
+                        <a href="/security-dashboard" class="sidebar-item" data-testid="sidebar-security-dashboard">
+                            <span class="sidebar-item-icon">🛡️</span>
+                            <span>Security Dashboard</span>
+                        </a>
+                        <a href="/compliance-dashboard" class="sidebar-item" data-testid="sidebar-compliance">
+                            <span class="sidebar-item-icon">📋</span>
+                            <span>Compliance</span>
+                        </a>
+                        <a href="/supply-chain" class="sidebar-item" data-testid="sidebar-supply-chain">
+                            <span class="sidebar-item-icon">🔗</span>
+                            <span>Supply Chain</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deploy -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    🚀 Deploy
+                </div>
+                <div class="sidebar-group">
+                    <button class="sidebar-group-header" aria-expanded="true" aria-controls="deploy-group">
+                        <span>Deployment</span>
+                        <span class="group-icon">▼</span>
+                    </button>
+                    <div class="sidebar-group-content" id="deploy-group" aria-hidden="false">
+                        <a href="/system-delivery" class="sidebar-item" data-testid="sidebar-system-delivery">
+                            <span class="sidebar-item-icon">📦</span>
+                            <span>System Delivery</span>
+                        </a>
+                        <a href="/sovereign-deploy" class="sidebar-item" data-testid="sidebar-sovereign">
+                            <span class="sidebar-item-icon">🏛️</span>
+                            <span>Sovereign Deploy</span>
+                        </a>
+                        <a href="/backups" class="sidebar-item" data-testid="sidebar-backups">
+                            <span class="sidebar-item-icon">💾</span>
+                            <span>Backups</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Business -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    �� Business
+                </div>
+                <div class="sidebar-group">
+                    <button class="sidebar-group-header" aria-expanded="true" aria-controls="business-group">
+                        <span>Business Tools</span>
+                        <span class="group-icon">▼</span>
+                    </button>
+                    <div class="sidebar-group-content" id="business-group" aria-hidden="false">
+                        <a href="/go-to-market" class="sidebar-item" data-testid="sidebar-gtm">
+                            <span class="sidebar-item-icon">🚀</span>
+                            <span>GTM Engine</span>
+                        </a>
+                        <a href="/investor-pack" class="sidebar-item" data-testid="sidebar-investor">
+                            <span class="sidebar-item-icon">📊</span>
+                            <span>Investor Pack</span>
+                        </a>
+                        <a href="/access-hub" class="sidebar-item" data-testid="sidebar-access-hub">
+                            <span class="sidebar-item-icon">🔑</span>
+                            <span>Access Hub</span>
+                        </a>
+                        <a href="/billing" class="sidebar-item" data-testid="sidebar-billing">
+                            <span class="sidebar-item-icon">💳</span>
+                            <span>Billing</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content" role="main">
+            <!-- Welcome Section -->
+            <section class="welcome-section">
+                <h1 class="welcome-title">Welcome to System Builder Hub</h1>
+                <p class="welcome-subtitle">Build, preview, and govern your systems from one place.</p>
+            </section>
+
+            <!-- Hero Row -->
+            <section class="hero-row">
+                <a href="/prompt-builder" class="hero-card" data-testid="hero-start-build" aria-label="Start a Build: Open Prompt Builder">
+                    <div class="hero-card-icon">🚀</div>
+                    <h2 class="hero-card-title">Start a Build</h2>
+                    <p class="hero-card-description">Create complete systems with natural language commands using AI-powered orchestration.</p>
+                    <span class="hero-card-cta">Start Building →</span>
+                </a>
+
+                <a href="/preview" class="hero-card" data-testid="hero-open-preview" aria-label="Open Preview: Launch system preview">
+                    <div class="hero-card-icon">👁️</div>
+                    <h2 class="hero-card-title">Open Preview</h2>
+                    <p class="hero-card-description">Test and validate your systems in a secure preview environment with real-time feedback.</p>
+                    <span class="hero-card-cta">Launch Preview →</span>
+                </a>
+
+                <a href="/fastpath-agent" class="hero-card" data-testid="hero-create-brain" aria-label="Create Brain: Open FastPath Agent">
+                    <div class="hero-card-icon">🧠</div>
+                    <h2 class="hero-card-title">Create Brain</h2>
+                    <p class="hero-card-description">Build intelligent agents that optimize your development workflow and automate complex tasks.</p>
+                    <span class="hero-card-cta">Create Agent →</span>
+                </a>
+            </section>
+
+            <!-- Features Grid -->
+            <section class="features-section">
+                <div class="section-header">
+                    <h2 class="section-title">All Features</h2>
+                </div>
+                
+                <div class="features-grid">
+                    <!-- Core Features -->
+                    <a href="/project-loader" class="feature-card" data-testid="feature-project-loader" aria-label="Project Loader: Load and analyze existing projects">
+                        <span class="feature-status core">Core</span>
+                        <div class="feature-icon">📂</div>
+                        <h3 class="feature-title">Project Loader</h3>
+                        <p class="feature-description">Load existing projects, analyze structure, and generate completion plans with context injection.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <a href="/autonomous-builder" class="feature-card" data-testid="feature-autonomous-builder" aria-label="Autonomous Builder: Continuous build loops with goal-driven development">
+                        <span class="feature-status core">Core</span>
+                        <div class="feature-icon">🔄</div>
+                        <h3 class="feature-title">Autonomous Builder</h3>
+                        <p class="feature-description">Continuous build loops with goal-driven development, checkpoints, and rollback capabilities.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <a href="/visual-builder" class="feature-card" data-testid="feature-visual-builder" aria-label="Visual Builder: Drag-and-drop system creation">
+                        <span class="feature-status core">Core</span>
+                        <div class="feature-icon">🎨</div>
+                        <h3 class="feature-title">Visual Builder</h3>
+                        <p class="feature-description">Drag-and-drop interface for creating systems with visual components and real-time preview.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <!-- Intelligence Features -->
+                    <a href="/agent-ecosystem" class="feature-card" data-testid="feature-agent-ecosystem" aria-label="Agent Ecosystem: Multi-agent collaboration platform">
+                        <span class="feature-status beta">Beta</span>
+                        <div class="feature-icon">🤖</div>
+                        <h3 class="feature-title">Agent Ecosystem</h3>
+                        <p class="feature-description">Multi-agent collaboration platform for complex system orchestration and decision making.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <a href="/predictive-dashboard" class="feature-card" data-testid="feature-predictive" aria-label="Predictive Intelligence: AI-powered insights and forecasting">
+                        <span class="feature-status beta">Beta</span>
+                        <div class="feature-icon">🔮</div>
+                        <h3 class="feature-title">Predictive Intelligence</h3>
+                        <p class="feature-description">AI-powered insights and forecasting for system performance and business outcomes.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <a href="/agent-training" class="feature-card" data-testid="feature-agent-training" aria-label="Agent Training: Train and optimize AI agents">
+                        <span class="feature-status beta">Beta</span>
+                        <div class="feature-icon">🎓</div>
+                        <h3 class="feature-title">Agent Training</h3>
+                        <p class="feature-description">Train and optimize AI agents with custom datasets and reinforcement learning.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <!-- Data Features -->
+                    <a href="/data-refinery" class="feature-card" data-testid="feature-data-refinery" aria-label="Data Refinery: Process and transform data">
+                        <span class="feature-status core">Core</span>
+                        <div class="feature-icon">⚙️</div>
+                        <h3 class="feature-title">Data Refinery</h3>
+                        <p class="feature-description">Process and transform data with automated pipelines and quality assurance.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <a href="/quality-gates" class="feature-card" data-testid="feature-quality-gates" aria-label="Quality Gates: Automated quality assurance">
+                        <span class="feature-status security">Security</span>
+                        <div class="feature-icon">✅</div>
+                        <h3 class="feature-title">Quality Gates</h3>
+                        <p class="feature-description">Automated quality assurance with customizable checks and compliance validation.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <a href="/residency-router" class="feature-card" data-testid="feature-residency" aria-label="Data Residency: Geographic data compliance">
+                        <span class="feature-status security">Security</span>
+                        <div class="feature-icon">🌍</div>
+                        <h3 class="feature-title">Data Residency</h3>
+                        <p class="feature-description">Geographic data compliance and sovereignty controls for global deployments.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <!-- Security Features -->
+                    <a href="/access-control" class="feature-card" data-testid="feature-access-control" aria-label="Access Control: Role-based permissions">
+                        <span class="feature-status security">Security</span>
+                        <div class="feature-icon">🔐</div>
+                        <h3 class="feature-title">Access Control</h3>
+                        <p class="feature-description">Role-based permissions and multi-tenant access management with audit trails.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <a href="/security-dashboard" class="feature-card" data-testid="feature-security-dashboard" aria-label="Security Dashboard: Security monitoring and alerts">
+                        <span class="feature-status security">Security</span>
+                        <div class="feature-icon">🛡️</span>
+                        <h3 class="feature-title">Security Dashboard</h3>
+                        <p class="feature-description">Security monitoring and alerts with threat detection and incident response.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <a href="/compliance-dashboard" class="feature-card" data-testid="feature-compliance" aria-label="Compliance Dashboard: Regulatory compliance management">
+                        <span class="feature-status security">Security</span>
+                        <div class="feature-icon">📋</div>
+                        <h3 class="feature-title">Compliance Dashboard</h3>
+                        <p class="feature-description">Regulatory compliance management with automated reporting and evidence collection.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <!-- Deploy Features -->
+                    <a href="/system-delivery" class="feature-card" data-testid="feature-system-delivery" aria-label="System Delivery: Automated deployment pipeline">
+                        <span class="feature-status core">Core</span>
+                        <div class="feature-icon">📦</div>
+                        <h3 class="feature-title">System Delivery</h3>
+                        <p class="feature-description">Automated deployment pipeline with rollback capabilities and environment management.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <a href="/sovereign-deploy" class="feature-card" data-testid="feature-sovereign" aria-label="Sovereign Deploy: Government-grade deployment">
+                        <span class="feature-status security">Security</span>
+                        <div class="feature-icon">🏛️</div>
+                        <h3 class="feature-title">Sovereign Deploy</h3>
+                        <p class="feature-description">Government-grade deployment with enhanced security and compliance controls.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <a href="/backups" class="feature-card" data-testid="feature-backups" aria-label="Backups: Automated backup and recovery">
+                        <span class="feature-status core">Core</span>
+                        <div class="feature-icon">💾</div>
+                        <h3 class="feature-title">Backups</h3>
+                        <p class="feature-description">Automated backup and recovery with encryption and geographic redundancy.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <!-- Business Features -->
+                    <a href="/go-to-market" class="feature-card" data-testid="feature-gtm" aria-label="GTM Engine: Go-to-market automation">
+                        <span class="feature-status beta">Beta</span>
+                        <div class="feature-icon">🚀</div>
+                        <h3 class="feature-title">GTM Engine</h3>
+                        <p class="feature-description">Go-to-market automation with customer journey mapping and conversion optimization.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <a href="/investor-pack" class="feature-card" data-testid="feature-investor" aria-label="Investor Pack: Investment-ready documentation">
+                        <span class="feature-status beta">Beta</span>
+                        <div class="feature-icon">📊</div>
+                        <h3 class="feature-title">Investor Pack</h3>
+                        <p class="feature-description">Investment-ready documentation with financial modeling and pitch deck generation.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <a href="/access-hub" class="feature-card" data-testid="feature-access-hub" aria-label="Access Hub: User access management">
+                        <span class="feature-status core">Core</span>
+                        <div class="feature-icon">🔑</div>
+                        <h3 class="feature-title">Access Hub</h3>
+                        <p class="feature-description">User access management with SSO integration and permission delegation.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+
+                    <a href="/billing" class="feature-card" data-testid="feature-billing" aria-label="Billing: Usage-based billing and invoicing">
+                        <span class="feature-status core">Core</span>
+                        <div class="feature-icon">💳</div>
+                        <h3 class="feature-title">Billing</h3>
+                        <p class="feature-description">Usage-based billing and invoicing with subscription management and cost tracking.</p>
+                        <span class="feature-cta">Open</span>
+                    </a>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer" role="contentinfo">
+            <div class="footer-links">
+                <a href="/openapi.json" class="footer-link" data-testid="footer-docs">Docs</a>
+                <a href="/support" class="footer-link" data-testid="footer-support">Support</a>
+                <a href="/changelog" class="footer-link" data-testid="footer-changelog">Changelog</a>
+            </div>
+            
+            <div class="system-status" data-testid="system-status">
+                <div class="status-indicator" title="System Healthy"></div>
+                <span>System Healthy</span>
+                <span>•</span>
+                <span>v3.0.0</span>
+                <span>•</span>
+                <span>Tenant: default</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Sidebar group toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize sidebar groups
+            const groupHeaders = document.querySelectorAll('.sidebar-group-header');
+            
+            groupHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                    const content = document.getElementById(this.getAttribute('aria-controls'));
+                    
+                    this.setAttribute('aria-expanded', !isExpanded);
+                    content.setAttribute('aria-hidden', isExpanded);
+                });
+            });
+
+            // Card click tracking
+            const cards = document.querySelectorAll('.feature-card, .hero-card');
+            cards.forEach(card => {
+                card.addEventListener('click', function() {
+                    const cardId = this.getAttribute('data-testid') || this.getAttribute('aria-label');
+                    console.log({
+                        type: 'dashboard_card_open',
+                        id: cardId,
+                        ts: new Date().toISOString()
+                    });
+                });
+            });
+
+            // Keyboard navigation for sidebar
+            const sidebarItems = document.querySelectorAll('.sidebar-item');
+            sidebarItems.forEach((item, index) => {
+                item.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                });
+            });
+
+            // Load pinned items from localStorage
+            loadPinnedItems();
+        });
+
+        function loadPinnedItems() {
+            const pinnedItems = localStorage.getItem('sbh_pinned_items');
+            if (pinnedItems) {
+                try {
+                    const items = JSON.parse(pinnedItems);
+                    // Apply pinned items to sidebar
+                    // This would update the pinned section dynamically
+                } catch (e) {
+                    console.warn('Failed to load pinned items:', e);
+                }
+            }
+        }
+
+        function savePinnedItems(items) {
+            try {
+                localStorage.setItem('sbh_pinned_items', JSON.stringify(items));
+            } catch (e) {
+                console.warn('Failed to save pinned items:', e);
+            }
+        }
+
+        // Context menu for pinning items
+        document.addEventListener('contextmenu', function(e) {
+            const sidebarItem = e.target.closest('.sidebar-item');
+            if (sidebarItem) {
+                e.preventDefault();
+                // Show context menu for pinning
+                // Implementation would go here
+            }
+        });
+    </script>
+</body>
+</html>

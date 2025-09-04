@@ -1,0 +1,58 @@
+{
+  "module": "crm_lite",
+  "name": "CRM Lite",
+  "version": "1.0.0",
+  "description": "Complete onboarding checklist for CRM Lite setup and configuration",
+  "estimated_time": "2 minutes",
+  "time_to_first_value": "< 2 minutes",
+  "steps": [
+    {
+      "id": "welcome",
+      "title": "Welcome to CRM Lite",
+      "description": "Get started with lightweight CRM in under 2 minutes",
+      "type": "info",
+      "estimated_time": "30 seconds"
+    },
+    {
+      "id": "provision",
+      "title": "Provision Module",
+      "description": "Provision CRM Lite for your tenant",
+      "type": "action",
+      "command": "python -m src.cli marketplace provision --module crm_lite --tenant <tenant_id>",
+      "estimated_time": "30 seconds"
+    },
+    {
+      "id": "seed_data",
+      "title": "Seed Demo Data",
+      "description": "Seed contacts for immediate testing",
+      "type": "action",
+      "command": "python -m src.cli crm-lite seed-contacts-cmd --tenant <tenant_id>",
+      "estimated_time": "15 seconds"
+    },
+    {
+      "id": "test_api",
+      "title": "Test API Endpoint",
+      "description": "Verify contacts are accessible via API",
+      "type": "action",
+      "command": "curl -H \"X-Tenant-ID: <tenant_id>\" http://127.0.0.1:5001/api/crm_lite/contacts_db",
+      "estimated_time": "15 seconds"
+    },
+    {
+      "id": "next_steps",
+      "title": "Next Steps",
+      "description": "Explore advanced features and customization",
+      "type": "info",
+      "estimated_time": "30 seconds"
+    }
+  ],
+  "tips": [
+    "Start with a few key contacts and expand gradually",
+    "Use the API to integrate with your existing systems",
+    "Review the documentation for advanced features"
+  ],
+  "support": {
+    "contact": "support@sbh.com",
+    "documentation": "/ui/docs/crm_lite",
+    "api_docs": "/api/crm_lite"
+  }
+}

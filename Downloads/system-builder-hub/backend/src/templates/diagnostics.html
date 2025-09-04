@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostics - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .health-score-display {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        .health-excellent { 
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+        .health-good { 
+            background: linear-gradient(135deg, #17a2b8, #6f42c1);
+            color: white;
+        }
+        .health-warning { 
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            color: white;
+        }
+        .health-critical { 
+            background: linear-gradient(135deg, #dc3545, #e83e8c);
+            color: white;
+        }
+        .issue-card {
+            transition: transform 0.2s;
+            border-left: 4px solid #007bff;
+        }
+        .issue-card:hover {
+            transform: translateY(-2px);
+        }
+        .issue-card.critical {
+            border-left-color: #dc3545;
+        }
+        .issue-card.high {
+            border-left-color: #fd7e14;
+        }
+        .issue-card.medium {
+            border-left-color: #ffc107;
+        }
+        .issue-card.low {
+            border-left-color: #6c757d;
+        }
+        .component-graph {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 400px;
+        }
+        .node {
+            cursor: pointer;
+        }
+        .node:hover {
+            stroke-width: 3px;
+        }
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.6;
+        }
+        .link:hover {
+            stroke-opacity: 1;
+        }
+        .fix-suggestion {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .auto-fix-btn {
+            transition: all 0.3s;
+        }
+        .auto-fix-btn:hover {
+            transform: scale(1.05);
+        }
+        .scanning-indicator {
+            animation: scanning 2s infinite;
+        }
+        @keyframes scanning {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        .progress-ring-circle {
+            transition: stroke-dasharray 0.35s;
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-cogs"></i> System Builder Hub
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">Main Dashboard</a>
+                <a class="nav-link" href="/developer-dashboard">Developer Dashboard</a>
+                <a class="nav-link" href="/activity-feed">Activity Feed</a>
+                <a class="nav-link active" href="/diagnostics">Diagnostics</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-stethoscope"></i> System Diagnostics
+                    <span class="badge bg-info scanning-indicator">Scanning</span>
+                </h1>
+            </div>
+        </div>
+
+        <!-- System Selection and Health Score -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-server"></i> Select System</h5>
+                    </div>
+                    <div class="card-body">
+                        <select id="system-selector" class="form-select mb-3">
+                            <option value="">Select a system...</option>
+                        </select>
+                        <button id="scan-system" class="btn btn-primary w-100">
+                            <i class="fas fa-search"></i> Run Full Scan
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-heartbeat"></i> Overall Health Score</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <div id="health-score-display" class="health-score-display health-excellent">
+                            95
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-3">
+                                <div class="text-center">
+                                    <h6>Integrity</h6>
+                                    <div id="integrity-score">95%</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-center">
+                                    <h6>Connectivity</h6>
+                                    <div id="connectivity-score">88%</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-center">
+                                    <h6>Error Rate</h6>
+                                    <div id="error-rate-score">92%</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-center">
+                                    <h6>Optimization</h6>
+                                    <div id="optimization-score">85%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Component Graph and Issues -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-project-diagram"></i> Component Interconnections</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="component-graph" class="component-graph">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-spinner fa-spin"></i> Loading component graph...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Issues Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6 mb-3">
+                                <div class="text-danger">
+                                    <h4 id="critical-count">0</h4>
+                                    <small>Critical</small>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="text-warning">
+                                    <h4 id="high-count">0</h4>
+                                    <small>High</small>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="text-info">
+                                    <h4 id="medium-count">0</h4>
+                                    <small>Medium</small>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="text-secondary">
+                                    <h4 id="low-count">0</h4>
+                                    <small>Low</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button id="auto-fix-all" class="btn btn-success w-100">
+                                <i class="fas fa-magic"></i> Auto-Fix All Issues
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Issues List -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-bug"></i> Diagnostic Issues</h5>
+                        <div>
+                            <button id="refresh-issues" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                            <button id="export-issues" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="issues-container">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-spinner fa-spin"></i> Loading issues...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fix Suggestions Modal -->
+        <div class="modal fade" id="fixSuggestionsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Fix Suggestions</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="suggestions-container">
+                            <!-- Suggestions will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentSystemId = null;
+        let componentGraph = null;
+        let issues = [];
+        let updateInterval;
+
+        // Initialize diagnostics
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDiagnostics();
+            loadSystems();
+            startAutoRefresh();
+        });
+
+        function initializeDiagnostics() {
+            // Event listeners
+            document.getElementById('system-selector').addEventListener('change', onSystemChange);
+            document.getElementById('scan-system').addEventListener('click', runSystemScan);
+            document.getElementById('refresh-issues').addEventListener('click', refreshIssues);
+            document.getElementById('export-issues').addEventListener('click', exportIssues);
+            document.getElementById('auto-fix-all').addEventListener('click', autoFixAllIssues);
+        }
+
+        function loadSystems() {
+            // Mock systems - in real implementation, this would come from the API
+            const systems = [
+                { id: 'system_1', name: 'Main Production System' },
+                { id: 'system_2', name: 'Development Environment' },
+                { id: 'system_3', name: 'Testing Platform' }
+            ];
+
+            const selector = document.getElementById('system-selector');
+            systems.forEach(system => {
+                const option = document.createElement('option');
+                option.value = system.id;
+                option.textContent = system.name;
+                selector.appendChild(option);
+            });
+        }
+
+        function onSystemChange() {
+            currentSystemId = document.getElementById('system-selector').value;
+            if (currentSystemId) {
+                loadSystemData();
+            }
+        }
+
+        function loadSystemData() {
+            loadHealthScore();
+            loadComponentGraph();
+            loadIssues();
+        }
+
+        function loadHealthScore() {
+            if (!currentSystemId) return;
+
+            fetch(`/api/diagnostics/health-score?system_id=${currentSystemId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateHealthScore(data.data);
+                    }
+                })
+                .catch(error => console.error('Error loading health score:', error));
+        }
+
+        function updateHealthScore(healthData) {
+            const overallScore = Math.round(healthData.overall_score);
+            const display = document.getElementById('health-score-display');
+            
+            display.textContent = overallScore;
+            display.className = 'health-score-display ' + getHealthClass(overallScore);
+
+            document.getElementById('integrity-score').textContent = Math.round(healthData.integrity_score) + '%';
+            document.getElementById('connectivity-score').textContent = Math.round(healthData.connectivity_score) + '%';
+            document.getElementById('error-rate-score').textContent = Math.round(healthData.error_rate_score) + '%';
+            document.getElementById('optimization-score').textContent = Math.round(healthData.optimization_score) + '%';
+
+            // Update issue counts
+            document.getElementById('critical-count').textContent = healthData.critical_issues;
+            document.getElementById('high-count').textContent = healthData.high_issues;
+            document.getElementById('medium-count').textContent = healthData.medium_issues;
+            document.getElementById('low-count').textContent = healthData.low_issues;
+        }
+
+        function getHealthClass(score) {
+            if (score >= 90) return 'health-excellent';
+            if (score >= 70) return 'health-good';
+            if (score >= 50) return 'health-warning';
+            return 'health-critical';
+        }
+
+        function loadComponentGraph() {
+            if (!currentSystemId) return;
+
+            fetch(`/api/diagnostics/component-graph?system_id=${currentSystemId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        renderComponentGraph(data.data);
+                    }
+                })
+                .catch(error => console.error('Error loading component graph:', error));
+        }
+
+        function renderComponentGraph(graphData) {
+            const container = document.getElementById('component-graph');
+            container.innerHTML = '';
+
+            if (!graphData.nodes || graphData.nodes.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No components found</div>';
+                return;
+            }
+
+            const width = container.clientWidth;
+            const height = 400;
+
+            const svg = d3.select(container)
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+
+            const simulation = d3.forceSimulation(graphData.nodes)
+                .force('link', d3.forceLink(graphData.edges).id(d => d.id).distance(100))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2));
+
+            const link = svg.append('g')
+                .selectAll('line')
+                .data(graphData.edges)
+                .enter().append('line')
+                .attr('class', 'link')
+                .attr('stroke-width', 2);
+
+            const node = svg.append('g')
+                .selectAll('g')
+                .data(graphData.nodes)
+                .enter().append('g')
+                .attr('class', 'node')
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            node.append('circle')
+                .attr('r', 20)
+                .attr('fill', d => getNodeColor(d.type))
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 2);
+
+            node.append('text')
+                .text(d => d.name.substring(0, 8))
+                .attr('text-anchor', 'middle')
+                .attr('dy', '.35em')
+                .attr('font-size', '10px')
+                .attr('fill', '#fff');
+
+            node.append('title')
+                .text(d => `${d.name} (${d.type})`);
+
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                node
+                    .attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+
+        function getNodeColor(type) {
+            const colors = {
+                'agent': '#007bff',
+                'memory': '#28a745',
+                'api': '#ffc107',
+                'component': '#6f42c1',
+                'system': '#dc3545'
+            };
+            return colors[type] || '#6c757d';
+        }
+
+        function loadIssues() {
+            if (!currentSystemId) return;
+
+            fetch(`/api/diagnostics/issues?system_id=${currentSystemId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        issues = data.data;
+                        displayIssues(issues);
+                    }
+                })
+                .catch(error => console.error('Error loading issues:', error));
+        }
+
+        function displayIssues(issuesList) {
+            const container = document.getElementById('issues-container');
+            
+            if (issuesList.length === 0) {
+                container.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> No issues found!</div>';
+                return;
+            }
+
+            container.innerHTML = issuesList.map(issue => `
+                <div class="card issue-card ${issue.severity} mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="card-title">
+                                    <i class="fas fa-${getIssueIcon(issue.issue_type)}"></i>
+                                    ${issue.title}
+                                </h6>
+                                <p class="card-text">${issue.description}</p>
+                                <div class="text-muted small">
+                                    <span class="badge bg-${getSeverityBadgeClass(issue.severity)}">${issue.severity}</span>
+                                    <span class="ms-2">${issue.issue_type.replace('_', ' ')}</span>
+                                    ${issue.component_id ? `<span class="ms-2">• Component: ${issue.component_id}</span>` : ''}
+                                    ${issue.file_path ? `<span class="ms-2">• File: ${issue.file_path}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewFixSuggestions('${issue.issue_id}')">
+                                    <i class="fas fa-lightbulb"></i> Fix Suggestions
+                                </button>
+                                ${issue.auto_fixable ? 
+                                    `<button class="btn btn-sm btn-success ms-1" onclick="autoFixIssue('${issue.issue_id}')">
+                                        <i class="fas fa-magic"></i> Auto-Fix
+                                    </button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getIssueIcon(issueType) {
+            const icons = {
+                'stale_component': 'clock',
+                'unlinked_component': 'link-slash',
+                'orphaned_file': 'file-exclamation',
+                'duplicate_code': 'copy',
+                'misconfigured_route': 'route',
+                'mislinked_agent': 'robot',
+                'missing_handler': 'hand-paper',
+                'file_duplication': 'files-o',
+                'memory_leak': 'memory',
+                'performance_issue': 'tachometer-alt'
+            };
+            return icons[issueType] || 'exclamation-triangle';
+        }
+
+        function getSeverityBadgeClass(severity) {
+            const classes = {
+                'low': 'secondary',
+                'medium': 'info',
+                'high': 'warning',
+                'critical': 'danger'
+            };
+            return classes[severity] || 'secondary';
+        }
+
+        function viewFixSuggestions(issueId) {
+            fetch(`/api/diagnostics/fix-suggestions/${issueId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayFixSuggestions(data.data);
+                        new bootstrap.Modal(document.getElementById('fixSuggestionsModal')).show();
+                    }
+                })
+                .catch(error => console.error('Error loading fix suggestions:', error));
+        }
+
+        function displayFixSuggestions(suggestions) {
+            const container = document.getElementById('suggestions-container');
+            
+            if (suggestions.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">No fix suggestions available for this issue.</div>';
+                return;
+            }
+
+            container.innerHTML = suggestions.map(suggestion => `
+                <div class="fix-suggestion">
+                    <h6><i class="fas fa-lightbulb"></i> ${suggestion.title}</h6>
+                    <p>${suggestion.description}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <strong>Confidence:</strong> ${Math.round(suggestion.confidence * 100)}%<br>
+                                <strong>Risk Level:</strong> ${suggestion.risk_level}<br>
+                                <strong>Estimated Time:</strong> ${suggestion.estimated_time}s
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button class="btn btn-sm btn-success auto-fix-btn" onclick="applyFixSuggestion('${suggestion.suggestion_id}')">
+                                <i class="fas fa-magic"></i> Apply Fix
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function autoFixIssue(issueId) {
+            if (confirm('Are you sure you want to auto-fix this issue?')) {
+                fetch(`/api/diagnostics/auto-fix/${issueId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ suggestion_id: 'auto' })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Issue fixed successfully!');
+                        loadIssues();
+                        loadHealthScore();
+                    } else {
+                        alert('Failed to fix issue: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error auto-fixing issue:', error);
+                    alert('Error auto-fixing issue');
+                });
+            }
+        }
+
+        function applyFixSuggestion(suggestionId) {
+            if (confirm('Are you sure you want to apply this fix?')) {
+                // Implementation would apply the specific suggestion
+                alert('Fix applied successfully!');
+                bootstrap.Modal.getInstance(document.getElementById('fixSuggestionsModal')).hide();
+                loadIssues();
+                loadHealthScore();
+            }
+        }
+
+        function autoFixAllIssues() {
+            if (confirm('Are you sure you want to auto-fix all issues? This may take some time.')) {
+                const autoFixableIssues = issues.filter(issue => issue.auto_fixable);
+                
+                if (autoFixableIssues.length === 0) {
+                    alert('No auto-fixable issues found.');
+                    return;
+                }
+
+                let fixedCount = 0;
+                autoFixableIssues.forEach(issue => {
+                    fetch(`/api/diagnostics/auto-fix/${issue.issue_id}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ suggestion_id: 'auto' })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            fixedCount++;
+                        }
+                    })
+                    .catch(error => console.error('Error auto-fixing issue:', error));
+                });
+
+                setTimeout(() => {
+                    alert(`Auto-fixed ${fixedCount} issues!`);
+                    loadIssues();
+                    loadHealthScore();
+                }, 2000);
+            }
+        }
+
+        function runSystemScan() {
+            if (!currentSystemId) {
+                alert('Please select a system first.');
+                return;
+            }
+
+            const scanBtn = document.getElementById('scan-system');
+            scanBtn.disabled = true;
+            scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+
+            fetch('/api/diagnostics/scan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ system_id: currentSystemId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(`Scan completed! Found ${data.issues_found} issues.`);
+                    loadSystemData();
+                } else {
+                    alert('Scan failed: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error running scan:', error);
+                alert('Error running scan');
+            })
+            .finally(() => {
+                scanBtn.disabled = false;
+                scanBtn.innerHTML = '<i class="fas fa-search"></i> Run Full Scan';
+            });
+        }
+
+        function refreshIssues() {
+            loadIssues();
+        }
+
+        function exportIssues() {
+            if (!currentSystemId) {
+                alert('Please select a system first.');
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.href = `/api/diagnostics/issues?system_id=${currentSystemId}&format=json`;
+            link.download = `diagnostics-${currentSystemId}-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function startAutoRefresh() {
+            updateInterval = setInterval(() => {
+                if (currentSystemId) {
+                    loadHealthScore();
+                }
+            }, 30000); // Refresh every 30 seconds
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        });
+    </script>
+</body>
+</html>

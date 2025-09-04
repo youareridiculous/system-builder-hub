@@ -1,0 +1,45 @@
+"""
+Health check utilities for readiness endpoint
+"""
+from __future__ import annotations
+import os
+import sqlite3
+from typing import Tuple, Dict
+
+def check_db(db_path: str) -> Tuple[bool, bool, str]:
+    """
+    Returns (db_ok, migrations_applied, details)
+    - db_ok: True if we can open the DB and a trivial query works
+    - migrations_applied: True if a migrations marker exists (best-effort)
+    - details: optional message
+    """
+    try:
+        conn = sqlite3.connect(db_path)
+        try:
+            # trivial query
+            conn.execute("SELECT 1")
+        finally:
+            conn.close()
+        db_ok = True
+    except Exception as e:
+        return (False, False, f"db_error:{type(e).__name__}")
+
+    # Best-effort migrations flag:
+    # consider either an env flag or a marker table
+    mig_flag = os.getenv("MIGRATIONS_APPLIED")
+    if mig_flag is not None:
+        migrations_applied = mig_flag.lower() in ("1","true","yes","on")
+    else:
+        try:
+            conn = sqlite3.connect(db_path)
+            try:
+                cur = conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations'"
+                )
+                migrations_applied = cur.fetchone() is not None
+            finally:
+                conn.close()
+        except Exception:
+            migrations_applied = False
+
+    return (db_ok, migrations_applied, "ok")

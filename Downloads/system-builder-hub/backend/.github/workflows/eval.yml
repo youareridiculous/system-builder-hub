@@ -1,0 +1,341 @@
+name: Evaluation Lab CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/eval_lab/**'
+      - 'suites/**'
+      - '.github/workflows/eval.yml'
+      - 'eval_lab/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/eval_lab/**'
+      - 'suites/**'
+      - '.github/workflows/eval.yml'
+      - 'eval_lab/**'
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Evaluation suite to run'
+        required: false
+        default: 'suites/core_crm.yaml'
+        type: string
+      run_smoke_only:
+        description: 'Run smoke tests only'
+        required: false
+        default: true
+        type: boolean
+      notify_slack:
+        description: 'Send Slack notifications'
+        required: false
+        default: false
+        type: boolean
+      notify_pagerduty:
+        description: 'Send PagerDuty alerts'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PYTHON_VERSION: '3.9'
+  DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/eval_lab'
+  REDIS_URL: 'redis://localhost:6379'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run_eval: ${{ steps.check_changes.outputs.should_run_eval }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check for evaluation changes
+        id: check_changes
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]] || [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should_run_eval=true" >> $GITHUB_OUTPUT
+          else
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} 2>/dev/null || git diff --name-only HEAD~1 HEAD)
+            if echo "$CHANGED_FILES" | grep -E "(src/eval_lab/|suites/|eval_lab/|\.github/workflows/eval\.yml)"; then
+              echo "should_run_eval=true" >> $GITHUB_OUTPUT
+            else
+              echo "should_run_eval=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  evaluation:
+    needs: setup
+    if: needs.setup.outputs.should_run_eval == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: eval_lab
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:6
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Set up environment
+        run: |
+          echo "DATABASE_URL=${{ env.DATABASE_URL }}" >> $GITHUB_ENV
+          echo "REDIS_URL=${{ env.REDIS_URL }}" >> $GITHUB_ENV
+          echo "EVAL_LAB_PRIVACY_MODE=private_cloud" >> $GITHUB_ENV
+          echo "EVAL_LAB_ENVIRONMENT=ci" >> $GITHUB_ENV
+          
+          # Set up alert configuration
+          if [[ "${{ inputs.notify_slack }}" == "true" ]] && [[ -n "${{ secrets.SLACK_EVAL_WEBHOOK }}" ]]; then
+            echo "SLACK_EVAL_WEBHOOK=${{ secrets.SLACK_EVAL_WEBHOOK }}" >> $GITHUB_ENV
+          fi
+          
+          if [[ "${{ inputs.notify_pagerduty }}" == "true" ]] && [[ -n "${{ secrets.PAGERDUTY_ROUTING_KEY }}" ]]; then
+            echo "PAGERDUTY_ROUTING_KEY=${{ secrets.PAGERDUTY_ROUTING_KEY }}" >> $GITHUB_ENV
+          fi
+
+      - name: Run database migrations
+        run: |
+          alembic upgrade head
+
+      - name: Determine evaluation suite
+        id: determine_suite
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            SUITE="${{ inputs.suite }}"
+          elif [[ "${{ inputs.run_smoke_only }}" == "true" ]] || [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            SUITE="suites/template_smoke.yaml"
+          else
+            SUITE="suites/meta_builder_kitchen_sink.yaml"
+          fi
+          echo "suite=$SUITE" >> $GITHUB_OUTPUT
+          echo "Running evaluation suite: $SUITE"
+
+      - name: Run evaluation
+        id: run_eval
+        run: |
+          python -m src.eval_lab.runner run-suite-with-reruns "${{ steps.determine_suite.outputs.suite }}" \
+            --environment ci \
+            --max-reruns 2 \
+            --min-stable-passes 2
+          
+          # Capture the run ID from output
+          RUN_ID=$(python -c "
+          import re
+          import sys
+          for line in sys.stdin:
+              if 'Evaluation run with reruns completed:' in line:
+                  run_id = line.split(':')[-1].strip()
+                  print(run_id)
+                  break
+          " < <(python -m src.eval_lab.runner run-suite-with-reruns "${{ steps.determine_suite.outputs.suite }}" --environment ci))
+          
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+      - name: Check for regressions
+        id: check_regressions
+        run: |
+          if [[ -n "${{ steps.run_eval.outputs.run_id }}" ]]; then
+            REGRESSIONS=$(python -m src.eval_lab.runner check-regressions --run-id "${{ steps.run_eval.outputs.run_id }}" 2>&1 || echo "No regressions found")
+            echo "regressions=$REGRESSIONS" >> $GITHUB_OUTPUT
+          else
+            echo "regressions=No run ID found" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate evaluation report
+        run: |
+          if [[ -n "${{ steps.run_eval.outputs.run_id }}" ]]; then
+            mkdir -p eval-report
+            python -m src.eval_lab.runner generate-report \
+              --run-id "${{ steps.run_eval.outputs.run_id }}" \
+              --output eval-report/eval-report.json
+            
+            # Generate HTML report
+            python -c "
+            from src.eval_lab.reporting import ReportGenerator
+            from src.eval_lab.storage import EvaluationStorage
+            import os
+            
+            storage = EvaluationStorage(os.environ.get('DATABASE_URL'))
+            report_gen = ReportGenerator(storage)
+            html_content = report_gen.generate_html_report('${{ steps.run_eval.outputs.run_id }}')
+            
+            with open('eval-report/eval-report.html', 'w') as f:
+                f.write(html_content)
+            "
+          fi
+
+      - name: Upload evaluation report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: eval-report-${{ github.run_id }}
+          path: eval-report/
+          retention-days: 30
+
+      - name: Send Slack notification
+        if: inputs.notify_slack == 'true' && env.SLACK_EVAL_WEBHOOK != ''
+        run: |
+          if [[ -n "${{ steps.run_eval.outputs.run_id }}" ]]; then
+            python -c "
+            import os
+            import requests
+            import json
+            from datetime import datetime
+            
+            webhook_url = os.environ.get('SLACK_EVAL_WEBHOOK')
+            run_id = '${{ steps.run_eval.outputs.run_id }}'
+            suite = '${{ steps.determine_suite.outputs.suite }}'
+            regressions = '${{ steps.check_regressions.outputs.regressions }}'
+            
+            message = {
+                'text': f'Evaluation Lab Results - {suite}',
+                'attachments': [{
+                    'color': '#36a64f' if 'No regressions found' in regressions else '#ff0000',
+                    'fields': [
+                        {'title': 'Run ID', 'value': run_id, 'short': True},
+                        {'title': 'Suite', 'value': suite, 'short': True},
+                        {'title': 'Regressions', 'value': regressions, 'short': False}
+                    ],
+                    'footer': f'Generated at {datetime.utcnow().isoformat()}'
+                }]
+            }
+            
+            requests.post(webhook_url, json=message)
+            "
+
+      - name: Send PagerDuty alert
+        if: inputs.notify_pagerduty == 'true' && env.PAGERDUTY_ROUTING_KEY != '' && failure()
+        run: |
+          python -c "
+          import os
+          import requests
+          import json
+          
+          routing_key = os.environ.get('PAGERDUTY_ROUTING_KEY')
+          run_id = '${{ steps.run_eval.outputs.run_id }}'
+          suite = '${{ steps.determine_suite.outputs.suite }}'
+          
+          payload = {
+              'routing_key': routing_key,
+              'event_action': 'trigger',
+              'payload': {
+                  'summary': f'Evaluation Lab Failure - {suite}',
+                  'severity': 'critical',
+                  'source': 'system-builder-hub-eval-lab',
+                  'custom_details': {
+                      'run_id': run_id,
+                      'suite': suite,
+                      'workflow_run': '${{ github.run_id }}'
+                  }
+              }
+          }
+          
+          requests.post('https://events.pagerduty.com/v2/enqueue', json=payload)
+          "
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            let reportContent = '';
+            
+            try {
+              if (fs.existsSync('eval-report/eval-report.json')) {
+                const report = JSON.parse(fs.readFileSync('eval-report/eval-report.json', 'utf8'));
+                const data = report.data;
+                const summary = data.summary;
+                
+                reportContent = `## Evaluation Lab Results
+            
+            **Suite:** ${data.suite_name}
+            **Run ID:** ${data.run_id}
+            **Status:** ${data.status}
+            
+            ### Summary
+            - **Pass Rate:** ${(summary.pass_rate * 100).toFixed(1)}%
+            - **Total Cases:** ${summary.total_cases}
+            - **Failed Cases:** ${summary.failed_cases}
+            - **Quarantined Cases:** ${summary.quarantined_cases || 0}
+            - **Avg Latency:** ${summary.avg_latency_ms?.toFixed(0) || 'N/A'}ms
+            - **Total Cost:** $${summary.total_cost_usd?.toFixed(2) || 'N/A'}
+            
+            ### Regressions
+            ${'${{ steps.check_regressions.outputs.regressions }}'}
+            
+            [📊 View Full Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)`;
+              }
+            } catch (error) {
+              reportContent = `## Evaluation Lab Results
+            
+            **Status:** Failed to generate report
+            **Error:** ${error.message}
+            
+            [📊 View Workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: reportContent
+            });
+
+      - name: Fail on regressions
+        if: contains(steps.check_regressions.outputs.regressions, 'regressions detected') && github.event_name == 'pull_request'
+        run: |
+          echo "❌ Regressions detected! This PR cannot be merged."
+          echo "Please investigate and fix the regressions before merging."
+          exit 1
+
+      - name: Success
+        if: success()
+        run: |
+          echo "✅ Evaluation completed successfully!"
+          echo "Suite: ${{ steps.determine_suite.outputs.suite }}"
+          echo "Run ID: ${{ steps.run_eval.outputs.run_id }}"
+          echo "Regressions: ${{ steps.check_regressions.outputs.regressions }}"

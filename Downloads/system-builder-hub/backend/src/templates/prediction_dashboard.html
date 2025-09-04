@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 Predictive Intelligence - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .main-content {
+            padding: 2rem 0;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            margin-bottom: 2rem;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            border: none;
+            padding: 1.5rem;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .prediction-card {
+            border-left: 4px solid #667eea;
+            margin-bottom: 1rem;
+        }
+        
+        .scenario-badge {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 20px;
+        }
+        
+        .scenario-best {
+            background: #28a745;
+            color: white;
+        }
+        
+        .scenario-likely {
+            background: #007bff;
+            color: white;
+        }
+        
+        .scenario-worst {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .scenario-optimized {
+            background: #ffc107;
+            color: black;
+        }
+        
+        .confidence-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: #e9ecef;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #dc3545, #ffc107, #28a745);
+            transition: width 0.3s ease;
+        }
+        
+        .tradeoff-matrix {
+            overflow-x: auto;
+        }
+        
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .matrix-table th,
+        .matrix-table td {
+            padding: 0.75rem;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        
+        .matrix-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .score-cell {
+            font-weight: bold;
+            border-radius: 4px;
+        }
+        
+        .score-high {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .score-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .score-low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .optimization-item {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .improvement-badge {
+            font-size: 0.8rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+        
+        .improvement-high {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .improvement-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .improvement-low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .effort-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 10px;
+        }
+        
+        .effort-low {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .effort-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .effort-high {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .risk-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 10px;
+        }
+        
+        .risk-low {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .risk-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .risk-high {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .goal-card {
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .goal-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        
+        .goal-priority {
+            font-size: 0.8rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .back-to-dashboard {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .back-to-dashboard:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .tab-content {
+            padding: 1.5rem 0;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            color: #6c757d;
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-brain me-2"></i>System Builder Hub
+            </a>
+            <a href="/" class="back-to-dashboard">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 class="text-white text-center mb-3">
+                        <i class="fas fa-brain me-3"></i>Predictive Intelligence Engine
+                    </h1>
+                    <p class="text-white text-center opacity-75">
+                        Advanced forecasting, simulation, and decision optimization for system building
+                    </p>
+                </div>
+            </div>
+
+            <!-- Metrics Overview -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="total-predictions">0</div>
+                        <div class="metric-label">Active Predictions</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="avg-confidence">0%</div>
+                        <div class="metric-label">Avg Confidence</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="optimizations">0</div>
+                        <div class="metric-label">Optimizations</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="accuracy-score">0%</div>
+                        <div class="metric-label">Prediction Accuracy</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Tabs -->
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="predictionTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="forecast-tab" data-bs-toggle="tab" data-bs-target="#forecast" type="button" role="tab">
+                                <i class="fas fa-chart-line me-2"></i>Forecast View
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tradeoff-tab" data-bs-toggle="tab" data-bs-target="#tradeoff" type="button" role="tab">
+                                <i class="fas fa-balance-scale me-2"></i>Tradeoff Matrix
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="optimization-tab" data-bs-toggle="tab" data-bs-target="#optimization" type="button" role="tab">
+                                <i class="fas fa-magic me-2"></i>Optimizations
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="goals-tab" data-bs-toggle="tab" data-bs-target="#goals" type="button" role="tab">
+                                <i class="fas fa-bullseye me-2"></i>System Goals
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="explainability-tab" data-bs-toggle="tab" data-bs-target="#explainability" type="button" role="tab">
+                                <i class="fas fa-lightbulb me-2"></i>Explainability
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="card-body">
+                    <div class="tab-content" id="predictionTabContent">
+                        <!-- Forecast View Tab -->
+                        <div class="tab-pane fade show active" id="forecast" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h4>Build Outcome Predictions</h4>
+                                    <div id="predictions-list">
+                                        <!-- Predictions will be loaded here -->
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <h4>Prediction Chart</h4>
+                                    <canvas id="predictionChart" width="400" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tradeoff Matrix Tab -->
+                        <div class="tab-pane fade" id="tradeoff" role="tabpanel">
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <button class="btn btn-primary" onclick="generateTradeoffMatrix()">
+                                        <i class="fas fa-plus me-2"></i>Generate New Matrix
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="tradeoff-matrix">
+                                <div id="tradeoff-matrices">
+                                    <!-- Tradeoff matrices will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Optimizations Tab -->
+                        <div class="tab-pane fade" id="optimization" role="tabpanel">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <select class="form-select" id="optimization-type">
+                                        <option value="speed">Speed Optimization</option>
+                                        <option value="cost">Cost Optimization</option>
+                                        <option value="robustness">Robustness Optimization</option>
+                                        <option value="maintainability">Maintainability Optimization</option>
+                                        <option value="memory">Memory Optimization</option>
+                                        <option value="latency">Latency Optimization</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <button class="btn btn-primary" onclick="suggestOptimizations()">
+                                        <i class="fas fa-search me-2"></i>Analyze System
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="optimization-suggestions">
+                                <!-- Optimization suggestions will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- System Goals Tab -->
+                        <div class="tab-pane fade" id="goals" role="tabpanel">
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addGoalModal">
+                                        <i class="fas fa-plus me-2"></i>Add System Goal
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="system-goals">
+                                <!-- System goals will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- Explainability Tab -->
+                        <div class="tab-pane fade" id="explainability" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h4>Prediction Reasoning</h4>
+                                    <div id="prediction-reasoning">
+                                        <!-- Prediction reasoning will be loaded here -->
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h4>Model Confidence</h4>
+                                    <div id="model-confidence">
+                                        <!-- Model confidence metrics will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Goal Modal -->
+    <div class="modal fade" id="addGoalModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add System Goal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="goalForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Goal Type</label>
+                                    <select class="form-select" id="goalType" required>
+                                        <option value="fastest_delivery">Fastest Delivery</option>
+                                        <option value="most_robust">Most Robust</option>
+                                        <option value="lowest_latency">Lowest Latency</option>
+                                        <option value="budget_constrained">Budget Constrained</option>
+                                        <option value="highest_accuracy">Highest Accuracy</option>
+                                        <option value="minimal_maintenance">Minimal Maintenance</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Priority (0.0 - 1.0)</label>
+                                    <input type="number" class="form-control" id="goalPriority" min="0" max="1" step="0.1" value="0.5" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Constraints (JSON)</label>
+                            <textarea class="form-control" id="goalConstraints" rows="3" placeholder='{"budget": 10000, "timeline": 30}'></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Target Metrics (JSON)</label>
+                            <textarea class="form-control" id="goalTargetMetrics" rows="3" placeholder='{"performance": 0.9, "cost": 5000}'></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addSystemGoal()">Add Goal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prediction Details Modal -->
+    <div class="modal fade" id="predictionModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Prediction Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="predictionModalBody">
+                    <!-- Prediction details will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentSystemId = null;
+        let predictionChart = null;
+
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMetrics();
+            loadPredictions();
+            loadTradeoffMatrices();
+            loadOptimizationSuggestions();
+            loadSystemGoals();
+            loadExplainability();
+            initializeChart();
+        });
+
+        // Load dashboard metrics
+        async function loadMetrics() {
+            try {
+                const response = await fetch('/api/predictive/metrics');
+                const metrics = await response.json();
+                
+                document.getElementById('total-predictions').textContent = metrics.total_predictions || 0;
+                document.getElementById('avg-confidence').textContent = `${Math.round((metrics.avg_confidence || 0) * 100)}%`;
+                document.getElementById('optimizations').textContent = metrics.total_optimizations || 0;
+                document.getElementById('accuracy-score').textContent = `${Math.round((metrics.accuracy_score || 0) * 100)}%`;
+            } catch (error) {
+                console.error('Error loading metrics:', error);
+            }
+        }
+
+        // Load predictions
+        async function loadPredictions() {
+            try {
+                const response = await fetch('/api/predictive/predictions');
+                const predictions = await response.json();
+                
+                const container = document.getElementById('predictions-list');
+                container.innerHTML = '';
+                
+                predictions.forEach(prediction => {
+                    const card = createPredictionCard(prediction);
+                    container.appendChild(card);
+                });
+                
+                updatePredictionChart(predictions);
+            } catch (error) {
+                console.error('Error loading predictions:', error);
+            }
+        }
+
+        // Create prediction card
+        function createPredictionCard(prediction) {
+            const card = document.createElement('div');
+            card.className = 'card prediction-card';
+            
+            const scenarioClass = `scenario-${prediction.scenario.toLowerCase()}`;
+            const confidencePercent = Math.round(prediction.confidence * 100);
+            
+            card.innerHTML = `
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6 class="card-title">
+                                <span class="scenario-badge ${scenarioClass}">${prediction.scenario.replace('_', ' ').toUpperCase()}</span>
+                                ${prediction.prediction_type.replace('_', ' ').toUpperCase()}
+                            </h6>
+                            <p class="card-text">${prediction.reasoning}</p>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
+                            </div>
+                            <small class="text-muted">Confidence: ${confidencePercent}%</small>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewPredictionDetails('${prediction.prediction_id}')">
+                                    <i class="fas fa-eye me-1"></i>Details
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="provideFeedback('${prediction.prediction_id}')">
+                                    <i class="fas fa-thumbs-up me-1"></i>Feedback
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Load tradeoff matrices
+        async function loadTradeoffMatrices() {
+            try {
+                const response = await fetch('/api/predictive/tradeoff-matrices');
+                const matrices = await response.json();
+                
+                const container = document.getElementById('tradeoff-matrices');
+                container.innerHTML = '';
+                
+                matrices.forEach(matrix => {
+                    const card = createTradeoffMatrixCard(matrix);
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error loading tradeoff matrices:', error);
+            }
+        }
+
+        // Create tradeoff matrix card
+        function createTradeoffMatrixCard(matrix) {
+            const card = document.createElement('div');
+            card.className = 'card mb-3';
+            
+            let tableHTML = '<table class="matrix-table"><thead><tr><th>Option</th>';
+            matrix.metrics.forEach(metric => {
+                tableHTML += `<th>${metric.charAt(0).toUpperCase() + metric.slice(1)}</th>`;
+            });
+            tableHTML += '</tr></thead><tbody>';
+            
+            matrix.options.forEach(option => {
+                const optionId = option.id || option.name;
+                const scores = matrix.scores[optionId] || {};
+                
+                tableHTML += `<tr><td><strong>${option.name || optionId}</strong></td>`;
+                matrix.metrics.forEach(metric => {
+                    const score = scores[metric] || 0;
+                    const scoreClass = score > 0.7 ? 'score-high' : score > 0.4 ? 'score-medium' : 'score-low';
+                    tableHTML += `<td class="score-cell ${scoreClass}">${(score * 100).toFixed(0)}%</td>`;
+                });
+                tableHTML += '</tr>';
+            });
+            tableHTML += '</tbody></table>';
+            
+            card.innerHTML = `
+                <div class="card-header">
+                    <h6 class="mb-0">Tradeoff Matrix - ${matrix.system_id}</h6>
+                </div>
+                <div class="card-body">
+                    ${tableHTML}
+                    <div class="mt-3">
+                        <h6>Recommendations:</h6>
+                        <ul>
+                            ${matrix.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Load optimization suggestions
+        async function loadOptimizationSuggestions() {
+            try {
+                const response = await fetch('/api/predictive/optimizations');
+                const suggestions = await response.json();
+                
+                const container = document.getElementById('optimization-suggestions');
+                container.innerHTML = '';
+                
+                suggestions.forEach(suggestion => {
+                    const item = createOptimizationItem(suggestion);
+                    container.appendChild(item);
+                });
+            } catch (error) {
+                console.error('Error loading optimizations:', error);
+            }
+        }
+
+        // Create optimization item
+        function createOptimizationItem(suggestion) {
+            const item = document.createElement('div');
+            item.className = 'optimization-item';
+            
+            const improvementClass = suggestion.improvement_percentage > 20 ? 'improvement-high' : 
+                                   suggestion.improvement_percentage > 10 ? 'improvement-medium' : 'improvement-low';
+            
+            item.innerHTML = `
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6>${suggestion.module_path}</h6>
+                        <p class="mb-2">${suggestion.reasoning}</p>
+                        <div class="mb-2">
+                            <span class="improvement-badge ${improvementClass}">
+                                +${suggestion.improvement_percentage.toFixed(1)}% improvement
+                            </span>
+                            <span class="effort-badge effort-${suggestion.effort_estimate} ms-2">
+                                ${suggestion.effort_estimate} effort
+                            </span>
+                            <span class="risk-badge risk-${suggestion.risk_level} ms-2">
+                                ${suggestion.risk_level} risk
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-end">
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewOptimizationDetails('${suggestion.suggestion_id}')">
+                                <i class="fas fa-code me-1"></i>View Code
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return item;
+        }
+
+        // Load system goals
+        async function loadSystemGoals() {
+            try {
+                const response = await fetch('/api/predictive/goals');
+                const goals = await response.json();
+                
+                const container = document.getElementById('system-goals');
+                container.innerHTML = '';
+                
+                goals.forEach(goal => {
+                    const card = createGoalCard(goal);
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error loading goals:', error);
+            }
+        }
+
+        // Create goal card
+        function createGoalCard(goal) {
+            const card = document.createElement('div');
+            card.className = 'goal-card';
+            
+            card.innerHTML = `
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6>${goal.goal_type.replace('_', ' ').toUpperCase()}</h6>
+                        <p class="mb-2">Priority: ${goal.priority}</p>
+                        <small class="text-muted">Created: ${new Date(goal.created_at).toLocaleDateString()}</small>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-end">
+                            <span class="goal-priority">Priority ${goal.priority}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Load explainability data
+        async function loadExplainability() {
+            try {
+                const response = await fetch('/api/predictive/explainability');
+                const data = await response.json();
+                
+                // Load prediction reasoning
+                const reasoningContainer = document.getElementById('prediction-reasoning');
+                reasoningContainer.innerHTML = data.reasoning || '<p>No reasoning data available.</p>';
+                
+                // Load model confidence
+                const confidenceContainer = document.getElementById('model-confidence');
+                confidenceContainer.innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <h6>Model Performance</h6>
+                            <p>Overall Accuracy: ${Math.round((data.accuracy || 0) * 100)}%</p>
+                            <p>Confidence Range: ${Math.round((data.confidence_range || 0) * 100)}%</p>
+                            <p>Training Data Points: ${data.training_points || 0}</p>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading explainability:', error);
+            }
+        }
+
+        // Initialize prediction chart
+        function initializeChart() {
+            const ctx = document.getElementById('predictionChart').getContext('2d');
+            predictionChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Build Time', 'Cost', 'Performance', 'Complexity', 'Risk'],
+                    datasets: [{
+                        label: 'Predicted Outcome',
+                        data: [0, 0, 0, 0, 0],
+                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update prediction chart
+        function updatePredictionChart(predictions) {
+            if (!predictionChart || predictions.length === 0) return;
+            
+            const latestPrediction = predictions[0];
+            const outcome = latestPrediction.predicted_outcome;
+            
+            const data = [
+                (outcome.build_time || 0) / 100, // Normalize
+                (outcome.cost || 0) / 100000, // Normalize
+                outcome.performance || 0,
+                outcome.complexity || 0,
+                outcome.risk || 0
+            ];
+            
+            predictionChart.data.datasets[0].data = data;
+            predictionChart.update();
+        }
+
+        // Generate new tradeoff matrix
+        async function generateTradeoffMatrix() {
+            try {
+                const options = [
+                    { id: 'option1', name: 'Monolithic Flask', framework: 'flask', architecture: 'monolithic', agent_count: 2 },
+                    { id: 'option2', name: 'Microservices FastAPI', framework: 'fastapi', architecture: 'microservices', agent_count: 5 },
+                    { id: 'option3', name: 'Event-Driven Spring', framework: 'spring', architecture: 'event_driven', agent_count: 8 }
+                ];
+                
+                const response = await fetch('/api/predictive/tradeoff-matrix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ options })
+                });
+                
+                if (response.ok) {
+                    loadTradeoffMatrices();
+                }
+            } catch (error) {
+                console.error('Error generating tradeoff matrix:', error);
+            }
+        }
+
+        // Suggest optimizations
+        async function suggestOptimizations() {
+            try {
+                const optimizationType = document.getElementById('optimization-type').value;
+                
+                const response = await fetch('/api/predictive/optimize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        optimization_type: optimizationType,
+                        module_path: 'app.py'
+                    })
+                });
+                
+                if (response.ok) {
+                    loadOptimizationSuggestions();
+                }
+            } catch (error) {
+                console.error('Error suggesting optimizations:', error);
+            }
+        }
+
+        // Add system goal
+        async function addSystemGoal() {
+            try {
+                const goalType = document.getElementById('goalType').value;
+                const priority = parseFloat(document.getElementById('goalPriority').value);
+                const constraints = JSON.parse(document.getElementById('goalConstraints').value || '{}');
+                const targetMetrics = JSON.parse(document.getElementById('goalTargetMetrics').value || '{}');
+                
+                const response = await fetch('/api/predictive/goals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        goal_type: goalType,
+                        priority: priority,
+                        constraints: constraints,
+                        target_metrics: targetMetrics
+                    })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('addGoalModal').querySelector('.btn-close').click();
+                    loadSystemGoals();
+                }
+            } catch (error) {
+                console.error('Error adding goal:', error);
+            }
+        }
+
+        // View prediction details
+        async function viewPredictionDetails(predictionId) {
+            try {
+                const response = await fetch(`/api/predictive/predictions/${predictionId}`);
+                const prediction = await response.json();
+                
+                const modalBody = document.getElementById('predictionModalBody');
+                modalBody.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Predicted Outcome</h6>
+                            <ul>
+                                <li>Build Time: ${prediction.predicted_outcome.build_time || 'N/A'} days</li>
+                                <li>Cost: $${(prediction.predicted_outcome.cost || 0).toLocaleString()}</li>
+                                <li>Performance: ${(prediction.predicted_outcome.performance || 0) * 100}%</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Reasoning</h6>
+                            <p>${prediction.reasoning}</p>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>Alternative Scenarios</h6>
+                            <div class="row">
+                                ${prediction.alternatives.map((alt, index) => `
+                                    <div class="col-md-3">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h6>Alternative ${index + 1}</h6>
+                                                <p>Build Time: ${alt.build_time || 'N/A'}</p>
+                                                <p>Cost: $${(alt.cost || 0).toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                new bootstrap.Modal(document.getElementById('predictionModal')).show();
+            } catch (error) {
+                console.error('Error loading prediction details:', error);
+            }
+        }
+
+        // View optimization details
+        function viewOptimizationDetails(suggestionId) {
+            // This would show the refactoring code in a modal
+            alert('Optimization details would be shown here for suggestion: ' + suggestionId);
+        }
+
+        // Provide feedback
+        function provideFeedback(predictionId) {
+            // This would open a feedback form
+            alert('Feedback form would be shown here for prediction: ' + predictionId);
+        }
+    </script>
+</body>
+</html>

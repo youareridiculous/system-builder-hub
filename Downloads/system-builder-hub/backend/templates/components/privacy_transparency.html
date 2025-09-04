@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Transparency{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold text-gray-900">Privacy Transparency</h2>
+        <span class="px-3 py-1 text-sm font-medium rounded-full 
+                   {% if mode == 'local_only' %}bg-green-100 text-green-800
+                   {% elif mode == 'byo_keys' %}bg-blue-100 text-blue-800
+                   {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+            {{ mode.replace('_', ' ').title() }}
+        </span>
+    </div>
+
+    <!-- Current Privacy Status -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-gray-50 rounded-lg p-4">
+            <h3 class="text-sm font-medium text-gray-900 mb-2">Data Retention</h3>
+            <div class="space-y-2 text-sm text-gray-600">
+                <div class="flex justify-between">
+                    <span>Prompts:</span>
+                    <span>{{ "No retention" if settings and settings.do_not_retain_prompts else "Retained" }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Responses:</span>
+                    <span>{{ "No retention" if settings and settings.do_not_retain_model_outputs else "Retained" }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Logs:</span>
+                    <span>{{ "Redacted" if settings and settings.strip_attachments_from_logs else "Full" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-50 rounded-lg p-4">
+            <h3 class="text-sm font-medium text-gray-900 mb-2">External Calls</h3>
+            <div class="space-y-2 text-sm text-gray-600">
+                <div class="flex justify-between">
+                    <span>Third-party APIs:</span>
+                    <span>{{ "Blocked" if settings and settings.disable_third_party_calls else "Allowed" }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Domain allowlist:</span>
+                    <span>Active</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Encryption:</span>
+                    <span>At-rest</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Flow Information -->
+    <div class="mb-6">
+        <h3 class="text-sm font-medium text-gray-900 mb-3">What data leaves your tenant?</h3>
+        <div class="space-y-3">
+            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div>
+                    <span class="text-sm font-medium text-blue-900">Prompts</span>
+                    <p class="text-xs text-blue-700">User inputs to AI models</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-sm text-blue-900">{{ "Hash only" if settings and settings.do_not_retain_prompts else "Full content" }}</span>
+                    <p class="text-xs text-blue-700">Purpose: AI processing</p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div>
+                    <span class="text-sm font-medium text-green-900">Model Responses</span>
+                    <p class="text-xs text-green-700">AI-generated content</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-sm text-green-900">{{ "Hash only" if settings and settings.do_not_retain_model_outputs else "Full content" }}</span>
+                    <p class="text-xs text-green-700">Purpose: Service delivery</p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                <div>
+                    <span class="text-sm font-medium text-yellow-900">Analytics</span>
+                    <p class="text-xs text-yellow-700">Usage metrics and events</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-sm text-yellow-900">Redacted</span>
+                    <p class="text-xs text-yellow-700">Purpose: Service improvement</p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                <div>
+                    <span class="text-sm font-medium text-purple-900">Files</span>
+                    <p class="text-xs text-purple-700">Uploaded documents and assets</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-sm text-purple-900">Encrypted</span>
+                    <p class="text-xs text-purple-700">Purpose: Feature functionality</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Privacy Events -->
+    <div>
+        <h3 class="text-sm font-medium text-gray-900 mb-3">Recent Privacy Events</h3>
+        {% if recent_events %}
+        <div class="space-y-2">
+            {% for event in recent_events %}
+            <div class="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+                <div>
+                    <span class="font-medium text-gray-900">{{ event.event_type.replace('_', ' ').title() }}</span>
+                    <p class="text-gray-600">{{ event.data_category }} ({{ event.data_volume }} records)</p>
+                </div>
+                <div class="text-right text-xs text-gray-500">
+                    <div>{{ "Retention: Applied" if event.retention_applied else "Retention: None" }}</div>
+                    <div>{{ "Redaction: Applied" if event.redaction_applied else "Redaction: None" }}</div>
+                    <div>{{ event.created_at.split('T')[0] if event.created_at else "Unknown" }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500 italic">No recent privacy events</p>
+        {% endif %}
+    </div>
+
+    <!-- Privacy Controls -->
+    <div class="mt-6 pt-6 border-t border-gray-200">
+        <div class="flex justify-between items-center">
+            <div>
+                <h3 class="text-sm font-medium text-gray-900">Privacy Controls</h3>
+                <p class="text-xs text-gray-600">Manage your privacy settings and data</p>
+            </div>
+            <div class="space-x-2">
+                <button onclick="window.location.href='/admin/privacy'" 
+                        class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Settings
+                </button>
+                <button onclick="exportPrivacyData()" 
+                        class="px-3 py-1 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
+                    Export
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportPrivacyData() {
+    fetch('/api/privacy/export', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.data) {
+            const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'privacy-transparency-report.json';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } else {
+            alert('Error exporting data: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error exporting data');
+    });
+}
+</script>
+{% endblock %}

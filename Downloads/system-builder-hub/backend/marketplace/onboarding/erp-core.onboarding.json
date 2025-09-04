@@ -1,0 +1,351 @@
+{
+  "module": "erp-core",
+  "name": "ERP Core",
+  "version": "1.0.0",
+  "description": "Complete onboarding checklist for ERP Core setup and configuration",
+  "estimated_time": "45 minutes",
+  "steps": [
+    {
+      "id": "welcome",
+      "title": "Welcome to ERP Core",
+      "description": "Let's set up your complete enterprise resource planning system",
+      "estimated_time": "2 minutes",
+      "required": false,
+      "type": "info"
+    },
+    {
+      "id": "company_setup",
+      "title": "Configure Your Company",
+      "description": "Set up your company information and fiscal year",
+      "estimated_time": "5 minutes",
+      "required": true,
+      "type": "form",
+      "fields": [
+        {
+          "name": "company_name",
+          "label": "Company Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "Enter your company name"
+        },
+        {
+          "name": "fiscal_year_start",
+          "label": "Fiscal Year Start",
+          "type": "date",
+          "required": true,
+          "placeholder": "MM/DD"
+        },
+        {
+          "name": "currency",
+          "label": "Default Currency",
+          "type": "select",
+          "required": true,
+          "options": ["USD", "EUR", "GBP", "CAD", "AUD", "JPY"]
+        },
+        {
+          "name": "tax_rate",
+          "label": "Default Tax Rate (%)",
+          "type": "number",
+          "required": false,
+          "placeholder": "8.5"
+        }
+      ]
+    },
+    {
+      "id": "warehouse_setup",
+      "title": "Set Up Your Warehouses",
+      "description": "Configure your warehouse locations for inventory management",
+      "estimated_time": "8 minutes",
+      "required": true,
+      "type": "form",
+      "fields": [
+        {
+          "name": "warehouse_name",
+          "label": "Primary Warehouse Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "Main Warehouse"
+        },
+        {
+          "name": "warehouse_address",
+          "label": "Warehouse Address",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Enter full warehouse address"
+        },
+        {
+          "name": "warehouse_phone",
+          "label": "Warehouse Phone",
+          "type": "tel",
+          "required": false,
+          "placeholder": "+1-555-0123"
+        },
+        {
+          "name": "warehouse_email",
+          "label": "Warehouse Email",
+          "type": "email",
+          "required": false,
+          "placeholder": "warehouse@company.com"
+        }
+      ]
+    },
+    {
+      "id": "supplier_setup",
+      "title": "Add Your Suppliers",
+      "description": "Set up your key suppliers and vendors",
+      "estimated_time": "10 minutes",
+      "required": false,
+      "type": "action",
+      "actions": [
+        {
+          "name": "add_supplier",
+          "label": "Add Supplier",
+          "description": "Add a new supplier to your system",
+          "endpoint": "/api/suppliers/",
+          "method": "POST"
+        },
+        {
+          "name": "import_suppliers",
+          "label": "Import from CSV",
+          "description": "Import suppliers from a CSV file",
+          "endpoint": "/api/suppliers/import",
+          "method": "POST"
+        },
+        {
+          "name": "skip",
+          "label": "Skip for Now",
+          "description": "I'll add suppliers later"
+        }
+      ]
+    },
+    {
+      "id": "inventory_setup",
+      "title": "Set Up Your Inventory",
+      "description": "Configure your product catalog and inventory items",
+      "estimated_time": "15 minutes",
+      "required": true,
+      "type": "action",
+      "actions": [
+        {
+          "name": "add_inventory_item",
+          "label": "Add Inventory Item",
+          "description": "Add a new product to your inventory",
+          "endpoint": "/api/inventory/",
+          "method": "POST"
+        },
+        {
+          "name": "import_inventory",
+          "label": "Import from CSV",
+          "description": "Import inventory items from a CSV file",
+          "endpoint": "/api/inventory/import",
+          "method": "POST"
+        },
+        {
+          "name": "use_template",
+          "label": "Use Template",
+          "description": "Start with sample inventory items",
+          "endpoint": "/api/inventory/template",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "id": "accounting_setup",
+      "title": "Configure Your Chart of Accounts",
+      "description": "Set up your general ledger accounts for accounting",
+      "estimated_time": "10 minutes",
+      "required": true,
+      "type": "action",
+      "actions": [
+        {
+          "name": "use_standard_chart",
+          "label": "Use Standard Chart",
+          "description": "Start with standard chart of accounts",
+          "endpoint": "/api/accounting/chart/standard",
+          "method": "POST"
+        },
+        {
+          "name": "custom_chart",
+          "label": "Create Custom Chart",
+          "description": "Build your own chart of accounts",
+          "endpoint": "/api/accounting/chart/custom",
+          "method": "POST"
+        },
+        {
+          "name": "import_chart",
+          "label": "Import Chart",
+          "description": "Import chart of accounts from file",
+          "endpoint": "/api/accounting/chart/import",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "id": "user_roles",
+      "title": "Set Up User Roles and Permissions",
+      "description": "Configure user roles for your ERP system",
+      "estimated_time": "5 minutes",
+      "required": false,
+      "type": "form",
+      "fields": [
+        {
+          "name": "admin_users",
+          "label": "Administrator Emails",
+          "type": "email_list",
+          "required": false,
+          "placeholder": "admin@company.com, finance@company.com",
+          "description": "Users with full system access"
+        },
+        {
+          "name": "inventory_users",
+          "label": "Inventory Manager Emails",
+          "type": "email_list",
+          "required": false,
+          "placeholder": "warehouse@company.com",
+          "description": "Users who can manage inventory"
+        },
+        {
+          "name": "accounting_users",
+          "label": "Accounting User Emails",
+          "type": "email_list",
+          "required": false,
+          "placeholder": "accountant@company.com",
+          "description": "Users who can access accounting"
+        }
+      ]
+    },
+    {
+      "id": "integrations",
+      "title": "Set Up Integrations",
+      "description": "Connect your ERP with other business systems",
+      "estimated_time": "10 minutes",
+      "required": false,
+      "type": "action",
+      "actions": [
+        {
+          "name": "banking_integration",
+          "label": "Banking Integration",
+          "description": "Connect your bank accounts",
+          "endpoint": "/api/integrations/banking",
+          "method": "POST"
+        },
+        {
+          "name": "shipping_integration",
+          "label": "Shipping Integration",
+          "description": "Connect shipping carriers",
+          "endpoint": "/api/integrations/shipping",
+          "method": "POST"
+        },
+        {
+          "name": "accounting_software",
+          "label": "Accounting Software",
+          "description": "Connect with QuickBooks/Xero",
+          "endpoint": "/api/integrations/accounting",
+          "method": "POST"
+        },
+        {
+          "name": "skip",
+          "label": "Skip for Now",
+          "description": "I'll set up integrations later"
+        }
+      ]
+    },
+    {
+      "id": "first_transactions",
+      "title": "Create Your First Transactions",
+      "description": "Set up initial inventory and accounting entries",
+      "estimated_time": "10 minutes",
+      "required": false,
+      "type": "action",
+      "actions": [
+        {
+          "name": "opening_balance",
+          "label": "Opening Balance Entry",
+          "description": "Record your opening balances",
+          "endpoint": "/api/accounting/opening-balance",
+          "method": "POST"
+        },
+        {
+          "name": "first_purchase",
+          "label": "First Purchase Order",
+          "description": "Create your first purchase order",
+          "endpoint": "/api/orders/purchase",
+          "method": "POST"
+        },
+        {
+          "name": "first_sale",
+          "label": "First Sales Order",
+          "description": "Create your first sales order",
+          "endpoint": "/api/orders/sales",
+          "method": "POST"
+        },
+        {
+          "name": "skip",
+          "label": "Skip for Now",
+          "description": "I'll create transactions later"
+        }
+      ]
+    },
+    {
+      "id": "reports_setup",
+      "title": "Configure Reports and Dashboards",
+      "description": "Set up your key reports and dashboards",
+      "estimated_time": "5 minutes",
+      "required": false,
+      "type": "action",
+      "actions": [
+        {
+          "name": "inventory_report",
+          "label": "Inventory Report",
+          "description": "Set up inventory valuation report",
+          "endpoint": "/api/reports/inventory",
+          "method": "POST"
+        },
+        {
+          "name": "financial_report",
+          "label": "Financial Reports",
+          "description": "Set up P&L and balance sheet",
+          "endpoint": "/api/reports/financial",
+          "method": "POST"
+        },
+        {
+          "name": "dashboard",
+          "label": "Executive Dashboard",
+          "description": "Configure executive dashboard",
+          "endpoint": "/api/dashboard/configure",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "id": "complete",
+      "title": "You're All Set!",
+      "description": "Your ERP Core system is ready to use. Start managing your business operations!",
+      "estimated_time": "1 minute",
+      "required": false,
+      "type": "completion",
+      "next_steps": [
+        "Explore the inventory dashboard",
+        "Create your first purchase order",
+        "Set up recurring reports",
+        "Configure automated workflows",
+        "Train your team on the system"
+      ]
+    }
+  ],
+  "tips": [
+    "Start with a few key inventory items and expand gradually",
+    "Set up proper reorder points to avoid stockouts",
+    "Use consistent SKU naming conventions",
+    "Regularly reconcile your inventory with physical counts",
+    "Set up automated alerts for low stock items",
+    "Keep your supplier information up to date",
+    "Review your chart of accounts with your accountant"
+  ],
+  "support": {
+    "contact": "support@sbh.com",
+    "documentation": "/ui/docs/erp-core",
+    "video_tutorial": "https://example.com/erp-core-onboarding-video",
+    "knowledge_base": "/ui/kb/erp-core"
+  }
+}

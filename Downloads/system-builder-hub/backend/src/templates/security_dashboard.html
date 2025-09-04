@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Dashboard - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .security-card {
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        .security-card:hover {
+            transform: translateY(-2px);
+        }
+        .trust-score {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+        }
+        .risk-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .risk-low { background-color: #28a745; }
+        .risk-medium { background-color: #ffc107; }
+        .risk-high { background-color: #dc3545; }
+        .risk-critical { background-color: #6f42c1; }
+        .audit-log {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .permission-check {
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #f8f9fa;
+        }
+        .permission-check.allowed {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .permission-check.denied {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .jailbreak-alert {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="row bg-dark text-white p-3">
+            <div class="col">
+                <h1><i class="fas fa-shield-alt"></i> Sentinel Security Dashboard</h1>
+                <p class="mb-0">Universal Security, Trust & Permission System</p>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <!-- Left Panel: Security Overview -->
+            <div class="col-md-8">
+                <!-- Trust Score Overview -->
+                <div class="card security-card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-line"></i> System Trust Overview</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="trust-score">
+                                    <h6>Overall Trust Score</h6>
+                                    <h2 id="overallTrustScore">0.87</h2>
+                                    <div class="progress bg-white bg-opacity-25">
+                                        <div class="progress-bar" id="trustScoreBar" style="width: 87%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="trust-score">
+                                    <h6>Security Risk Level</h6>
+                                    <h2 id="riskLevel">LOW</h2>
+                                    <span class="risk-indicator risk-low"></span>
+                                    <small>Minimal threats detected</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Permission Checks -->
+                <div class="card security-card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-key"></i> Recent Permission Checks</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="permissionChecks">
+                            <div class="permission-check allowed">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>System Build Request</strong>
+                                        <small class="d-block text-success">User: admin@example.com</small>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-success">ALLOWED</span>
+                                        <small class="text-muted d-block">2 min ago</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="permission-check denied">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>Database Access</strong>
+                                        <small class="d-block text-danger">User: guest@example.com</small>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-danger">DENIED</span>
+                                        <small class="text-muted d-block">5 min ago</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="permission-check allowed">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>API Access</strong>
+                                        <small class="d-block text-success">User: developer@example.com</small>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-success">ALLOWED</span>
+                                        <small class="text-muted d-block">8 min ago</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Jailbreak Detection -->
+                <div class="card security-card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Jailbreak Detection</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="jailbreakAlerts">
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i>
+                                <strong>No jailbreak attempts detected</strong><br>
+                                <small>Last scan: 2 minutes ago</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button class="btn btn-outline-primary" onclick="runJailbreakScan()">
+                                <i class="fas fa-search"></i> Run Security Scan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Red Team Simulation -->
+                <div class="card security-card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-bug"></i> Red Team Simulation</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <select class="form-select mb-3" id="attackType">
+                                    <option value="prompt_injection">Prompt Injection</option>
+                                    <option value="sql_injection">SQL Injection</option>
+                                    <option value="xss">Cross-Site Scripting</option>
+                                    <option value="privilege_escalation">Privilege Escalation</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <button class="btn btn-warning w-100" onclick="runRedTeamSimulation()">
+                                    <i class="fas fa-play"></i> Run Simulation
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="simulationResults" style="display: none;">
+                            <div class="alert alert-info">
+                                <h6>Simulation Results:</h6>
+                                <div id="simulationDetails"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Security Details -->
+            <div class="col-md-4">
+                <!-- Security Scoreboard -->
+                <div class="card security-card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-trophy"></i> Security Scoreboard</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="securityChart" width="300" height="200"></canvas>
+                        <div class="mt-3">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <h6 class="text-success">87%</h6>
+                                    <small>Trust Score</small>
+                                </div>
+                                <div class="col-4">
+                                    <h6 class="text-warning">12%</h6>
+                                    <small>Risk Level</small>
+                                </div>
+                                <div class="col-4">
+                                    <h6 class="text-info">95%</h6>
+                                    <small>Success Rate</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audit Logs -->
+                <div class="card security-card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list"></i> Recent Audit Logs</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="audit-log" id="auditLogs">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <small class="text-primary">Permission Check</small>
+                                    <div>User: admin@example.com</div>
+                                </div>
+                                <small class="text-muted">2 min ago</small>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <small class="text-success">Trust Score Update</small>
+                                    <div>Score: 0.85</div>
+                                </div>
+                                <small class="text-muted">5 min ago</small>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <small class="text-warning">Security Scan</small>
+                                    <div>No threats found</div>
+                                </div>
+                                <small class="text-muted">10 min ago</small>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <small class="text-danger">Access Denied</small>
+                                    <div>User: guest@example.com</div>
+                                </div>
+                                <small class="text-muted">15 min ago</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Actions -->
+                <div class="card security-card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cogs"></i> Security Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary" onclick="checkPermission()">
+                                <i class="fas fa-key"></i> Check Permission
+                            </button>
+                            <button class="btn btn-outline-info" onclick="scoreTrust()">
+                                <i class="fas fa-chart-line"></i> Score Trust
+                            </button>
+                            <button class="btn btn-outline-warning" onclick="detectJailbreak()">
+                                <i class="fas fa-shield-alt"></i> Detect Jailbreak
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="viewViolations()">
+                                <i class="fas fa-exclamation-triangle"></i> View Violations
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Permission Check Modal -->
+    <div class="modal fade" id="permissionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Check Permission</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="permissionForm">
+                        <div class="mb-3">
+                            <label class="form-label">User ID</label>
+                            <input type="text" class="form-control" id="permissionUserId" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Action</label>
+                            <select class="form-select" id="permissionAction" required>
+                                <option value="system_build">System Build</option>
+                                <option value="database_access">Database Access</option>
+                                <option value="api_access">API Access</option>
+                                <option value="admin_access">Admin Access</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Context (Optional)</label>
+                            <textarea class="form-control" id="permissionContext" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitPermissionCheck()">Check Permission</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let securityChart = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSecurityData();
+            createSecurityChart();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Auto-refresh security data every 30 seconds
+            setInterval(loadSecurityData, 30000);
+        }
+
+        async function loadSecurityData() {
+            try {
+                // Load security scoreboard
+                const scoreboardResponse = await fetch('/api/security/scoreboard');
+                const scoreboard = await scoreboardResponse.json();
+                
+                if (scoreboard.status === 'success') {
+                    updateSecurityScoreboard(scoreboard.data);
+                }
+                
+                // Load security logs
+                const logsResponse = await fetch('/api/security/logs');
+                const logs = await logsResponse.json();
+                
+                if (logs.status === 'success') {
+                    updateAuditLogs(logs.data);
+                }
+                
+            } catch (error) {
+                console.error('Error loading security data:', error);
+            }
+        }
+
+        function updateSecurityScoreboard(data) {
+            document.getElementById('overallTrustScore').textContent = (data.overall_security_score * 100).toFixed(0);
+            document.getElementById('trustScoreBar').style.width = (data.overall_security_score * 100) + '%';
+            
+            // Update risk level
+            const riskLevel = document.getElementById('riskLevel');
+            const riskIndicator = riskLevel.nextElementSibling;
+            
+            if (data.overall_security_score > 0.8) {
+                riskLevel.textContent = 'LOW';
+                riskLevel.className = 'risk-low';
+                riskIndicator.className = 'risk-indicator risk-low';
+            } else if (data.overall_security_score > 0.6) {
+                riskLevel.textContent = 'MEDIUM';
+                riskLevel.className = 'risk-medium';
+                riskIndicator.className = 'risk-indicator risk-medium';
+            } else {
+                riskLevel.textContent = 'HIGH';
+                riskLevel.className = 'risk-high';
+                riskIndicator.className = 'risk-indicator risk-high';
+            }
+        }
+
+        function updateAuditLogs(logs) {
+            const auditLogsContainer = document.getElementById('auditLogs');
+            
+            if (logs.length === 0) {
+                auditLogsContainer.innerHTML = '<p class="text-muted">No recent audit logs</p>';
+                return;
+            }
+            
+            auditLogsContainer.innerHTML = logs.slice(0, 10).map(log => `
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <small class="text-primary">${log.event_type}</small>
+                        <div>${log.user_id || log.action || 'System Event'}</div>
+                    </div>
+                    <small class="text-muted">${new Date(log.timestamp).toLocaleTimeString()}</small>
+                </div>
+            `).join('');
+        }
+
+        function createSecurityChart() {
+            const ctx = document.getElementById('securityChart').getContext('2d');
+            
+            securityChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Trust Score', 'Risk Level', 'Success Rate'],
+                    datasets: [{
+                        data: [87, 12, 95],
+                        backgroundColor: [
+                            '#28a745',
+                            '#ffc107',
+                            '#17a2b8'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function checkPermission() {
+            const modal = new bootstrap.Modal(document.getElementById('permissionModal'));
+            modal.show();
+        }
+
+        async function submitPermissionCheck() {
+            const userId = document.getElementById('permissionUserId').value;
+            const action = document.getElementById('permissionAction').value;
+            const context = document.getElementById('permissionContext').value;
+            
+            try {
+                const response = await fetch('/api/security/check-permission', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        action: action,
+                        context: context
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // Add to permission checks list
+                    addPermissionCheck(userId, action, result.data.allowed);
+                    
+                    // Close modal
+                    bootstrap.Modal.getInstance(document.getElementById('permissionModal')).hide();
+                    
+                    // Show result
+                    alert(`Permission ${result.data.allowed ? 'GRANTED' : 'DENIED'}\nTrust Score: ${result.data.trust_score}`);
+                } else {
+                    alert('Error checking permission: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error checking permission:', error);
+                alert('Error checking permission');
+            }
+        }
+
+        function addPermissionCheck(userId, action, allowed) {
+            const container = document.getElementById('permissionChecks');
+            const checkDiv = document.createElement('div');
+            checkDiv.className = `permission-check ${allowed ? 'allowed' : 'denied'}`;
+            
+            checkDiv.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${action.replace('_', ' ').toUpperCase()}</strong>
+                        <small class="d-block ${allowed ? 'text-success' : 'text-danger'}">User: ${userId}</small>
+                    </div>
+                    <div>
+                        <span class="badge ${allowed ? 'bg-success' : 'bg-danger'}">${allowed ? 'ALLOWED' : 'DENIED'}</span>
+                        <small class="text-muted d-block">Just now</small>
+                    </div>
+                </div>
+            `;
+            
+            container.insertBefore(checkDiv, container.firstChild);
+            
+            // Remove old entries if too many
+            if (container.children.length > 5) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        async function scoreTrust() {
+            const userId = prompt('Enter User ID:');
+            if (!userId) return;
+            
+            try {
+                const response = await fetch('/api/security/score-trust', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        action: 'general_access'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert(`Trust Score: ${result.data.trust_score}\nRisk Factors: ${result.data.risk_factors.join(', ')}`);
+                } else {
+                    alert('Error scoring trust: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error scoring trust:', error);
+                alert('Error scoring trust');
+            }
+        }
+
+        async function detectJailbreak() {
+            const prompt = prompt('Enter prompt to check:');
+            if (!prompt) return;
+            
+            try {
+                const response = await fetch('/api/security/detect-jailbreak', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        user_id: 'current_user'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    const alertDiv = document.getElementById('jailbreakAlerts');
+                    
+                    if (result.data.jailbreak_detected) {
+                        alertDiv.innerHTML = `
+                            <div class="jailbreak-alert">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Jailbreak Attempt Detected!</strong><br>
+                                <small>Confidence: ${(result.data.confidence * 100).toFixed(1)}%</small>
+                            </div>
+                        `;
+                    } else {
+                        alertDiv.innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i>
+                                <strong>No jailbreak detected</strong><br>
+                                <small>Confidence: ${(result.data.confidence * 100).toFixed(1)}%</small>
+                            </div>
+                        `;
+                    }
+                } else {
+                    alert('Error detecting jailbreak: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error detecting jailbreak:', error);
+                alert('Error detecting jailbreak');
+            }
+        }
+
+        async function runJailbreakScan() {
+            // Simulate running a security scan
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+            button.disabled = true;
+            
+            // Simulate scan time
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Update results
+            document.getElementById('jailbreakAlerts').innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>Security scan completed</strong><br>
+                    <small>No threats detected - Last scan: Just now</small>
+                </div>
+            `;
+            
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+
+        async function runRedTeamSimulation() {
+            const attackType = document.getElementById('attackType').value;
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch('/api/security/simulate-redteam', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        attack_type: attackType
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    document.getElementById('simulationResults').style.display = 'block';
+                    document.getElementById('simulationDetails').innerHTML = `
+                        <div><strong>Attack Type:</strong> ${result.data.attack_type}</div>
+                        <div><strong>Success Rate:</strong> ${(result.data.success_rate * 100).toFixed(1)}%</div>
+                        <div><strong>Vulnerabilities Found:</strong> ${result.data.vulnerabilities_found}</div>
+                        <div><strong>Recommendations:</strong></div>
+                        <ul>
+                            ${result.data.mitigation_recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                        </ul>
+                    `;
+                } else {
+                    alert('Error running simulation: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error running simulation:', error);
+                alert('Error running simulation');
+            }
+            
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+
+        function viewViolations() {
+            alert('Violations view would show detailed security violations and their resolution status.');
+        }
+    </script>
+</body>
+</html>

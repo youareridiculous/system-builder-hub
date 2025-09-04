@@ -1,0 +1,122 @@
+name: "Recruiting Template Suite"
+description: "Comprehensive evaluation suite for Recruiting template"
+
+golden_cases:
+  - name: "Job Posting CRUD"
+    description: "Test job posting create, read, update, delete operations"
+    prompt: "Create a job posting system with CRUD operations for job listings including title, description, requirements, and salary fields"
+    sla_class: "normal"
+    assertions:
+      - name: "job_posting_created"
+        type: "contains"
+        expected: "job"
+        description: "Should create job posting functionality"
+      - name: "crud_operations"
+        type: "contains"
+        expected: "CRUD"
+        description: "Should include CRUD operations"
+
+  - name: "Candidate Management"
+    description: "Test candidate profile and application management"
+    prompt: "Implement candidate management with profile creation, application tracking, and resume upload functionality"
+    sla_class: "normal"
+    assertions:
+      - name: "candidate_management"
+        type: "contains"
+        expected: "candidate"
+        description: "Should include candidate management"
+      - name: "application_tracking"
+        type: "contains"
+        expected: "application"
+        description: "Should include application tracking"
+
+  - name: "Role-Based Access Control"
+    description: "Test RBAC for recruiters and candidates"
+    prompt: "Create role-based access control with admin, recruiter, and candidate roles with appropriate permissions"
+    sla_class: "thorough"
+    assertions:
+      - name: "rbac_roles"
+        type: "contains"
+        expected: "role"
+        description: "Should include role-based access"
+      - name: "permissions"
+        type: "contains"
+        expected: "permission"
+        description: "Should include permissions system"
+
+  - name: "Recruiting Analytics"
+    description: "Test analytics and reporting functionality"
+    prompt: "Build analytics dashboard showing job posting performance, candidate pipeline, and hiring metrics"
+    sla_class: "normal"
+    assertions:
+      - name: "analytics"
+        type: "contains"
+        expected: "analytics"
+        description: "Should include analytics"
+      - name: "pipeline"
+        type: "contains"
+        expected: "pipeline"
+        description: "Should include pipeline tracking"
+
+scenario_bundles:
+  - name: "Recruiting Template Smoke Test"
+    description: "End-to-end smoke test for Recruiting template"
+    natural_language: "Launch a complete recruiting system with job posting, candidate management, and hiring analytics"
+    sla_class: "thorough"
+    steps:
+      - name: "Template Launch"
+        description: "Launch the Recruiting template"
+        action: "launch"
+        inputs:
+          template: "recruiting_complete"
+        assertions:
+          - name: "template_launched"
+            type: "contains"
+            expected: "success"
+            description: "Template should launch successfully"
+
+      - name: "Database Setup"
+        description: "Verify database schema and migrations"
+        action: "validate"
+        inputs:
+          check_tables: ["jobs", "candidates", "applications", "interviews"]
+        assertions:
+          - name: "database_schema"
+            type: "contains"
+            expected: "jobs"
+            description: "Should have jobs table"
+
+      - name: "API Endpoints"
+        description: "Test core API endpoints"
+        action: "test"
+        inputs:
+          endpoints: ["/api/jobs", "/api/candidates", "/api/applications"]
+        assertions:
+          - name: "api_endpoints"
+            type: "contains"
+            expected: "200"
+            description: "API endpoints should respond"
+
+kpi_guards:
+  - name: "recruiting_pass_rate"
+    metric: "pass_rate"
+    threshold: 0.90
+    operator: ">="
+    description: "Recruiting template should have 90% pass rate"
+    severity: "error"
+
+  - name: "recruiting_latency"
+    metric: "avg_latency_ms"
+    threshold: 15000
+    operator: "<="
+    description: "Recruiting template should complete within 15 seconds"
+    severity: "warning"
+
+metadata:
+  tags: ["recruiting", "template", "hr"]
+  priority: "high"
+  estimated_duration_minutes: 20
+  enable_canary: false
+  enable_chaos: false
+  max_reruns_on_flake: 2
+  min_stable_passes: 2

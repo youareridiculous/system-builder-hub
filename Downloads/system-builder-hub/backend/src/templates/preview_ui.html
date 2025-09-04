@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Builder Hub - Preview Engine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .preview-container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            width: 300px;
+            background: #fff;
+            border-right: 1px solid #e0e0e0;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .preview-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+        }
+
+        .device-frame {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f0f0;
+            padding: 20px;
+            position: relative;
+        }
+
+        .iframe-container {
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .iframe-container.mobile {
+            border-radius: 20px;
+        }
+
+        .preview-iframe {
+            border: none;
+            display: block;
+        }
+
+        .device-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .device-preset {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .device-preset:hover {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .device-preset.active {
+            border-color: #007bff;
+            background: #e3f2fd;
+            color: #007bff;
+        }
+
+        .device-preset .name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .device-preset .dimensions {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .custom-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: #555;
+        }
+
+        .control-group input, .control-group select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .control-group input:focus, .control-group select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .button.primary {
+            background: #007bff;
+            color: #fff;
+        }
+
+        .button.primary:hover {
+            background: #0056b3;
+        }
+
+        .button.secondary {
+            background: #6c757d;
+            color: #fff;
+        }
+
+        .button.secondary:hover {
+            background: #545b62;
+        }
+
+        .button.danger {
+            background: #dc3545;
+            color: #fff;
+        }
+
+        .button.danger:hover {
+            background: #c82333;
+        }
+
+        .logs-panel {
+            height: 200px;
+            background: #1e1e1e;
+            color: #fff;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            padding: 2px 0;
+        }
+
+        .log-entry.info { color: #4fc3f7; }
+        .log-entry.warn { color: #ffb74d; }
+        .log-entry.error { color: #f44336; }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.running { background: #4caf50; }
+        .status-indicator.starting { background: #ff9800; }
+        .status-indicator.stopped { background: #f44336; }
+
+        .network-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .network-preset {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .network-preset.active {
+            background: #007bff;
+            color: #fff;
+            border-color: #007bff;
+        }
+
+        .screenshot-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .breakpoint-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #ff5722;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .breakpoint-label {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #ff5722;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <div class="toolbar">
+            <div class="section">
+                <h3>Device Presets</h3>
+                <button class="device-preset" data-preset="iphone">
+                    <div class="name">iPhone</div>
+                    <div class="dimensions">375 × 812</div>
+                </button>
+                <button class="device-preset" data-preset="ipad">
+                    <div class="name">iPad</div>
+                    <div class="dimensions">768 × 1024</div>
+                </button>
+                <button class="device-preset" data-preset="pixel">
+                    <div class="name">Pixel</div>
+                    <div class="dimensions">411 × 823</div>
+                </button>
+                <button class="device-preset active" data-preset="laptop">
+                    <div class="name">Laptop</div>
+                    <div class="dimensions">1366 × 768</div>
+                </button>
+                <button class="device-preset" data-preset="desktop">
+                    <div class="name">Desktop</div>
+                    <div class="dimensions">1920 × 1080</div>
+                </button>
+                <button class="device-preset" data-preset="ultrawide">
+                    <div class="name">Ultrawide</div>
+                    <div class="dimensions">2560 × 1080</div>
+                </button>
+            </div>
+
+            <div class="section">
+                <h3>Custom Dimensions</h3>
+                <div class="custom-controls">
+                    <div class="control-group">
+                        <label>Width (px)</label>
+                        <input type="number" id="custom-width" value="1366" min="320" max="3840">
+                    </div>
+                    <div class="control-group">
+                        <label>Height (px)</label>
+                        <input type="number" id="custom-height" value="768" min="568" max="2160">
+                    </div>
+                </div>
+                <div class="custom-controls">
+                    <div class="control-group">
+                        <label>Orientation</label>
+                        <select id="orientation">
+                            <option value="portrait">Portrait</option>
+                            <option value="landscape">Landscape</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Zoom</label>
+                        <select id="zoom">
+                            <option value="1">100%</option>
+                            <option value="0.75">75%</option>
+                            <option value="0.5">50%</option>
+                            <option value="1.25">125%</option>
+                            <option value="1.5">150%</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Network Conditions</h3>
+                <div class="network-controls">
+                    <button class="network-preset active" data-network="offline">Offline</button>
+                    <button class="network-preset" data-network="3g">3G</button>
+                    <button class="network-preset" data-network="4g">4G</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Theme & Accessibility</h3>
+                <div class="custom-controls">
+                    <div class="control-group">
+                        <label>Theme</label>
+                        <select id="theme">
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Motion</label>
+                        <select id="motion">
+                            <option value="normal">Normal</option>
+                            <option value="reduced">Reduced</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Screenshots & QA</h3>
+                <div class="screenshot-controls">
+                    <button class="button primary" id="take-screenshot">Screenshot</button>
+                    <button class="button secondary" id="compare-screenshots">Compare</button>
+                </div>
+                <div style="margin-top: 10px;">
+                    <button class="button danger" id="stop-preview">Stop Preview</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-area">
+            <div class="device-frame">
+                <div class="iframe-container" id="iframe-container">
+                    <iframe class="preview-iframe" id="preview-iframe" src="about:blank"></iframe>
+                </div>
+                
+                <div class="device-controls">
+                    <div>
+                        <span class="status-indicator running" id="status-indicator"></span>
+                        <span id="status-text">Running</span>
+                    </div>
+                    <div style="margin-top: 5px; font-size: 12px;">
+                        <span id="device-info">Laptop • 1366×768</span>
+                    </div>
+                </div>
+
+                <div class="breakpoint-overlay" id="breakpoint-overlay" style="display: none;">
+                    <div class="breakpoint-label" id="breakpoint-label">Desktop</div>
+                </div>
+            </div>
+
+            <div class="logs-panel" id="logs-panel">
+                <div class="log-entry info">Preview environment starting...</div>
+                <div class="log-entry info">Device preset: Laptop</div>
+                <div class="log-entry info">Viewport: 1366×768</div>
+                <div class="log-entry info">Hot reload monitoring active</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PreviewUI {
+            constructor() {
+                this.currentPreset = 'laptop';
+                this.currentSession = null;
+                this.devicePresets = {
+                    iphone: { width: 375, height: 812, mobile: true },
+                    ipad: { width: 768, height: 1024, mobile: true },
+                    pixel: { width: 411, height: 823, mobile: true },
+                    laptop: { width: 1366, height: 768, mobile: false },
+                    desktop: { width: 1920, height: 1080, mobile: false },
+                    ultrawide: { width: 2560, height: 1080, mobile: false }
+                };
+                
+                this.initializeEventListeners();
+                this.initializeSSE();
+            }
+
+            initializeEventListeners() {
+                // Device preset buttons
+                document.querySelectorAll('.device-preset').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        this.setDevicePreset(e.target.closest('.device-preset').dataset.preset);
+                    });
+                });
+
+                // Custom controls
+                document.getElementById('custom-width').addEventListener('input', (e) => {
+                    this.updateCustomDimensions();
+                });
+                document.getElementById('custom-height').addEventListener('input', (e) => {
+                    this.updateCustomDimensions();
+                });
+                document.getElementById('orientation').addEventListener('change', (e) => {
+                    this.updateOrientation();
+                });
+                document.getElementById('zoom').addEventListener('change', (e) => {
+                    this.updateZoom();
+                });
+
+                // Network controls
+                document.querySelectorAll('.network-preset').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        this.setNetworkCondition(e.target.dataset.network);
+                    });
+                });
+
+                // Theme controls
+                document.getElementById('theme').addEventListener('change', (e) => {
+                    this.updateTheme();
+                });
+                document.getElementById('motion').addEventListener('change', (e) => {
+                    this.updateMotion();
+                });
+
+                // Action buttons
+                document.getElementById('take-screenshot').addEventListener('click', () => {
+                    this.takeScreenshot();
+                });
+                document.getElementById('compare-screenshots').addEventListener('click', () => {
+                    this.compareScreenshots();
+                });
+                document.getElementById('stop-preview').addEventListener('click', () => {
+                    this.stopPreview();
+                });
+            }
+
+            setDevicePreset(preset) {
+                // Update active button
+                document.querySelectorAll('.device-preset').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-preset="${preset}"]`).classList.add('active');
+
+                // Update device info
+                const deviceInfo = this.devicePresets[preset];
+                document.getElementById('custom-width').value = deviceInfo.width;
+                document.getElementById('custom-height').value = deviceInfo.height;
+                document.getElementById('device-info').textContent = 
+                    `${preset.charAt(0).toUpperCase() + preset.slice(1)} • ${deviceInfo.width}×${deviceInfo.height}`;
+
+                // Update iframe container
+                const container = document.getElementById('iframe-container');
+                if (deviceInfo.mobile) {
+                    container.classList.add('mobile');
+                } else {
+                    container.classList.remove('mobile');
+                }
+
+                this.currentPreset = preset;
+                this.updatePreviewSize();
+                this.updateBreakpointOverlay();
+            }
+
+            updateCustomDimensions() {
+                const width = document.getElementById('custom-width').value;
+                const height = document.getElementById('custom-height').value;
+                document.getElementById('device-info').textContent = `Custom • ${width}×${height}`;
+                this.updatePreviewSize();
+            }
+
+            updatePreviewSize() {
+                const width = document.getElementById('custom-width').value;
+                const height = document.getElementById('custom-height').value;
+                const zoom = document.getElementById('zoom').value;
+                
+                const container = document.getElementById('iframe-container');
+                container.style.width = `${width * zoom}px`;
+                container.style.height = `${height * zoom}px`;
+                
+                const iframe = document.getElementById('preview-iframe');
+                iframe.style.width = `${width}px`;
+                iframe.style.height = `${height}px`;
+            }
+
+            updateOrientation() {
+                const orientation = document.getElementById('orientation').value;
+                if (orientation === 'landscape') {
+                    const width = document.getElementById('custom-width').value;
+                    const height = document.getElementById('custom-height').value;
+                    document.getElementById('custom-width').value = height;
+                    document.getElementById('custom-height').value = width;
+                    this.updateCustomDimensions();
+                }
+            }
+
+            updateZoom() {
+                this.updatePreviewSize();
+            }
+
+            setNetworkCondition(condition) {
+                document.querySelectorAll('.network-preset').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-network="${condition}"]`).classList.add('active');
+                
+                // This would apply network throttling to the iframe
+                console.log(`Network condition set to: ${condition}`);
+            }
+
+            updateTheme() {
+                const theme = document.getElementById('theme').value;
+                // This would apply theme to the preview
+                console.log(`Theme set to: ${theme}`);
+            }
+
+            updateMotion() {
+                const motion = document.getElementById('motion').value;
+                // This would apply motion preferences to the preview
+                console.log(`Motion set to: ${motion}`);
+            }
+
+            updateBreakpointOverlay() {
+                const container = document.getElementById('iframe-container');
+                const overlay = document.getElementById('breakpoint-overlay');
+                const label = document.getElementById('breakpoint-label');
+                
+                const width = container.offsetWidth;
+                
+                // Define breakpoints
+                const breakpoints = [
+                    { name: 'Mobile', max: 768 },
+                    { name: 'Tablet', max: 1024 },
+                    { name: 'Desktop', max: 1440 },
+                    { name: 'Large', max: Infinity }
+                ];
+                
+                const currentBreakpoint = breakpoints.find(bp => width <= bp.max);
+                
+                if (currentBreakpoint) {
+                    overlay.style.display = 'block';
+                    label.textContent = currentBreakpoint.name;
+                } else {
+                    overlay.style.display = 'none';
+                }
+            }
+
+            takeScreenshot() {
+                // This would trigger screenshot via API
+                console.log('Taking screenshot...');
+                this.addLog('Screenshot requested', 'info');
+            }
+
+            compareScreenshots() {
+                // This would trigger screenshot comparison via API
+                console.log('Comparing screenshots...');
+                this.addLog('Screenshot comparison requested', 'info');
+            }
+
+            stopPreview() {
+                if (confirm('Are you sure you want to stop this preview?')) {
+                    // This would stop the preview via API
+                    console.log('Stopping preview...');
+                    this.addLog('Preview stopped by user', 'warn');
+                }
+            }
+
+            initializeSSE() {
+                // Initialize Server-Sent Events for live logs
+                const eventSource = new EventSource('/api/preview/logs/stream');
+                
+                eventSource.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    this.addLog(data.message, data.level.toLowerCase());
+                };
+                
+                eventSource.onerror = (error) => {
+                    console.error('SSE connection error:', error);
+                    this.addLog('Lost connection to preview server', 'error');
+                };
+            }
+
+            addLog(message, level = 'info') {
+                const logsPanel = document.getElementById('logs-panel');
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry ${level}`;
+                logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                logsPanel.appendChild(logEntry);
+                logsPanel.scrollTop = logsPanel.scrollHeight;
+            }
+
+            setPreviewUrl(url) {
+                document.getElementById('preview-iframe').src = url;
+            }
+
+            updateStatus(status) {
+                const indicator = document.getElementById('status-indicator');
+                const text = document.getElementById('status-text');
+                
+                indicator.className = `status-indicator ${status}`;
+                text.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            }
+        }
+
+        // Initialize the preview UI
+        const previewUI = new PreviewUI();
+        
+        // Example: Set a preview URL (this would come from the API)
+        // previewUI.setPreviewUrl('https://example.com');
+        
+        // Handle window resize for breakpoint overlay
+        window.addEventListener('resize', () => {
+            previewUI.updateBreakpointOverlay();
+        });
+    </script>
+</body>
+</html>

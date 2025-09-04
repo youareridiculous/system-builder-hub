@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📂 Project Loader - System Build Hub OS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .analysis-results {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-top: 30px;
+        }
+
+        .analysis-results h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .result-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-item h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .result-item p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .status {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .nav-back {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #667eea;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .nav-back:hover {
+            background: white;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="nav-back">← Back to Dashboard</a>
+    
+    <div class="container">
+        <div class="header">
+            <h1>📂 Project Loader</h1>
+            <p>Load existing projects, analyze structure, and generate completion plans</p>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <h3>🔍 Project Analysis</h3>
+                <form id="analysisForm">
+                    <div class="form-group">
+                        <label for="projectPath">Project Path</label>
+                        <input type="text" id="projectPath" placeholder="/path/to/your/project" required>
+                    </div>
+                    <button type="submit" class="btn">Analyze Project</button>
+                </form>
+                
+                <div class="loading" id="analysisLoading">
+                    <div class="spinner"></div>
+                    <p>Analyzing project structure...</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📤 Load Project</h3>
+                <form id="loadForm">
+                    <div class="form-group">
+                        <label for="loadProjectPath">Project Path</label>
+                        <input type="text" id="loadProjectPath" placeholder="/path/to/your/project" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectName">Project Name</label>
+                        <input type="text" id="projectName" placeholder="My Awesome Project">
+                    </div>
+                    <div class="form-group">
+                        <label for="projectDescription">Description</label>
+                        <textarea id="projectDescription" rows="3" placeholder="Describe your project..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectTags">Tags</label>
+                        <input type="text" id="projectTags" placeholder="web-app, python, api">
+                    </div>
+                    <div class="form-group">
+                        <label for="targetPhase">Target Phase</label>
+                        <select id="targetPhase">
+                            <option value="">Auto-detect</option>
+                            <option value="setup">Setup</option>
+                            <option value="planning">Planning</option>
+                            <option value="core_development">Core Development</option>
+                            <option value="integration">Integration</option>
+                            <option value="testing">Testing</option>
+                            <option value="deployment_ready">Deployment Ready</option>
+                            <option value="production">Production</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn">Load Project</button>
+                </form>
+                
+                <div class="loading" id="loadLoading">
+                    <div class="spinner"></div>
+                    <p>Loading project...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="analysis-results" id="analysisResults" style="display: none;">
+            <h3>📊 Analysis Results</h3>
+            <div class="result-grid" id="resultGrid"></div>
+            
+            <div class="card" style="margin-top: 20px;">
+                <h3>🎯 Next Steps</h3>
+                <div id="nextSteps"></div>
+            </div>
+            
+            <div class="card" style="margin-top: 20px;">
+                <h3>🔧 Missing Components</h3>
+                <div id="missingComponents"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Analysis form handling
+        document.getElementById('analysisForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const projectPath = document.getElementById('projectPath').value;
+            const loading = document.getElementById('analysisLoading');
+            const results = document.getElementById('analysisResults');
+            
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/projects/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        project_path: projectPath
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayAnalysisResults(data);
+                } else {
+                    showStatus('error', `Analysis failed: ${data.error}`);
+                }
+            } catch (error) {
+                showStatus('error', `Network error: ${error.message}`);
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        // Load form handling
+        document.getElementById('loadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const projectPath = document.getElementById('loadProjectPath').value;
+            const projectName = document.getElementById('projectName').value;
+            const description = document.getElementById('projectDescription').value;
+            const tags = document.getElementById('projectTags').value.split(',').map(t => t.trim()).filter(t => t);
+            const targetPhase = document.getElementById('targetPhase').value;
+            
+            const loading = document.getElementById('loadLoading');
+            
+            loading.style.display = 'block';
+            
+            try {
+                const context = {
+                    name: projectName || undefined,
+                    description: description || undefined,
+                    tags: tags,
+                    target_phase: targetPhase || undefined
+                };
+                
+                const response = await fetch('/api/projects/load', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        project_path: projectPath,
+                        context: context
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus('success', `Project loaded successfully! System ID: ${data.system_id}`);
+                    // Pre-fill analysis form
+                    document.getElementById('projectPath').value = projectPath;
+                } else {
+                    showStatus('error', `Loading failed: ${data.error}`);
+                }
+            } catch (error) {
+                showStatus('error', `Network error: ${error.message}`);
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        function displayAnalysisResults(data) {
+            const results = document.getElementById('analysisResults');
+            const resultGrid = document.getElementById('resultGrid');
+            const nextSteps = document.getElementById('nextSteps');
+            const missingComponents = document.getElementById('missingComponents');
+            
+            // Clear previous results
+            resultGrid.innerHTML = '';
+            nextSteps.innerHTML = '';
+            missingComponents.innerHTML = '';
+            
+            // Display analysis results
+            const resultItems = [
+                { title: 'Project Type', value: data.project_type },
+                { title: 'Build Phase', value: data.build_phase },
+                { title: 'Complexity Score', value: `${data.complexity_score}/10` },
+                { title: 'Completion', value: `${data.estimated_completion}%` },
+                { title: 'Total Files', value: data.file_structure.total_files },
+                { title: 'Technologies', value: data.technologies.join(', ') || 'None detected' }
+            ];
+            
+            resultItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'result-item';
+                div.innerHTML = `
+                    <h4>${item.title}</h4>
+                    <p>${item.value}</p>
+                `;
+                resultGrid.appendChild(div);
+            });
+            
+            // Display completion progress
+            const progressDiv = document.createElement('div');
+            progressDiv.className = 'result-item';
+            progressDiv.innerHTML = `
+                <h4>Progress</h4>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${data.estimated_completion}%"></div>
+                </div>
+                <p>${data.estimated_completion}% complete</p>
+            `;
+            resultGrid.appendChild(progressDiv);
+            
+            // Display next steps
+            if (data.next_steps && data.next_steps.length > 0) {
+                const stepsList = document.createElement('ul');
+                stepsList.style.listStyle = 'none';
+                stepsList.style.padding = '0';
+                
+                data.next_steps.forEach((step, index) => {
+                    const li = document.createElement('li');
+                    li.style.padding = '8px 0';
+                    li.style.borderBottom = '1px solid #eee';
+                    li.innerHTML = `<strong>${index + 1}.</strong> ${step}`;
+                    stepsList.appendChild(li);
+                });
+                
+                nextSteps.appendChild(stepsList);
+            }
+            
+            // Display missing components
+            if (data.missing_components && data.missing_components.length > 0) {
+                const componentsList = document.createElement('ul');
+                componentsList.style.listStyle = 'none';
+                componentsList.style.padding = '0';
+                
+                data.missing_components.forEach(component => {
+                    const li = document.createElement('li');
+                    li.style.padding = '8px 0';
+                    li.style.color = '#dc3545';
+                    li.innerHTML = `❌ ${component}`;
+                    componentsList.appendChild(li);
+                });
+                
+                missingComponents.appendChild(componentsList);
+            }
+            
+            results.style.display = 'block';
+        }
+
+        function showStatus(type, message) {
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            
+            // Insert at the top of the container
+            const container = document.querySelector('.container');
+            container.insertBefore(status, container.firstChild);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                status.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

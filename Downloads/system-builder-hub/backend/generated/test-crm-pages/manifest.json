@@ -1,0 +1,10 @@
+{
+  "name": "CRM",
+  "template": "crm_flagship",
+  "created_at": "2025-08-28T11:38:40.364665",
+  "build_id": "test-crm-pages",
+  "ports": {
+    "backend": 8000,
+    "frontend": 3000
+  }
+}

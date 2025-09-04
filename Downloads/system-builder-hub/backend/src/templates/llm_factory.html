@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 LLM Factory - System Build Hub OS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .wizard-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .wizard-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .wizard-steps::before {
+            content: '';
+            position: absolute;
+            top: 25px;
+            left: 50px;
+            right: 50px;
+            height: 2px;
+            background: #e9ecef;
+            z-index: 1;
+        }
+
+        .wizard-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .wizard-step.active {
+            color: #667eea;
+        }
+
+        .wizard-step.completed {
+            color: #28a745;
+        }
+
+        .step-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .wizard-step.active .step-circle {
+            background: #667eea;
+            color: white;
+        }
+
+        .wizard-step.completed .step-circle {
+            background: #28a745;
+            color: white;
+        }
+
+        .step-label {
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .wizard-content {
+            min-height: 500px;
+        }
+
+        .step-content {
+            display: none;
+        }
+
+        .step-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+        }
+
+        .form-section h3 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 15px;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .checkbox-item.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .checkbox-content {
+            flex: 1;
+        }
+
+        .checkbox-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .checkbox-description {
+            font-size: 13px;
+            color: #6c757d;
+        }
+
+        .preset-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .preset-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .preset-card.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .preset-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .preset-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #495057;
+        }
+
+        .preset-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .preset-builder { background: #e3f2fd; color: #1976d2; }
+        .preset-compliance { background: #e8f5e8; color: #388e3c; }
+        .preset-sales { background: #fce4ec; color: #c2185b; }
+        .preset-qa { background: #fff3e0; color: #f57c00; }
+        .preset-custom { background: #f3e5f5; color: #7b1fa2; }
+
+        .preset-description {
+            color: #6c757d;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .preset-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .preset-feature {
+            padding: 4px 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #495057;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        }
+
+        .wizard-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .progress-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .progress-title {
+            font-size: 1.5rem;
+            color: #495057;
+            font-weight: 600;
+        }
+
+        .job-status {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending { background: #e9ecef; color: #6c757d; }
+        .status-preparing { background: #fff3e0; color: #f57c00; }
+        .status-training { background: #e3f2fd; color: #1976d2; }
+        .status-validating { background: #f3e5f5; color: #7b1fa2; }
+        .status-exporting { background: #e8f5e8; color: #388e3c; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: #e9ecef;
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 33%, rgba(255,255,255,0.3) 33%, rgba(255,255,255,0.3) 66%, transparent 66%);
+            background-size: 20px 20px;
+            animation: progressAnimation 1s linear infinite;
+        }
+
+        @keyframes progressAnimation {
+            0% { background-position: 0 0; }
+            100% { background-position: 20px 0; }
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .deployment-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .deployment-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .deployment-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease;
+        }
+
+        .deployment-item:hover {
+            border-color: #667eea;
+        }
+
+        .deployment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .deployment-name {
+            font-weight: 600;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+
+        .deployment-health {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .health-healthy { background: #d4edda; color: #155724; }
+        .health-degraded { background: #fff3cd; color: #856404; }
+        .health-unhealthy { background: #f8d7da; color: #721c24; }
+
+        .deployment-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .deployment-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .endpoint-display {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .copy-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .compliance-section {
+            background: #fff8e1;
+            border: 1px solid #ffecb3;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .compliance-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .compliance-status {
+            font-weight: 600;
+            color: #f57f17;
+        }
+
+        .compliance-issues {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .compliance-issue {
+            background: white;
+            border: 1px solid #ffcc02;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .issue-source {
+            font-weight: 600;
+            color: #ef6c00;
+        }
+
+        .issue-description {
+            color: #bf360c;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .issue-recommendation {
+            color: #388e3c;
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .wizard-steps {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .wizard-steps::before {
+                display: none;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 LLM Factory</h1>
+            <p>Train custom AI models with domain-specific presets and hallucination mitigation</p>
+        </div>
+
+        <!-- Wizard Container -->
+        <div class="wizard-container">
+            <div class="wizard-steps">
+                <div class="wizard-step active" onclick="goToStep(1)" id="step1">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">Model Selection</div>
+                </div>
+                <div class="wizard-step" onclick="goToStep(2)" id="step2">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Dataset Builder</div>
+                </div>
+                <div class="wizard-step" onclick="goToStep(3)" id="step3">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Domain Presets</div>
+                </div>
+                <div class="wizard-step" onclick="goToStep(4)" id="step4">
+                    <div class="step-circle">4</div>
+                    <div class="step-label">Training Config</div>
+                </div>
+                <div class="wizard-step" onclick="goToStep(5)" id="step5">
+                    <div class="step-circle">5</div>
+                    <div class="step-label">Deployment</div>
+                </div>
+            </div>
+
+            <div class="wizard-content">
+                <!-- Step 1: Model Selection -->
+                <div class="step-content active" id="content1">
+                    <h2>Step 1: Model Selection & Infrastructure</h2>
+                    
+                    <div class="form-grid">
+                        <div class="form-section">
+                            <h3>🤖 Base Model Selection</h3>
+                            <div class="form-group">
+                                <label for="modelType">Model Type:</label>
+                                <select id="modelType" onchange="loadBaseModels()">
+                                    <option value="">Select model type...</option>
+                                    <option value="gpt">GPT (OpenAI)</option>
+                                    <option value="claude">Claude (Anthropic)</option>
+                                    <option value="mistral">Mistral</option>
+                                    <option value="llama">LLaMA (Meta)</option>
+                                    <option value="gemini">Gemini (Google)</option>
+                                    <option value="custom">Custom Model</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="baseModel">Base Model:</label>
+                                <select id="baseModel">
+                                    <option value="">Select base model...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="contextWindow">Context Window:</label>
+                                <select id="contextWindow">
+                                    <option value="2048">2,048 tokens</option>
+                                    <option value="4096" selected>4,096 tokens</option>
+                                    <option value="8192">8,192 tokens</option>
+                                    <option value="16384">16,384 tokens</option>
+                                    <option value="32768">32,768 tokens</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <h3>⚙️ Inference Configuration</h3>
+                            <div class="form-group">
+                                <label for="inferenceMode">Inference Mode:</label>
+                                <select id="inferenceMode">
+                                    <option value="cloud">Cloud-based (API)</option>
+                                    <option value="local_cpu">Local CPU</option>
+                                    <option value="local_gpu" selected>Local GPU</option>
+                                    <option value="containerized">Containerized</option>
+                                    <option value="edge">Edge Deployment</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="temperature">Temperature:</label>
+                                <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7">
+                                <span id="temperatureValue">0.7</span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="topP">Top-p:</label>
+                                <input type="range" id="topP" min="0" max="1" step="0.05" value="0.9">
+                                <span id="topPValue">0.9</span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="maxTokens">Max Tokens:</label>
+                                <input type="number" id="maxTokens" value="2048" min="128" max="8192">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Dataset Builder -->
+                <div class="step-content" id="content2">
+                    <h2>Step 2: Dataset Builder & Training Sources</h2>
+                    
+                    <div class="form-grid">
+                        <div class="form-section">
+                            <h3>📊 Dataset Configuration</h3>
+                            <div class="form-group">
+                                <label for="datasetName">Dataset Name:</label>
+                                <input type="text" id="datasetName" placeholder="e.g., Custom Builder Dataset">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="datasetDescription">Description:</label>
+                                <textarea id="datasetDescription" placeholder="Describe the purpose and scope of this dataset..."></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Training Type:</label>
+                                <select id="trainingType">
+                                    <option value="fine_tune" selected>Fine-tuning</option>
+                                    <option value="instruction_tune">Instruction Tuning</option>
+                                    <option value="rag_style">RAG-style Training</option>
+                                    <option value="distillation">Knowledge Distillation</option>
+                                    <option value="reinforcement">Reinforcement Learning</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <h3>📁 Data Sources</h3>
+                            <label>Select training data sources:</label>
+                            <div class="checkbox-grid">
+                                <div class="checkbox-item" onclick="toggleSource(this)">
+                                    <input type="checkbox" id="memoryLogs" value="memory_logs">
+                                    <div class="checkbox-content">
+                                        <div class="checkbox-title">Memory Logs</div>
+                                        <div class="checkbox-description">System decision history and reasoning patterns</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="checkbox-item" onclick="toggleSource(this)">
+                                    <input type="checkbox" id="complianceScans" value="compliance_scans">
+                                    <div class="checkbox-content">
+                                        <div class="checkbox-title">Compliance Scans</div>
+                                        <div class="checkbox-description">Security and compliance analysis results</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="checkbox-item" onclick="toggleSource(this)">
+                                    <input type="checkbox" id="agentJustifications" value="agent_justifications">
+                                    <div class="checkbox-content">
+                                        <div class="checkbox-title">Agent Justifications</div>
+                                        <div class="checkbox-description">AI agent reasoning and decision explanations</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="checkbox-item" onclick="toggleSource(this)">
+                                    <input type="checkbox" id="buildReasoning" value="build_reasoning">
+                                    <div class="checkbox-content">
+                                        <div class="checkbox-title">Build Reasoning</div>
+                                        <div class="checkbox-description">Architecture decisions and technical choices</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="checkbox-item" onclick="toggleSource(this)">
+                                    <input type="checkbox" id="systemSpecific" value="system_specific">
+                                    <div class="checkbox-content">
+                                        <div class="checkbox-title">System-Specific Data</div>
+                                        <div class="checkbox-description">Data from specific system builds and patterns</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="checkbox-item" onclick="toggleSource(this)">
+                                    <input type="checkbox" id="externalDataset" value="external">
+                                    <div class="checkbox-content">
+                                        <div class="checkbox-title">External Dataset</div>
+                                        <div class="checkbox-description">Upload or import external training data</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section" style="margin-top: 20px;">
+                        <h3>🔧 Data Processing</h3>
+                        <div class="form-grid">
+                            <div>
+                                <label>Preprocessing Steps:</label>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item" onclick="togglePreprocessing(this)">
+                                        <input type="checkbox" id="deduplicate" value="deduplicate">
+                                        <div class="checkbox-content">
+                                            <div class="checkbox-title">Deduplicate</div>
+                                            <div class="checkbox-description">Remove duplicate entries</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="checkbox-item" onclick="togglePreprocessing(this)">
+                                        <input type="checkbox" id="filterLength" value="filter_length">
+                                        <div class="checkbox-content">
+                                            <div class="checkbox-title">Filter by Length</div>
+                                            <div class="checkbox-description">Remove too short/long entries</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="checkbox-item" onclick="togglePreprocessing(this)">
+                                        <input type="checkbox" id="anonymize" value="anonymize">
+                                        <div class="checkbox-content">
+                                            <div class="checkbox-title">Anonymize</div>
+                                            <div class="checkbox-description">Remove personal identifiers</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label>Quality Filters:</label>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item" onclick="toggleQualityFilter(this)">
+                                        <input type="checkbox" id="minQuality" value="min_quality_score" checked>
+                                        <div class="checkbox-content">
+                                            <div class="checkbox-title">Quality Score</div>
+                                            <div class="checkbox-description">Filter by content quality metrics</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="checkbox-item" onclick="toggleQualityFilter(this)">
+                                        <input type="checkbox" id="removePersonal" value="remove_personal_data" checked>
+                                        <div class="checkbox-content">
+                                            <div class="checkbox-title">Remove Personal Data</div>
+                                            <div class="checkbox-description">Filter out personal information</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- License Compliance Section -->
+                    <div class="compliance-section" id="complianceSection" style="display: none;">
+                        <div class="compliance-header">
+                            <span>🛡️</span>
+                            <span class="compliance-status">License Compliance Check</span>
+                        </div>
+                        <div id="complianceResults"></div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Domain Presets -->
+                <div class="step-content" id="content3">
+                    <h2>Step 3: Domain-Specific Optimization Presets</h2>
+                    
+                    <p style="margin-bottom: 30px; color: #6c757d;">
+                        Choose a domain preset to optimize your model for specific use cases. Each preset includes 
+                        recommended training parameters, hallucination mitigation settings, and specialized focus areas.
+                    </p>
+                    
+                    <div id="domainPresets">
+                        <!-- Presets will be loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Step 4: Training Configuration -->
+                <div class="step-content" id="content4">
+                    <h2>Step 4: Training Parameters & Hallucination Mitigation</h2>
+                    
+                    <div class="form-grid">
+                        <div class="form-section">
+                            <h3>🏋️ Training Parameters</h3>
+                            <div class="form-group">
+                                <label for="epochs">Epochs:</label>
+                                <input type="number" id="epochs" value="3" min="1" max="10">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="learningRate">Learning Rate:</label>
+                                <input type="number" id="learningRate" value="0.00005" step="0.00001" min="0.00001" max="0.001">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="batchSize">Batch Size:</label>
+                                <select id="batchSize">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="4" selected>4</option>
+                                    <option value="8">8</option>
+                                    <option value="16">16</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="maxSequenceLength">Max Sequence Length:</label>
+                                <select id="maxSequenceLength">
+                                    <option value="512">512</option>
+                                    <option value="1024">1,024</option>
+                                    <option value="2048" selected>2,048</option>
+                                    <option value="4096">4,096</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="optimizer">Optimizer:</label>
+                                <select id="optimizer">
+                                    <option value="adamw" selected>AdamW</option>
+                                    <option value="adam">Adam</option>
+                                    <option value="sgd">SGD</option>
+                                    <option value="rmsprop">RMSprop</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <h3>🛡️ Hallucination Mitigation</h3>
+                            <div class="form-group">
+                                <div class="checkbox-item" onclick="toggleHallucination(this)">
+                                    <input type="checkbox" id="enableHallucinationDetection" checked>
+                                    <div class="checkbox-content">
+                                        <div class="checkbox-title">Enable Hallucination Detection</div>
+                                        <div class="checkbox-description">Monitor and score response confidence</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="confidenceThreshold">Confidence Threshold:</label>
+                                <input type="range" id="confidenceThreshold" min="0.5" max="1.0" step="0.05" value="0.8">
+                                <span id="confidenceValue">0.8</span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Grounding Sources:</label>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item" onclick="toggleGrounding(this)">
+                                        <input type="checkbox" id="memoryGrounding" value="memory" checked>
+                                        <div class="checkbox-content">
+                                            <div class="checkbox-title">Memory Validation</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="checkbox-item" onclick="toggleGrounding(this)">
+                                        <input type="checkbox" id="docsGrounding" value="docs" checked>
+                                        <div class="checkbox-content">
+                                            <div class="checkbox-title">Documentation</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="checkbox-item" onclick="toggleGrounding(this)">
+                                        <input type="checkbox" id="factGrounding" value="facts">
+                                        <div class="checkbox-content">
+                                            <div class="checkbox-title">Fact Database</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="checkbox-item" onclick="toggleFactChecking(this)">
+                                    <input type="checkbox" id="factCheckingEnabled" checked>
+                                    <div class="checkbox-content">
+                                        <div class="checkbox-title">Enable Fact Checking</div>
+                                        <div class="checkbox-description">Cross-reference generated content</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="checkbox-item" onclick="toggleFallback(this)">
+                                    <input type="checkbox" id="fallbackEnabled" checked>
+                                    <div class="checkbox-content">
+                                        <div class="checkbox-title">Enable Fallback</div>
+                                        <div class="checkbox-description">Use structured sources when confidence is low</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section" style="margin-top: 20px;">
+                        <h3>👤 User-Specific Context</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="systemId">System ID (Optional):</label>
+                                <input type="text" id="systemId" placeholder="Enter system ID for personalization">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="userId">User ID (Optional):</label>
+                                <input type="text" id="userId" placeholder="Enter user ID for personalization">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="customContext">Custom Context:</label>
+                            <textarea id="customContext" placeholder="Add any custom context, naming conventions, or specific requirements..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Deployment -->
+                <div class="step-content" id="content5">
+                    <h2>Step 5: Model Deployment & API Generation</h2>
+                    
+                    <div class="form-grid">
+                        <div class="form-section">
+                            <h3>🚀 Deployment Configuration</h3>
+                            <div class="form-group">
+                                <label for="deploymentName">Deployment Name:</label>
+                                <input type="text" id="deploymentName" placeholder="e.g., Custom Builder Assistant">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="exportFormats">Export Formats:</label>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item" onclick="toggleFormat(this)">
+                                        <input type="checkbox" id="pytorchFormat" value="pytorch" checked>
+                                        <div class="checkbox-content">
+                                            <div class="checkbox-title">PyTorch</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="checkbox-item" onclick="toggleFormat(this)">
+                                        <input type="checkbox" id="onnxFormat" value="onnx">
+                                        <div class="checkbox-content">
+                                            <div class="checkbox-title">ONNX</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="checkbox-item" onclick="toggleFormat(this)">
+                                        <input type="checkbox" id="ggufFormat" value="gguf">
+                                        <div class="checkbox-content">
+                                            <div class="checkbox-title">GGUF</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="checkbox-item" onclick="toggleFormat(this)">
+                                        <input type="checkbox" id="huggingfaceFormat" value="huggingface">
+                                        <div class="checkbox-content">
+                                            <div class="checkbox-title">HuggingFace</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="checkbox-item" onclick="toggleAPI(this)">
+                                    <input type="checkbox" id="generateAPI" checked>
+                                    <div class="checkbox-content">
+                                        <div class="checkbox-title">Generate API Endpoint</div>
+                                        <div class="checkbox-description">Auto-create REST API with OpenAPI spec</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="checkbox-item" onclick="toggleSDK(this)">
+                                    <input type="checkbox" id="generateSDK">
+                                    <div class="checkbox-content">
+                                        <div class="checkbox-title">Generate SDK</div>
+                                        <div class="checkbox-description">Create client libraries for multiple languages</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <h3>📊 Review Configuration</h3>
+                            <div id="configReview">
+                                <!-- Configuration review will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="wizard-navigation">
+                <button class="btn btn-secondary" id="prevBtn" onclick="prevStep()" style="display: none;">Previous</button>
+                <div></div>
+                <button class="btn" id="nextBtn" onclick="nextStep()">Next</button>
+                <button class="btn btn-success" id="startTrainingBtn" onclick="startTraining()" style="display: none;">Start Training</button>
+            </div>
+        </div>
+
+        <!-- Training Progress Section -->
+        <div class="progress-section" id="progressSection" style="display: none;">
+            <div class="progress-header">
+                <h2 class="progress-title">Training Progress</h2>
+                <div class="job-status" id="jobStatus">pending</div>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="currentEpoch">0</div>
+                    <div class="metric-label">Current Epoch</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="trainingLoss">0.0</div>
+                    <div class="metric-label">Training Loss</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="validationLoss">0.0</div>
+                    <div class="metric-label">Validation Loss</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="trainingTime">0m</div>
+                    <div class="metric-label">Training Time</div>
+                </div>
+            </div>
+            
+            <div class="deployment-actions" style="margin-top: 20px;">
+                <button class="btn btn-success" id="deployBtn" onclick="deployModel()" style="display: none;">Deploy Model</button>
+                <button class="btn btn-warning" id="pauseBtn" onclick="pauseTraining()" style="display: none;">Pause Training</button>
+                <button class="btn btn-danger" id="stopBtn" onclick="stopTraining()" style="display: none;">Stop Training</button>
+            </div>
+        </div>
+
+        <!-- Deployments Section -->
+        <div class="deployment-section">
+            <h2>🚀 Active Deployments</h2>
+            <div id="deploymentsList" class="deployment-list">
+                <p>No active deployments</p>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div id="alerts"></div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentStep = 1;
+        let maxStep = 5;
+        let availableModels = {};
+        let domainPresets = [];
+        let currentJobId = null;
+        let currentModelId = null;
+        let currentDatasetId = null;
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAvailableModels();
+            loadDomainPresets();
+            loadDeployments();
+            
+            // Setup range input listeners
+            setupRangeInputs();
+            
+            // Refresh deployments periodically
+            setInterval(loadDeployments, 30000);
+        });
+        
+        // Setup range input listeners
+        function setupRangeInputs() {
+            document.getElementById('temperature').addEventListener('input', function() {
+                document.getElementById('temperatureValue').textContent = this.value;
+            });
+            
+            document.getElementById('topP').addEventListener('input', function() {
+                document.getElementById('topPValue').textContent = this.value;
+            });
+            
+            document.getElementById('confidenceThreshold').addEventListener('input', function() {
+                document.getElementById('confidenceValue').textContent = this.value;
+            });
+        }
+        
+        // Wizard navigation
+        function goToStep(step) {
+            if (step <= maxStep && step >= 1) {
+                // Hide current content
+                document.querySelector('.step-content.active').classList.remove('active');
+                document.querySelector('.wizard-step.active').classList.remove('active');
+                
+                // Show new content
+                document.getElementById(`content${step}`).classList.add('active');
+                document.getElementById(`step${step}`).classList.add('active');
+                
+                currentStep = step;
+                updateNavigation();
+            }
+        }
+        
+        function nextStep() {
+            if (currentStep < maxStep) {
+                if (validateCurrentStep()) {
+                    goToStep(currentStep + 1);
+                    if (currentStep === 3) {
+                        populateConfigReview();
+                    }
+                }
+            }
+        }
+        
+        function prevStep() {
+            if (currentStep > 1) {
+                goToStep(currentStep - 1);
+            }
+        }
+        
+        function updateNavigation() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const startBtn = document.getElementById('startTrainingBtn');
+            
+            prevBtn.style.display = currentStep > 1 ? 'block' : 'none';
+            
+            if (currentStep === maxStep) {
+                nextBtn.style.display = 'none';
+                startBtn.style.display = 'block';
+            } else {
+                nextBtn.style.display = 'block';
+                startBtn.style.display = 'none';
+            }
+        }
+        
+        function validateCurrentStep() {
+            switch (currentStep) {
+                case 1:
+                    if (!document.getElementById('modelType').value || !document.getElementById('baseModel').value) {
+                        showAlert('Please select a model type and base model', 'error');
+                        return false;
+                    }
+                    break;
+                case 2:
+                    if (!document.getElementById('datasetName').value) {
+                        showAlert('Please enter a dataset name', 'error');
+                        return false;
+                    }
+                    const selectedSources = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).filter(cb => 
+                        ['memory_logs', 'compliance_scans', 'agent_justifications', 'build_reasoning', 'system_specific', 'external'].includes(cb.value)
+                    );
+                    if (selectedSources.length === 0) {
+                        showAlert('Please select at least one data source', 'error');
+                        return false;
+                    }
+                    break;
+                case 3:
+                    const selectedPreset = document.querySelector('.preset-card.selected');
+                    if (!selectedPreset) {
+                        showAlert('Please select a domain preset', 'error');
+                        return false;
+                    }
+                    break;
+            }
+            return true;
+        }
+        
+        // Load available models
+        async function loadAvailableModels() {
+            try {
+                const response = await fetch('/api/llm-factory/models');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    availableModels = data.models;
+                } else {
+                    showAlert(`Failed to load models: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Load base models for selected type
+        function loadBaseModels() {
+            const modelType = document.getElementById('modelType').value;
+            const baseModelSelect = document.getElementById('baseModel');
+            
+            baseModelSelect.innerHTML = '<option value="">Select base model...</option>';
+            
+            if (modelType && availableModels) {
+                const models = availableModels.find(m => m.type === modelType);
+                if (models) {
+                    models.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        option.textContent = model;
+                        baseModelSelect.appendChild(option);
+                    });
+                }
+            }
+        }
+        
+        // Load domain presets
+        async function loadDomainPresets() {
+            try {
+                const response = await fetch('/api/llm-factory/presets');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    domainPresets = data.presets;
+                    displayDomainPresets();
+                } else {
+                    showAlert(`Failed to load presets: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Display domain presets
+        function displayDomainPresets() {
+            const container = document.getElementById('domainPresets');
+            
+            container.innerHTML = domainPresets.map(preset => `
+                <div class="preset-card" onclick="selectPreset(this, '${preset.preset}')" data-preset="${preset.preset}">
+                    <div class="preset-header">
+                        <div class="preset-name">${preset.name}</div>
+                        <div class="preset-badge preset-${preset.preset.replace('_', '-')}">${preset.preset}</div>
+                    </div>
+                    <div class="preset-description">${preset.description}</div>
+                    <div class="preset-features">
+                        ${preset.optimization_focus.map(focus => `<span class="preset-feature">${focus}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Select domain preset
+        function selectPreset(element, preset) {
+            // Remove previous selection
+            document.querySelectorAll('.preset-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Select current
+            element.classList.add('selected');
+            
+            // Apply preset recommendations
+            applyPresetRecommendations(preset);
+        }
+        
+        // Apply preset recommendations
+        function applyPresetRecommendations(preset) {
+            const presetData = domainPresets.find(p => p.preset === preset);
+            if (presetData && presetData.recommended_training) {
+                const rec = presetData.recommended_training;
+                
+                if (rec.learning_rate) document.getElementById('learningRate').value = rec.learning_rate;
+                if (rec.epochs) document.getElementById('epochs').value = rec.epochs;
+                if (rec.batch_size) document.getElementById('batchSize').value = rec.batch_size;
+                if (rec.max_sequence_length) document.getElementById('maxSequenceLength').value = rec.max_sequence_length;
+            }
+        }
+        
+        // Toggle functions for checkboxes
+        function toggleSource(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            
+            // Check license compliance
+            checkLicenseCompliance();
+        }
+        
+        function togglePreprocessing(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        function toggleQualityFilter(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        function toggleHallucination(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        function toggleGrounding(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        function toggleFactChecking(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        function toggleFallback(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        function toggleFormat(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        function toggleAPI(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        function toggleSDK(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        // Check license compliance
+        async function checkLicenseCompliance() {
+            const selectedSources = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+                .filter(cb => ['memory_logs', 'compliance_scans', 'agent_justifications', 'build_reasoning', 'system_specific', 'external'].includes(cb.value))
+                .map(cb => cb.value);
+            
+            if (selectedSources.length === 0) {
+                document.getElementById('complianceSection').style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/llm-factory/validate-license', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sources: selectedSources
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayComplianceResults(data);
+                } else {
+                    showAlert(`License validation failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Display compliance results
+        function displayComplianceResults(data) {
+            const section = document.getElementById('complianceSection');
+            const results = document.getElementById('complianceResults');
+            
+            if (data.compliant) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            
+            results.innerHTML = `
+                <p><strong>Compliance Status:</strong> ${data.compliant ? 'Compliant' : 'Issues Found'}</p>
+                <p><strong>Approved Sources:</strong> ${data.approved_count}/${data.total_sources}</p>
+                
+                ${data.compliance_issues.length > 0 ? `
+                    <div class="compliance-issues">
+                        <h4>Issues:</h4>
+                        ${data.compliance_issues.map(issue => `
+                            <div class="compliance-issue">
+                                <div class="issue-source">${issue.source}</div>
+                                <div class="issue-description">${issue.issue}</div>
+                                <div class="issue-recommendation">${issue.recommendation}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            `;
+        }
+        
+        // Populate configuration review
+        function populateConfigReview() {
+            const review = document.getElementById('configReview');
+            
+            const modelType = document.getElementById('modelType').value;
+            const baseModel = document.getElementById('baseModel').value;
+            const inferenceMode = document.getElementById('inferenceMode').value;
+            const datasetName = document.getElementById('datasetName').value;
+            const selectedPreset = document.querySelector('.preset-card.selected')?.dataset.preset || 'custom';
+            
+            review.innerHTML = `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <h4>Configuration Summary</h4>
+                    <p><strong>Model:</strong> ${modelType} - ${baseModel}</p>
+                    <p><strong>Inference:</strong> ${inferenceMode}</p>
+                    <p><strong>Dataset:</strong> ${datasetName}</p>
+                    <p><strong>Domain Preset:</strong> ${selectedPreset}</p>
+                    <p><strong>Training Type:</strong> ${document.getElementById('trainingType').value}</p>
+                    <p><strong>Epochs:</strong> ${document.getElementById('epochs').value}</p>
+                    <p><strong>Learning Rate:</strong> ${document.getElementById('learningRate').value}</p>
+                </div>
+            `;
+        }
+        
+        // Start training
+        async function startTraining() {
+            if (!validateCurrentStep()) {
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                // Step 1: Create model configuration
+                const modelConfig = {
+                    model_type: document.getElementById('modelType').value,
+                    base_model: document.getElementById('baseModel').value,
+                    inference_mode: document.getElementById('inferenceMode').value,
+                    parameters: {
+                        context_window: parseInt(document.getElementById('contextWindow').value),
+                        max_tokens: parseInt(document.getElementById('maxTokens').value),
+                        temperature: parseFloat(document.getElementById('temperature').value),
+                        top_p: parseFloat(document.getElementById('topP').value)
+                    }
+                };
+                
+                const modelResponse = await fetch('/api/llm-factory/model-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(modelConfig)
+                });
+                
+                const modelData = await modelResponse.json();
+                if (!modelResponse.ok) throw new Error(modelData.error);
+                currentModelId = modelData.model_id;
+                
+                // Step 2: Create dataset
+                const selectedSources = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+                    .filter(cb => ['memory_logs', 'compliance_scans', 'agent_justifications', 'build_reasoning', 'system_specific', 'external'].includes(cb.value))
+                    .map(cb => cb.value);
+                
+                const selectedPreprocessing = Array.from(document.querySelectorAll('input[name="preprocessing"]:checked, input[id^="deduplicate"]:checked, input[id^="filterLength"]:checked, input[id^="anonymize"]:checked'))
+                    .map(cb => cb.value);
+                
+                const selectedFilters = Array.from(document.querySelectorAll('input[name="quality"]:checked, input[id^="minQuality"]:checked, input[id^="removePersonal"]:checked'))
+                    .map(cb => cb.value);
+                
+                const datasetConfig = {
+                    name: document.getElementById('datasetName').value,
+                    description: document.getElementById('datasetDescription').value,
+                    sources: selectedSources,
+                    preprocessing_steps: selectedPreprocessing,
+                    quality_filters: selectedFilters
+                };
+                
+                const datasetResponse = await fetch('/api/llm-factory/dataset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datasetConfig)
+                });
+                
+                const datasetData = await datasetResponse.json();
+                if (!datasetResponse.ok) throw new Error(datasetData.error);
+                currentDatasetId = datasetData.dataset_id;
+                
+                // Step 3: Start training job
+                const selectedPreset = document.querySelector('.preset-card.selected')?.dataset.preset || 'custom';
+                const selectedGrounding = Array.from(document.querySelectorAll('input[id$="Grounding"]:checked'))
+                    .map(cb => cb.value);
+                
+                const systemId = document.getElementById('systemId').value;
+                const userId = document.getElementById('userId').value;
+                let systemSpecificContext = document.getElementById('customContext').value;
+                
+                // Add user-specific context if system/user IDs provided
+                if (systemId && userId) {
+                    try {
+                        const contextResponse = await fetch(`/api/llm-factory/user-context/${systemId}/${userId}`);
+                        const contextData = await contextResponse.json();
+                        if (contextResponse.ok) {
+                            systemSpecificContext = contextData.context + '\n\n' + systemSpecificContext;
+                        }
+                    } catch (e) {
+                        console.warn('Failed to load user-specific context:', e);
+                    }
+                }
+                
+                const trainingConfig = {
+                    model_id: currentModelId,
+                    dataset_id: currentDatasetId,
+                    domain_preset: selectedPreset,
+                    training_type: document.getElementById('trainingType').value,
+                    epochs: parseInt(document.getElementById('epochs').value),
+                    learning_rate: parseFloat(document.getElementById('learningRate').value),
+                    batch_size: parseInt(document.getElementById('batchSize').value),
+                    max_sequence_length: parseInt(document.getElementById('maxSequenceLength').value),
+                    optimizer: document.getElementById('optimizer').value,
+                    enable_hallucination_detection: document.getElementById('enableHallucinationDetection').checked,
+                    confidence_threshold: parseFloat(document.getElementById('confidenceThreshold').value),
+                    grounding_sources: selectedGrounding,
+                    fact_checking_enabled: document.getElementById('factCheckingEnabled').checked,
+                    fallback_enabled: document.getElementById('fallbackEnabled').checked,
+                    system_specific_context: systemSpecificContext
+                };
+                
+                const trainingResponse = await fetch('/api/llm-factory/training-job', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(trainingConfig)
+                });
+                
+                const trainingData = await trainingResponse.json();
+                if (!trainingResponse.ok) throw new Error(trainingData.error);
+                
+                currentJobId = trainingData.job_id;
+                
+                // Show progress section and start monitoring
+                document.getElementById('progressSection').style.display = 'block';
+                startProgressMonitoring();
+                
+                showAlert('Training started successfully!', 'success');
+                
+            } catch (error) {
+                showAlert(`Training failed: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Start progress monitoring
+        function startProgressMonitoring() {
+            const interval = setInterval(async () => {
+                if (!currentJobId) {
+                    clearInterval(interval);
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/llm-factory/job/${currentJobId}/status`);
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        updateProgressDisplay(data);
+                        
+                        if (data.status === 'completed' || data.status === 'failed') {
+                            clearInterval(interval);
+                            if (data.status === 'completed') {
+                                document.getElementById('deployBtn').style.display = 'block';
+                                showAlert('Training completed successfully!', 'success');
+                            } else {
+                                showAlert(`Training failed: ${data.error_message}`, 'error');
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to update progress:', error);
+                }
+            }, 5000); // Update every 5 seconds
+        }
+        
+        // Update progress display
+        function updateProgressDisplay(data) {
+            document.getElementById('jobStatus').textContent = data.status;
+            document.getElementById('jobStatus').className = `job-status status-${data.status}`;
+            
+            document.getElementById('progressFill').style.width = `${data.progress}%`;
+            document.getElementById('currentEpoch').textContent = data.current_epoch;
+            document.getElementById('trainingLoss').textContent = data.loss.toFixed(4);
+            document.getElementById('validationLoss').textContent = data.validation_loss.toFixed(4);
+            document.getElementById('trainingTime').textContent = `${Math.floor(data.training_time / 60)}m`;
+            
+            // Show/hide control buttons based on status
+            const pauseBtn = document.getElementById('pauseBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            
+            if (data.status === 'training') {
+                pauseBtn.style.display = 'block';
+                stopBtn.style.display = 'block';
+            } else {
+                pauseBtn.style.display = 'none';
+                stopBtn.style.display = 'none';
+            }
+        }
+        
+        // Deploy model
+        async function deployModel() {
+            if (!currentJobId) {
+                showAlert('No completed training job to deploy', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const deploymentConfig = {
+                    job_id: currentJobId,
+                    deployment_config: {
+                        name: document.getElementById('deploymentName').value || 'Custom Model',
+                        auto_scale: true,
+                        max_instances: 3
+                    }
+                };
+                
+                const response = await fetch('/api/llm-factory/deploy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(deploymentConfig)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Model deployed successfully!', 'success');
+                    loadDeployments();
+                    document.getElementById('deployBtn').style.display = 'none';
+                } else {
+                    showAlert(`Deployment failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Load deployments
+        async function loadDeployments() {
+            try {
+                const response = await fetch('/api/llm-factory/deployments');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayDeployments(data.deployments);
+                } else {
+                    console.error('Failed to load deployments:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading deployments:', error);
+            }
+        }
+        
+        // Display deployments
+        function displayDeployments(deployments) {
+            const container = document.getElementById('deploymentsList');
+            
+            if (deployments.length === 0) {
+                container.innerHTML = '<p>No active deployments</p>';
+                return;
+            }
+            
+            container.innerHTML = deployments.map(deployment => `
+                <div class="deployment-item">
+                    <div class="deployment-header">
+                        <div class="deployment-name">${deployment.model_config.model_id}</div>
+                        <div class="deployment-health health-${deployment.health_status}">${deployment.health_status}</div>
+                    </div>
+                    
+                    <div class="deployment-details">
+                        <div>
+                            <p><strong>Model:</strong> ${deployment.model_config.base_model}</p>
+                            <p><strong>Inference:</strong> ${deployment.model_config.inference_mode}</p>
+                            <p><strong>Deployed:</strong> ${new Date(deployment.deployed_at).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                            <p><strong>Formats:</strong> ${deployment.formats.join(', ')}</p>
+                            <p><strong>Accuracy:</strong> ${(deployment.performance_metrics.accuracy * 100).toFixed(1)}%</p>
+                            <p><strong>Perplexity:</strong> ${deployment.performance_metrics.perplexity.toFixed(2)}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="endpoint-display">
+                        <code>${deployment.endpoint_url}</code>
+                        <button class="copy-btn" onclick="copyToClipboard('${deployment.endpoint_url}')">Copy</button>
+                    </div>
+                    
+                    <div class="deployment-actions">
+                        <button class="btn btn-secondary" onclick="viewDocs('${deployment.deployment_id}')">View Docs</button>
+                        <button class="btn btn-warning" onclick="scaleDeployment('${deployment.deployment_id}')">Scale</button>
+                        <button class="btn btn-danger" onclick="stopDeployment('${deployment.deployment_id}')">Stop</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Copy to clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showAlert('Copied to clipboard!', 'success');
+            });
+        }
+        
+        // Utility functions
+        function showAlert(message, type) {
+            const alertsContainer = document.getElementById('alerts');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            alertsContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+        
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            loading.style.display = show ? 'block' : 'none';
+        }
+        
+        // Placeholder functions for deployment management
+        function viewDocs(deploymentId) {
+            showAlert('Opening API documentation...', 'info');
+        }
+        
+        function scaleDeployment(deploymentId) {
+            showAlert('Scaling deployment...', 'info');
+        }
+        
+        function stopDeployment(deploymentId) {
+            if (confirm('Are you sure you want to stop this deployment?')) {
+                showAlert('Stopping deployment...', 'warning');
+            }
+        }
+        
+        function pauseTraining() {
+            showAlert('Training paused', 'warning');
+        }
+        
+        function stopTraining() {
+            if (confirm('Are you sure you want to stop training?')) {
+                showAlert('Training stopped', 'warning');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+{
+  "name": "revops_suite_local",
+  "version": "1.0.0",
+  "ecosystem": "revops_suite",
+  "environment": "local",
+  "description": "Local development environment for RevOps Suite",
+  "tags": [
+    "local",
+    "dev",
+    "revops"
+  ],
+  "services": {
+    "backend": {
+      "name": "sbh-backend",
+      "image": "sbh-backend:local",
+      "ports": [
+        5001
+      ],
+      "volumes": [
+        "./src:/app/src",
+        "./data:/app/data"
+      ],
+      "environment": {
+        "FLASK_ENV": "development",
+        "DEBUG": "true",
+        "DATABASE": "./data/local.db"
+      },
+      "command": "python -m src.cli run"
+    },
+    "db": {
+      "name": "sqlite-local",
+      "image": "alpine:latest",
+      "volumes": [
+        "./data:/data"
+      ],
+      "command": "tail -f /dev/null"
+    },
+    "worker": {
+      "name": "sbh-worker",
+      "image": "sbh-backend:local",
+      "volumes": [
+        "./src:/app/src",
+        "./data:/app/data"
+      ],
+      "command": "python -m src.cli worker"
+    }
+  }
+}

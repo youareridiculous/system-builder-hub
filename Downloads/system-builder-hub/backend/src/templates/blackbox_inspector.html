@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black Box Inspector - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .trace-timeline {
+            height: 600px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .trace-event {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .trace-event.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .trace-event.llm_call {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .trace-event.agent_execution {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .trace-event.memory_access {
+            border-left-color: #17a2b8;
+            background: #d1ecf1;
+        }
+        .trace-event.performance {
+            border-left-color: #6f42c1;
+            background: #e2d9f3;
+        }
+        .trace-event.anomaly {
+            border-left-color: #fd7e14;
+            background: #ffeaa7;
+        }
+        .trace-meta {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        .trace-payload {
+            background: rgba(0,0,0,0.05);
+            padding: 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.875rem;
+            margin-top: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .llm-reasoning-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        .llm-prompt {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .llm-response {
+            background: white;
+            padding: 15px;
+        }
+        .llm-metrics {
+            background: #e9ecef;
+            padding: 10px;
+            font-size: 0.875rem;
+        }
+        .root-cause-analysis {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .blame-attribution {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+        }
+        .blame-bar {
+            height: 20px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .blame-fill {
+            height: 100%;
+            background: rgba(255,255,255,0.8);
+            transition: width 0.3s ease;
+        }
+        .anomaly-card {
+            border-left: 4px solid #fd7e14;
+            background: #fff3cd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+        }
+        .anomaly-critical {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .anomaly-warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .anomaly-info {
+            border-left-color: #17a2b8;
+            background: #d1ecf1;
+        }
+        .filter-panel {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .real-time-indicator {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .zoom-controls {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 100;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .trace-details-modal .modal-body {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .json-viewer {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.875rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-cogs"></i> System Builder Hub
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">Main Dashboard</a>
+                <a class="nav-link" href="/developer-dashboard">Developer Dashboard</a>
+                <a class="nav-link" href="/activity-feed">Activity Feed</a>
+                <a class="nav-link" href="/diagnostics">Diagnostics</a>
+                <a class="nav-link active" href="/blackbox-inspector">Black Box Inspector</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-search"></i> Black Box Inspector
+                    <span class="badge bg-success real-time-indicator">Live Tracing</span>
+                </h1>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs mb-4" id="inspectorTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="trace-tab" data-bs-toggle="tab" data-bs-target="#trace-explorer" type="button" role="tab">
+                    <i class="fas fa-stream"></i> Trace Explorer
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="llm-tab" data-bs-toggle="tab" data-bs-target="#llm-prompts" type="button" role="tab">
+                    <i class="fas fa-brain"></i> LLM Prompts
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="agent-tab" data-bs-toggle="tab" data-bs-target="#agent-decisions" type="button" role="tab">
+                    <i class="fas fa-robot"></i> Agent Decisions
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="rootcause-tab" data-bs-toggle="tab" data-bs-target="#root-cause-explorer" type="button" role="tab">
+                    <i class="fas fa-bug"></i> Root Cause Explorer
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="anomalies-tab" data-bs-toggle="tab" data-bs-target="#anomalies" type="button" role="tab">
+                    <i class="fas fa-exclamation-triangle"></i> Anomalies
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="inspectorTabContent">
+            <!-- Trace Explorer Tab -->
+            <div class="tab-pane fade show active" id="trace-explorer" role="tabpanel">
+                <div class="filter-panel">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Time Range</label>
+                            <select id="time-range" class="form-select">
+                                <option value="1h">Last Hour</option>
+                                <option value="6h">Last 6 Hours</option>
+                                <option value="24h" selected>Last 24 Hours</option>
+                                <option value="7d">Last 7 Days</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Trace Types</label>
+                            <select id="trace-types" class="form-select" multiple>
+                                <option value="agent_execution" selected>Agent Execution</option>
+                                <option value="llm_call" selected>LLM Calls</option>
+                                <option value="memory_access" selected>Memory Access</option>
+                                <option value="function_call" selected>Function Calls</option>
+                                <option value="decision_branch" selected>Decision Branches</option>
+                                <option value="error" selected>Errors</option>
+                                <option value="performance" selected>Performance</option>
+                                <option value="inter_agent" selected>Inter-Agent</option>
+                                <option value="system_event" selected>System Events</option>
+                                <option value="anomaly" selected>Anomalies</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Components</label>
+                            <input type="text" id="component-filter" class="form-control" placeholder="Filter by component ID">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Actions</label>
+                            <div class="d-grid gap-2">
+                                <button id="refresh-traces" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                                <button id="export-traces" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-download"></i> Export
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="zoom-controls">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="zoomTimeline('1h')">1H</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="zoomTimeline('6h')">6H</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm active" onclick="zoomTimeline('24h')">24H</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="zoomTimeline('7d')">7D</button>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="badge bg-info" id="trace-count">0 traces</span>
+                            <span class="badge bg-success" id="live-indicator">Live</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="trace-timeline" class="trace-timeline">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-spinner fa-spin"></i> Loading traces...
+                    </div>
+                </div>
+            </div>
+
+            <!-- LLM Prompts Tab -->
+            <div class="tab-pane fade" id="llm-prompts" role="tabpanel">
+                <div class="filter-panel">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Model</label>
+                            <select id="llm-model-filter" class="form-select">
+                                <option value="">All Models</option>
+                                <option value="gpt-4">GPT-4</option>
+                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                <option value="claude-3">Claude-3</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Time Range</label>
+                            <select id="llm-time-range" class="form-select">
+                                <option value="1h">Last Hour</option>
+                                <option value="6h">Last 6 Hours</option>
+                                <option value="24h" selected>Last 24 Hours</option>
+                                <option value="7d">Last 7 Days</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Search</label>
+                            <input type="text" id="llm-search" class="form-control" placeholder="Search prompts/responses">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Actions</label>
+                            <div class="d-grid gap-2">
+                                <button id="refresh-llm" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                                <button id="export-llm" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-download"></i> Export
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="llm-reasoning-container">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-spinner fa-spin"></i> Loading LLM reasoning logs...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Decisions Tab -->
+            <div class="tab-pane fade" id="agent-decisions" role="tabpanel">
+                <div class="filter-panel">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Agent Type</label>
+                            <select id="agent-type-filter" class="form-select">
+                                <option value="">All Agents</option>
+                                <option value="orchestrator">Orchestrator</option>
+                                <option value="builder">Builder</option>
+                                <option value="tester">Tester</option>
+                                <option value="coach">Coach</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select id="agent-status-filter" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="running">Running</option>
+                                <option value="completed">Completed</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Time Range</label>
+                            <select id="agent-time-range" class="form-select">
+                                <option value="1h">Last Hour</option>
+                                <option value="6h">Last 6 Hours</option>
+                                <option value="24h" selected>Last 24 Hours</option>
+                                <option value="7d">Last 7 Days</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Actions</label>
+                            <div class="d-grid gap-2">
+                                <button id="refresh-agents" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                                <button id="export-agents" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-download"></i> Export
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="agent-executions-container">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-spinner fa-spin"></i> Loading agent executions...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Root Cause Explorer Tab -->
+            <div class="tab-pane fade" id="root-cause-explorer" role="tabpanel">
+                <div class="filter-panel">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Error ID</label>
+                            <input type="text" id="error-id" class="form-control" placeholder="Enter error ID to analyze">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">System ID</label>
+                            <input type="text" id="system-id" class="form-control" placeholder="Enter system ID">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Actions</label>
+                            <div class="d-grid gap-2">
+                                <button id="analyze-rootcause" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Analyze Root Cause
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="root-cause-results">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-bug"></i> Enter an error ID and click "Analyze Root Cause" to begin analysis
+                    </div>
+                </div>
+            </div>
+
+            <!-- Anomalies Tab -->
+            <div class="tab-pane fade" id="anomalies" role="tabpanel">
+                <div class="filter-panel">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Anomaly Type</label>
+                            <select id="anomaly-type-filter" class="form-select">
+                                <option value="">All Types</option>
+                                <option value="llm_output_deviation">LLM Output Deviation</option>
+                                <option value="agent_behavior_change">Agent Behavior Change</option>
+                                <option value="memory_retrieval_issue">Memory Retrieval Issue</option>
+                                <option value="performance_spike">Performance Spike</option>
+                                <option value="error_pattern">Error Pattern</option>
+                                <option value="model_switching">Model Switching</option>
+                                <option value="token_usage_anomaly">Token Usage Anomaly</option>
+                                <option value="latency_anomaly">Latency Anomaly</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Severity</label>
+                            <select id="anomaly-severity-filter" class="form-select">
+                                <option value="">All Severities</option>
+                                <option value="critical">Critical</option>
+                                <option value="warning">Warning</option>
+                                <option value="info">Info</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Time Range</label>
+                            <select id="anomaly-time-range" class="form-select">
+                                <option value="1h">Last Hour</option>
+                                <option value="6h">Last 6 Hours</option>
+                                <option value="24h" selected>Last 24 Hours</option>
+                                <option value="7d">Last 7 Days</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Actions</label>
+                            <div class="d-grid gap-2">
+                                <button id="refresh-anomalies" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                                <button id="detect-anomalies" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-search"></i> Detect Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="anomalies-container">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-spinner fa-spin"></i> Loading anomalies...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trace Details Modal -->
+    <div class="modal fade" id="traceDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Trace Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body trace-details-modal">
+                    <div id="trace-details-content">
+                        <!-- Trace details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentTraces = [];
+        let currentLLMRecords = [];
+        let currentAnomalies = [];
+        let updateInterval;
+
+        // Initialize Black Box Inspector
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeInspector();
+            loadTraceExplorer();
+            startRealTimeUpdates();
+        });
+
+        function initializeInspector() {
+            // Tab event listeners
+            document.getElementById('trace-tab').addEventListener('click', loadTraceExplorer);
+            document.getElementById('llm-tab').addEventListener('click', loadLLMPrompts);
+            document.getElementById('agent-tab').addEventListener('click', loadAgentDecisions);
+            document.getElementById('rootcause-tab').addEventListener('click', loadRootCauseExplorer);
+            document.getElementById('anomalies-tab').addEventListener('click', loadAnomalies);
+
+            // Filter event listeners
+            document.getElementById('refresh-traces').addEventListener('click', loadTraceExplorer);
+            document.getElementById('export-traces').addEventListener('click', exportTraces);
+            document.getElementById('refresh-llm').addEventListener('click', loadLLMPrompts);
+            document.getElementById('export-llm').addEventListener('click', exportLLMRecords);
+            document.getElementById('refresh-anomalies').addEventListener('click', loadAnomalies);
+            document.getElementById('detect-anomalies').addEventListener('click', detectAnomalies);
+            document.getElementById('analyze-rootcause').addEventListener('click', analyzeRootCause);
+
+            // Filter change listeners
+            document.getElementById('time-range').addEventListener('change', loadTraceExplorer);
+            document.getElementById('trace-types').addEventListener('change', loadTraceExplorer);
+            document.getElementById('component-filter').addEventListener('input', debounce(loadTraceExplorer, 500));
+            document.getElementById('llm-model-filter').addEventListener('change', loadLLMPrompts);
+            document.getElementById('llm-time-range').addEventListener('change', loadLLMPrompts);
+            document.getElementById('llm-search').addEventListener('input', debounce(loadLLMPrompts, 500));
+            document.getElementById('anomaly-type-filter').addEventListener('change', loadAnomalies);
+            document.getElementById('anomaly-severity-filter').addEventListener('change', loadAnomalies);
+            document.getElementById('anomaly-time-range').addEventListener('change', loadAnomalies);
+        }
+
+        function loadTraceExplorer() {
+            const timeRange = document.getElementById('time-range').value;
+            const traceTypes = Array.from(document.getElementById('trace-types').selectedOptions).map(opt => opt.value);
+            const componentFilter = document.getElementById('component-filter').value;
+
+            const queryParams = new URLSearchParams();
+            queryParams.append('limit', '1000');
+            
+            if (timeRange !== 'custom') {
+                const endTime = new Date();
+                const startTime = new Date();
+                
+                switch (timeRange) {
+                    case '1h':
+                        startTime.setHours(startTime.getHours() - 1);
+                        break;
+                    case '6h':
+                        startTime.setHours(startTime.getHours() - 6);
+                        break;
+                    case '24h':
+                        startTime.setDate(startTime.getDate() - 1);
+                        break;
+                    case '7d':
+                        startTime.setDate(startTime.getDate() - 7);
+                        break;
+                }
+                
+                queryParams.append('start_time', startTime.toISOString());
+                queryParams.append('end_time', endTime.toISOString());
+            }
+            
+            if (traceTypes.length > 0) {
+                queryParams.append('trace_types', traceTypes.join(','));
+            }
+            
+            if (componentFilter) {
+                queryParams.append('component_ids', componentFilter);
+            }
+
+            fetch(`/api/blackbox/traces?${queryParams}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        currentTraces = data.data;
+                        displayTraceTimeline(currentTraces);
+                        document.getElementById('trace-count').textContent = `${currentTraces.length} traces`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading traces:', error);
+                    document.getElementById('trace-timeline').innerHTML = 
+                        '<div class="alert alert-danger">Error loading traces</div>';
+                });
+        }
+
+        function displayTraceTimeline(traces) {
+            const container = document.getElementById('trace-timeline');
+            
+            if (traces.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No traces found</div>';
+                return;
+            }
+
+            container.innerHTML = traces.map(trace => `
+                <div class="trace-event ${trace.trace_type}" onclick="showTraceDetails('${trace.trace_id}')">
+                    <div class="trace-meta">
+                        <strong>${trace.trace_type.replace('_', ' ').toUpperCase()}</strong>
+                        <span class="ms-2">•</span>
+                        <span>${trace.component_id}</span>
+                        <span class="ms-2">•</span>
+                        <span>${new Date(trace.timestamp).toLocaleString()}</span>
+                        ${trace.duration_ms ? `<span class="ms-2">•</span><span>${trace.duration_ms.toFixed(2)}ms</span>` : ''}
+                        ${trace.error ? `<span class="ms-2 text-danger">• ERROR</span>` : ''}
+                    </div>
+                    <div class="trace-payload">
+                        <strong>Payload:</strong> ${JSON.stringify(trace.payload, null, 2)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showTraceDetails(traceId) {
+            const trace = currentTraces.find(t => t.trace_id === traceId);
+            if (!trace) return;
+
+            const modal = new bootstrap.Modal(document.getElementById('traceDetailsModal'));
+            const content = document.getElementById('trace-details-content');
+            
+            content.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Trace Information</h6>
+                        <table class="table table-sm">
+                            <tr><td>Trace ID:</td><td>${trace.trace_id}</td></tr>
+                            <tr><td>Type:</td><td>${trace.trace_type}</td></tr>
+                            <tr><td>Component:</td><td>${trace.component_id} (${trace.component_type})</td></tr>
+                            <tr><td>Timestamp:</td><td>${new Date(trace.timestamp).toLocaleString()}</td></tr>
+                            <tr><td>Duration:</td><td>${trace.duration_ms ? trace.duration_ms.toFixed(2) + 'ms' : 'N/A'}</td></tr>
+                            <tr><td>Level:</td><td>${trace.trace_level}</td></tr>
+                            ${trace.error ? `<tr><td>Error:</td><td class="text-danger">${trace.error}</td></tr>` : ''}
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Context</h6>
+                        <table class="table table-sm">
+                            <tr><td>Session ID:</td><td>${trace.session_id || 'N/A'}</td></tr>
+                            <tr><td>System ID:</td><td>${trace.system_id || 'N/A'}</td></tr>
+                            <tr><td>Agent ID:</td><td>${trace.agent_id || 'N/A'}</td></tr>
+                            <tr><td>LLM Model:</td><td>${trace.llm_model || 'N/A'}</td></tr>
+                            <tr><td>Function:</td><td>${trace.function_name || 'N/A'}</td></tr>
+                            <tr><td>Correlation ID:</td><td>${trace.correlation_id || 'N/A'}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Payload</h6>
+                        <div class="json-viewer">${JSON.stringify(trace.payload, null, 2)}</div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Metadata</h6>
+                        <div class="json-viewer">${JSON.stringify(trace.metadata, null, 2)}</div>
+                    </div>
+                </div>
+            `;
+            
+            modal.show();
+        }
+
+        function loadLLMPrompts() {
+            const model = document.getElementById('llm-model-filter').value;
+            const timeRange = document.getElementById('llm-time-range').value;
+            const search = document.getElementById('llm-search').value;
+
+            const queryParams = new URLSearchParams();
+            queryParams.append('limit', '100');
+            
+            if (model) {
+                queryParams.append('model', model);
+            }
+            
+            if (timeRange) {
+                const endTime = new Date();
+                const startTime = new Date();
+                
+                switch (timeRange) {
+                    case '1h':
+                        startTime.setHours(startTime.getHours() - 1);
+                        break;
+                    case '6h':
+                        startTime.setHours(startTime.getHours() - 6);
+                        break;
+                    case '24h':
+                        startTime.setDate(startTime.getDate() - 1);
+                        break;
+                    case '7d':
+                        startTime.setDate(startTime.getDate() - 7);
+                        break;
+                }
+                
+                queryParams.append('start_time', startTime.toISOString());
+                queryParams.append('end_time', endTime.toISOString());
+            }
+
+            fetch(`/api/blackbox/llm-log?${queryParams}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        currentLLMRecords = data.data;
+                        displayLLMReasoning(currentLLMRecords, search);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading LLM records:', error);
+                    document.getElementById('llm-reasoning-container').innerHTML = 
+                        '<div class="alert alert-danger">Error loading LLM reasoning logs</div>';
+                });
+        }
+
+        function displayLLMReasoning(records, search = '') {
+            const container = document.getElementById('llm-reasoning-container');
+            
+            if (records.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No LLM reasoning records found</div>';
+                return;
+            }
+
+            let filteredRecords = records;
+            if (search) {
+                const searchLower = search.toLowerCase();
+                filteredRecords = records.filter(record => 
+                    record.prompt.toLowerCase().includes(searchLower) ||
+                    record.response.toLowerCase().includes(searchLower)
+                );
+            }
+
+            container.innerHTML = filteredRecords.map(record => `
+                <div class="llm-reasoning-card">
+                    <div class="llm-metrics">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>Model:</strong> ${record.model}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Temperature:</strong> ${record.temperature}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Cost:</strong> $${record.cost_usd.toFixed(4)}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Tokens:</strong> ${record.token_usage.total_tokens || 'N/A'}
+                            </div>
+                        </div>
+                        <div class="row mt-1">
+                            <div class="col-md-3">
+                                <strong>Timestamp:</strong> ${new Date(record.timestamp).toLocaleString()}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Confidence:</strong> ${record.confidence_score ? (record.confidence_score * 100).toFixed(1) + '%' : 'N/A'}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Trace ID:</strong> ${record.trace_id}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="llm-prompt">
+                        <h6><i class="fas fa-arrow-right"></i> Prompt</h6>
+                        <div style="white-space: pre-wrap; font-family: monospace; font-size: 0.875rem;">${record.prompt}</div>
+                    </div>
+                    <div class="llm-response">
+                        <h6><i class="fas fa-arrow-left"></i> Response</h6>
+                        <div style="white-space: pre-wrap; font-family: monospace; font-size: 0.875rem;">${record.response}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadAgentDecisions() {
+            // Implementation for agent decisions
+            document.getElementById('agent-executions-container').innerHTML = 
+                '<div class="text-center text-muted"><i class="fas fa-robot"></i> Agent decisions view coming soon...</div>';
+        }
+
+        function loadRootCauseExplorer() {
+            // Implementation for root cause explorer
+            document.getElementById('root-cause-results').innerHTML = 
+                '<div class="text-center text-muted"><i class="fas fa-bug"></i> Root cause analysis view coming soon...</div>';
+        }
+
+        function analyzeRootCause() {
+            const errorId = document.getElementById('error-id').value;
+            const systemId = document.getElementById('system-id').value;
+
+            if (!errorId && !systemId) {
+                alert('Please enter either an Error ID or System ID');
+                return;
+            }
+
+            fetch('/api/blackbox/rootcause', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    error_id: errorId || null,
+                    system_id: systemId || null
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    displayRootCauseAnalysis(data.data);
+                } else {
+                    alert('Error analyzing root cause: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error analyzing root cause:', error);
+                alert('Error analyzing root cause');
+            });
+        }
+
+        function displayRootCauseAnalysis(analysis) {
+            const container = document.getElementById('root-cause-results');
+            
+            container.innerHTML = `
+                <div class="root-cause-analysis">
+                    <h4><i class="fas fa-bug"></i> Root Cause Analysis</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Primary Cause:</strong> ${analysis.primary_cause}</p>
+                            <p><strong>Confidence:</strong> ${(analysis.confidence_score * 100).toFixed(1)}%</p>
+                            <p><strong>Analysis ID:</strong> ${analysis.analysis_id}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Timestamp:</strong> ${new Date(analysis.timestamp).toLocaleString()}</p>
+                            <p><strong>Error ID:</strong> ${analysis.error_id || 'N/A'}</p>
+                            <p><strong>System ID:</strong> ${analysis.system_id || 'N/A'}</p>
+                        </div>
+                    </div>
+                    
+                    <h5 class="mt-4">Blame Attribution</h5>
+                    <div class="blame-attribution">
+                        ${Object.entries(analysis.blame_attribution).map(([component, percentage]) => `
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>${component}</span>
+                                <div class="blame-bar" style="width: 200px;">
+                                    <div class="blame-fill" style="width: ${percentage * 100}%"></div>
+                                </div>
+                                <span>${(percentage * 100).toFixed(1)}%</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <h5 class="mt-4">Suggested Prevention</h5>
+                    <ul>
+                        ${analysis.suggested_prevention.map(suggestion => `<li>${suggestion}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        function loadAnomalies() {
+            const anomalyType = document.getElementById('anomaly-type-filter').value;
+            const severity = document.getElementById('anomaly-severity-filter').value;
+            const timeRange = document.getElementById('anomaly-time-range').value;
+
+            const queryParams = new URLSearchParams();
+            
+            if (anomalyType) {
+                queryParams.append('anomaly_type', anomalyType);
+            }
+            
+            if (severity) {
+                queryParams.append('severity', severity);
+            }
+
+            fetch(`/api/blackbox/anomalies?${queryParams}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        currentAnomalies = data.data;
+                        displayAnomalies(currentAnomalies);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading anomalies:', error);
+                    document.getElementById('anomalies-container').innerHTML = 
+                        '<div class="alert alert-danger">Error loading anomalies</div>';
+                });
+        }
+
+        function displayAnomalies(anomalies) {
+            const container = document.getElementById('anomalies-container');
+            
+            if (anomalies.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No anomalies detected</div>';
+                return;
+            }
+
+            container.innerHTML = anomalies.map(anomaly => `
+                <div class="anomaly-card ${anomaly.severity}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6><i class="fas fa-exclamation-triangle"></i> ${anomaly.anomaly_type.replace('_', ' ').toUpperCase()}</h6>
+                            <p class="mb-2">${anomaly.description}</p>
+                            <div class="text-muted small">
+                                <span><strong>Component:</strong> ${anomaly.component_id} (${anomaly.component_type})</span>
+                                <span class="ms-3"><strong>Deviation:</strong> ${anomaly.deviation_percentage.toFixed(1)}%</span>
+                                <span class="ms-3"><strong>Confidence:</strong> ${(anomaly.confidence_score * 100).toFixed(1)}%</span>
+                                <span class="ms-3"><strong>Time:</strong> ${new Date(anomaly.timestamp).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <span class="badge bg-${getSeverityBadgeClass(anomaly.severity)}">${anomaly.severity}</span>
+                    </div>
+                    <div class="mt-2">
+                        <strong>Suggested Action:</strong> ${anomaly.suggested_action}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function detectAnomalies() {
+            fetch('/api/blackbox/anomalies')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        currentAnomalies = data.data;
+                        displayAnomalies(currentAnomalies);
+                        alert(`Detected ${currentAnomalies.length} anomalies`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error detecting anomalies:', error);
+                    alert('Error detecting anomalies');
+                });
+        }
+
+        function zoomTimeline(range) {
+            document.getElementById('time-range').value = range;
+            loadTraceExplorer();
+            
+            // Update active button
+            document.querySelectorAll('.zoom-controls .btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function exportTraces() {
+            const dataStr = JSON.stringify(currentTraces, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `traces-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportLLMRecords() {
+            const dataStr = JSON.stringify(currentLLMRecords, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `llm-reasoning-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function getSeverityBadgeClass(severity) {
+            const classes = {
+                'critical': 'danger',
+                'warning': 'warning',
+                'info': 'info'
+            };
+            return classes[severity] || 'secondary';
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function startRealTimeUpdates() {
+            updateInterval = setInterval(() => {
+                // Refresh current tab
+                const activeTab = document.querySelector('.nav-link.active');
+                if (activeTab.id === 'trace-tab') {
+                    loadTraceExplorer();
+                } else if (activeTab.id === 'llm-tab') {
+                    loadLLMPrompts();
+                } else if (activeTab.id === 'anomalies-tab') {
+                    loadAnomalies();
+                }
+            }, 30000); // Update every 30 seconds
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+{
+  "template_id": "crm_flagship",
+  "name": "CRM Flagship",
+  "version": "v1.0.1",
+  "description": "Complete CRM system with contacts, deals, pipelines, communications, automations, analytics, and role-based access control. Ready for production with mock providers or real SendGrid/Twilio integration.",
+  "category": "crm",
+  "created_at": "2025-08-28T08:53:17.526443",
+  "build_id": "2f61e8d4-e8e5-4066-9adc-2150c1fc46c0",
+  "ports": {
+    "backend": 8000,
+    "frontend": 3000
+  },
+  "requires": {
+    "AUTH_SECRET": "your-secret-key-here",
+    "COMM_PROVIDERS_EMAIL": "mock",
+    "COMM_PROVIDERS_SMS": "mock", 
+    "COMM_PROVIDERS_VOICE": "mock",
+    "SENDGRID_API_KEY": "",
+    "TWILIO_ACCOUNT_SID": "",
+    "TWILIO_AUTH_TOKEN": ""
+  },
+  "demo_users": [
+    {
+      "email": "owner@sbh.dev",
+      "password": "Owner!123",
+      "role": "Owner"
+    },
+    {
+      "email": "admin@sbh.dev", 
+      "password": "Admin!123",
+      "role": "Admin"
+    },
+    {
+      "email": "manager@sbh.dev",
+      "password": "Manager!123", 
+      "role": "Manager"
+    },
+    {
+      "email": "sales@sbh.dev",
+      "password": "Sales!123",
+      "role": "Sales"
+    },
+    {
+      "email": "readonly@sbh.dev",
+      "password": "ReadOnly!123",
+      "role": "ReadOnly"
+    }
+  ],
+  "seed_actions": {
+    "reset_demo": "/api/admin/reset-demo"
+  },
+  "screenshots": [
+    "demo/screens/dashboard.png",
+    "demo/screens/contacts.png", 
+    "demo/screens/contact-detail.png",
+    "demo/screens/pipelines.png",
+    "demo/screens/communications.png",
+    "demo/screens/templates.png",
+    "demo/screens/automations.png",
+    "demo/screens/settings.png"
+  ]
+}

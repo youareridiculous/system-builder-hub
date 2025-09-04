@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  sbh:
+    build:
+      context: .
+      args:
+        APP_VERSION: ${APP_VERSION:-0.1.0}
+        BUILD_DATE: ${BUILD_DATE:-}
+        BUILD_ID: ${BUILD_ID:-}
+    image: sbh:${APP_VERSION:-0.1.0}
+    ports:
+      - "${SBH_PORT:-5001}:5001"
+    environment:
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./db/sbh.db}
+      - LLM_SECRET_KEY=${LLM_SECRET_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5001}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./db:/app/db
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Optional: PostgreSQL database (uncomment to use instead of SQLite)
+  # postgres:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_DB: sbh
+  #     POSTGRES_USER: sbh
+  #     POSTGRES_PASSWORD: sbh_password
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U sbh"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+# volumes:
+#   postgres_data:

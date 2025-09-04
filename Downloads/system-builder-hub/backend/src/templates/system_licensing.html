@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Licensing - System Builder Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .nav-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .results-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+
+        .results-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .results-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-item h3 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .result-item p {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .status-active {
+            color: #27ae60;
+            font-weight: 600;
+        }
+
+        .status-inactive {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .status-violation {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e1e8ed;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+
+        .tab:hover {
+            background: #f8f9fa;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .license-preview {
+            background: #f8f9fa;
+            border: 1px solid #e1e8ed;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .pricing-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .pricing-option {
+            background: white;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pricing-option:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .pricing-option.selected {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .pricing-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📜 System Licensing</h1>
+            <p>Define, manage, and enforce licensing terms for generated systems with monetization capabilities.</p>
+            <div class="nav-buttons">
+                <a href="/" class="nav-btn">🏠 Dashboard</a>
+                <a href="/access-control" class="nav-btn">🔐 Access Control</a>
+                <a href="/agent-ecosystem" class="nav-btn">🧠 Agent Ecosystem</a>
+                <a href="/partner-portal" class="nav-btn">🤝 Partner Portal</a>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <!-- License Creation -->
+            <div class="card">
+                <h2>📋 License Creation</h2>
+                <form id="licenseForm">
+                    <div class="form-group">
+                        <label for="licenseName">License Name</label>
+                        <input type="text" id="licenseName" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="licenseType">License Type</label>
+                        <select id="licenseType" name="license_type" required>
+                            <option value="">Select License Type</option>
+                            <option value="mit">MIT License</option>
+                            <option value="gpl">GPL License</option>
+                            <option value="apache">Apache License</option>
+                            <option value="commercial">Commercial License</option>
+                            <option value="custom">Custom License</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="licenseStatus">Status</label>
+                        <select id="licenseStatus" name="status" required>
+                            <option value="">Select Status</option>
+                            <option value="active">Active</option>
+                            <option value="draft">Draft</option>
+                            <option value="deprecated">Deprecated</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="licenseTerms">License Terms</label>
+                        <textarea id="licenseTerms" name="terms" rows="6" placeholder="Enter custom license terms or leave empty for standard licenses"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="licenseRestrictions">Restrictions</label>
+                        <textarea id="licenseRestrictions" name="restrictions" rows="3" placeholder="Any usage restrictions or limitations"></textarea>
+                    </div>
+                    <button type="submit" class="btn">Create License</button>
+                </form>
+            </div>
+
+            <!-- System Template Creation -->
+            <div class="card">
+                <h2>📦 System Template Creation</h2>
+                <form id="templateForm">
+                    <div class="form-group">
+                        <label for="templateName">Template Name</label>
+                        <input type="text" id="templateName" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="templateDescription">Description</label>
+                        <textarea id="templateDescription" name="description" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="templateLicense">License</label>
+                        <select id="templateLicense" name="license_id" required>
+                            <option value="">Select License</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="templatePricingModel">Pricing Model</label>
+                        <select id="templatePricingModel" name="pricing_model" required>
+                            <option value="">Select Pricing Model</option>
+                            <option value="free">Free</option>
+                            <option value="one_time">One-time Payment</option>
+                            <option value="subscription">Subscription</option>
+                            <option value="usage_based">Usage-based</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="templatePrice">Price</label>
+                        <input type="number" id="templatePrice" name="price" step="0.01" min="0" placeholder="0.00 for free templates">
+                    </div>
+                    <div class="form-group">
+                        <label for="templateSystemId">System ID</label>
+                        <input type="text" id="templateSystemId" name="system_id" required>
+                    </div>
+                    <button type="submit" class="btn">Create Template</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <!-- License Compliance Check -->
+            <div class="card">
+                <h2>🔍 License Compliance Check</h2>
+                <form id="complianceForm">
+                    <div class="form-group">
+                        <label for="complianceSystemId">System ID</label>
+                        <input type="text" id="complianceSystemId" name="system_id" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="complianceLicenseId">License ID</label>
+                        <select id="complianceLicenseId" name="license_id" required>
+                            <option value="">Select License</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="complianceUsage">Usage Context</label>
+                        <textarea id="complianceUsage" name="usage_context" rows="3" placeholder="Describe how the system will be used"></textarea>
+                    </div>
+                    <button type="submit" class="btn">Check Compliance</button>
+                </form>
+                <div id="complianceResult" style="margin-top: 20px;"></div>
+            </div>
+
+            <!-- License Metadata Injection -->
+            <div class="card">
+                <h2>🔧 License Metadata Injection</h2>
+                <form id="injectionForm">
+                    <div class="form-group">
+                        <label for="injectionSystemId">System ID</label>
+                        <input type="text" id="injectionSystemId" name="system_id" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="injectionLicenseId">License ID</label>
+                        <select id="injectionLicenseId" name="license_id" required>
+                            <option value="">Select License</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="injectionWatermark">Watermark Text</label>
+                        <input type="text" id="injectionWatermark" name="watermark" placeholder="Optional watermark text">
+                    </div>
+                    <div class="form-group">
+                        <label for="injectionFiles">Target Files</label>
+                        <textarea id="injectionFiles" name="target_files" rows="3" placeholder="Comma-separated list of files to inject license into"></textarea>
+                    </div>
+                    <button type="submit" class="btn">Inject License</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section">
+            <div class="tabs">
+                <div class="tab active" data-tab="licenses">Licenses</div>
+                <div class="tab" data-tab="templates">Templates</div>
+                <div class="tab" data-tab="violations">Violations</div>
+                <div class="tab" data-tab="usage">Usage Logs</div>
+            </div>
+
+            <div id="licenses" class="tab-content active">
+                <h2>📋 Licenses</h2>
+                <div id="licensesList" class="results-list"></div>
+            </div>
+
+            <div id="templates" class="tab-content">
+                <h2>📦 System Templates</h2>
+                <div id="templatesList" class="results-list"></div>
+            </div>
+
+            <div id="violations" class="tab-content">
+                <h2>⚠️ License Violations</h2>
+                <div id="violationsList" class="results-list"></div>
+            </div>
+
+            <div id="usage" class="tab-content">
+                <h2>📊 Usage Logs</h2>
+                <div id="usageList" class="results-list"></div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+    </div>
+
+    <script>
+        // Tab functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+                
+                loadTabData(tab.dataset.tab);
+            });
+        });
+
+        // Form submissions
+        document.getElementById('licenseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                showLoading();
+                const response = await fetch('/api/licensing/licenses', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    showAlert('License created successfully!', 'success');
+                    e.target.reset();
+                    loadTabData('licenses');
+                    loadLicenses();
+                } else {
+                    showAlert(result.error || 'Failed to create license', 'error');
+                }
+            } catch (error) {
+                showAlert('Error creating license: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        document.getElementById('templateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                showLoading();
+                const response = await fetch('/api/licensing/templates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    showAlert('System template created successfully!', 'success');
+                    e.target.reset();
+                    loadTabData('templates');
+                } else {
+                    showAlert(result.error || 'Failed to create template', 'error');
+                }
+            } catch (error) {
+                showAlert('Error creating template: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        document.getElementById('complianceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                showLoading();
+                const response = await fetch('/api/licensing/compliance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    const resultDiv = document.getElementById('complianceResult');
+                    if (result.compliant) {
+                        resultDiv.innerHTML = '<div class="alert alert-success">✅ License compliance check passed!</div>';
+                    } else {
+                        resultDiv.innerHTML = `<div class="alert alert-error">❌ License violation detected: ${result.violation_reason}</div>`;
+                    }
+                } else {
+                    showAlert(result.error || 'Failed to check compliance', 'error');
+                }
+            } catch (error) {
+                showAlert('Error checking compliance: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        document.getElementById('injectionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                showLoading();
+                const response = await fetch('/api/licensing/inject', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    showAlert('License metadata injected successfully!', 'success');
+                    e.target.reset();
+                } else {
+                    showAlert(result.error || 'Failed to inject license', 'error');
+                }
+            } catch (error) {
+                showAlert('Error injecting license: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Load initial data
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTabData('licenses');
+            loadLicenses();
+        });
+
+        async function loadTabData(tab) {
+            try {
+                showLoading();
+                const response = await fetch(`/api/licensing/${tab}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayData(tab, data);
+                } else {
+                    showAlert(`Failed to load ${tab}: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error loading ${tab}: ${error.message}`, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function loadLicenses() {
+            try {
+                const response = await fetch('/api/licensing/licenses');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const licenseSelects = ['templateLicense', 'complianceLicenseId', 'injectionLicenseId'];
+                    licenseSelects.forEach(selectId => {
+                        const select = document.getElementById(selectId);
+                        if (select) {
+                            select.innerHTML = '<option value="">Select License</option>';
+                            data.forEach(license => {
+                                const option = document.createElement('option');
+                                option.value = license.id;
+                                option.textContent = license.name;
+                                select.appendChild(option);
+                            });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading licenses:', error);
+            }
+        }
+
+        function displayData(tab, data) {
+            const container = document.getElementById(`${tab}List`);
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            if (data.length === 0) {
+                container.innerHTML = '<p>No data available</p>';
+                return;
+            }
+            
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'result-item';
+                
+                switch (tab) {
+                    case 'licenses':
+                        div.innerHTML = `
+                            <h3>${item.name}</h3>
+                            <p><strong>Type:</strong> ${item.license_type}</p>
+                            <p><strong>Status:</strong> <span class="status-${item.status}">${item.status}</span></p>
+                            <p><strong>Created:</strong> ${new Date(item.created_at).toLocaleString()}</p>
+                            <p><strong>Hash:</strong> ${item.license_hash}</p>
+                        `;
+                        break;
+                    case 'templates':
+                        div.innerHTML = `
+                            <h3>${item.name}</h3>
+                            <p><strong>Description:</strong> ${item.description}</p>
+                            <p><strong>License:</strong> ${item.license_name}</p>
+                            <p><strong>Pricing:</strong> ${item.pricing_model} - $${item.price}</p>
+                            <p><strong>Status:</strong> <span class="status-${item.status}">${item.status}</span></p>
+                            <p><strong>Created:</strong> ${new Date(item.created_at).toLocaleString()}</p>
+                        `;
+                        break;
+                    case 'violations':
+                        div.innerHTML = `
+                            <h3>${item.system_id}</h3>
+                            <p><strong>License:</strong> ${item.license_name}</p>
+                            <p><strong>Violation Type:</strong> <span class="status-violation">${item.violation_type}</span></p>
+                            <p><strong>Description:</strong> ${item.description}</p>
+                            <p><strong>Date:</strong> ${new Date(item.created_at).toLocaleString()}</p>
+                        `;
+                        break;
+                    case 'usage':
+                        div.innerHTML = `
+                            <h3>${item.system_id}</h3>
+                            <p><strong>License:</strong> ${item.license_name}</p>
+                            <p><strong>Usage Type:</strong> ${item.usage_type}</p>
+                            <p><strong>User:</strong> ${item.user_id}</p>
+                            <p><strong>Date:</strong> ${new Date(item.created_at).toLocaleString()}</p>
+                        `;
+                        break;
+                }
+                
+                container.appendChild(div);
+            });
+        }
+
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            
+            const container = document.querySelector('.container');
+            container.insertBefore(alert, container.firstChild);
+            
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

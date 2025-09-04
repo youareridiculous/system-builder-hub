@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Subscription</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 2rem; }
+        .container { max-width: 800px; margin: auto; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; }
+        input, textarea { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
+        .data-section { margin-top: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 4px; }
+        .auth-required { background: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+        .subscription-required { background: #f8d7da; border: 1px solid #f5c6cb; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="auth-required"><strong>Authentication Required:</strong> This page requires authentication.</div>
+        
+        
+        <h1>Choose Your Plan</h1><p>Select a subscription plan to get started.</p>
+        
+        
+        <div class="data-section">
+            <h2>Data</h2>
+            <div id="data-content">Loading...</div>
+        </div>
+        
+        <script>
+        (async () => {
+            try {
+                const response = await fetch('/api/payments/plans');
+                const data = await response.json();
+                const el = document.getElementById('data-content');
+                el.innerHTML = "<ul>" + data.map(item => `<li>${item.title || item.name || JSON.stringify(item)}</li>`).join("") + "</ul>";
+            } catch(e) {
+                document.getElementById('data-content').textContent = "Failed to load: " + e;
+            }
+        })();
+        </script>
+        
+    </div>
+</body>
+</html>

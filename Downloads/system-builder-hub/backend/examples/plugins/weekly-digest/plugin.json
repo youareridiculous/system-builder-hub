@@ -1,0 +1,32 @@
+{
+  "slug": "weekly-digest",
+  "name": "Weekly Digest",
+  "version": "1.0.0",
+  "description": "Generates and sends weekly digest reports with CRM insights and analytics",
+  "author": "SBH Team",
+  "entry": "main.py",
+  "permissions": [
+    "send_email",
+    "read_contacts",
+    "read_deals",
+    "read_tasks",
+    "read_projects",
+    "emit_webhook"
+  ],
+  "routes": true,
+  "events": [
+    "report.generated"
+  ],
+  "jobs": [
+    {
+      "name": "weekly_digest",
+      "schedule": "0 7 * * MON",
+      "description": "Generate and send weekly digest every Monday at 7 AM"
+    }
+  ],
+  "secrets": [
+    "DIGEST_EMAIL_TEMPLATE",
+    "RECIPIENT_EMAILS",
+    "REPORT_TEMPLATE"
+  ]
+}

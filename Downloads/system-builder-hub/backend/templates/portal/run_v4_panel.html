@@ -1,0 +1,131 @@
+<!-- Meta-Builder v4 Panel for Run Details -->
+<div class="v4-panel bg-gray-50 border-l border-gray-200 p-4">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">
+            Meta-Builder v4
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">
+                v4
+            </span>
+        </h3>
+        <div class="flex items-center space-x-2">
+            <span class="text-sm text-gray-500">Canary</span>
+            <div class="w-2 h-2 rounded-full bg-green-400"></div>
+        </div>
+    </div>
+
+    <!-- Budget Status -->
+    <div class="mb-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-2">Budget Status</h4>
+        <div class="grid grid-cols-3 gap-3">
+            <div class="bg-white rounded-lg p-3 border">
+                <div class="text-xs text-gray-500">Cost</div>
+                <div class="text-lg font-semibold text-gray-900">${{ "%.2f"|format(run.v4_metrics.cost_usd) }}</div>
+                <div class="text-xs text-gray-500">/ ${{ "%.2f"|format(run.v4_metrics.cost_budget_usd) }}</div>
+            </div>
+            <div class="bg-white rounded-lg p-3 border">
+                <div class="text-xs text-gray-500">Time</div>
+                <div class="text-lg font-semibold text-gray-900">{{ run.v4_metrics.duration_seconds }}s</div>
+                <div class="text-xs text-gray-500">/ {{ run.v4_metrics.time_budget_seconds }}s</div>
+            </div>
+            <div class="bg-white rounded-lg p-3 border">
+                <div class="text-xs text-gray-500">Attempts</div>
+                <div class="text-lg font-semibold text-gray-900">{{ run.v4_metrics.attempt_count }}</div>
+                <div class="text-xs text-gray-500">/ {{ run.v4_metrics.attempt_budget }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Repair Timeline -->
+    <div class="mb-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-2">Repair Timeline</h4>
+        <div class="space-y-2">
+            {% for repair in run.v4_metrics.repair_history %}
+            <div class="flex items-center space-x-3 bg-white rounded-lg p-3 border">
+                <div class="flex-shrink-0">
+                    {% if repair.phase == "retry" %}
+                        <div class="w-2 h-2 rounded-full bg-yellow-400"></div>
+                    {% elif repair.phase == "patch" %}
+                        <div class="w-2 h-2 rounded-full bg-blue-400"></div>
+                    {% elif repair.phase == "replan" %}
+                        <div class="w-2 h-2 rounded-full bg-purple-400"></div>
+                    {% elif repair.phase == "rollback" %}
+                        <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                    {% endif %}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium text-gray-900">{{ repair.phase|title }}</div>
+                    <div class="text-xs text-gray-500">{{ repair.timestamp|datetime }}</div>
+                </div>
+                <div class="text-xs text-gray-500">{{ repair.strategy }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Circuit Breakers -->
+    <div class="mb-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-2">Circuit Breakers</h4>
+        <div class="grid grid-cols-2 gap-2">
+            {% for failure_class, breaker in run.v4_metrics.circuit_breakers.items() %}
+            <div class="bg-white rounded-lg p-2 border">
+                <div class="text-xs text-gray-500">{{ failure_class }}</div>
+                <div class="flex items-center space-x-1">
+                    {% if breaker.state == "closed" %}
+                        <div class="w-2 h-2 rounded-full bg-green-400"></div>
+                        <span class="text-xs text-green-600">Closed</span>
+                    {% elif breaker.state == "half_open" %}
+                        <div class="w-2 h-2 rounded-full bg-yellow-400"></div>
+                        <span class="text-xs text-yellow-600">Half-Open</span>
+                    {% else %}
+                        <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                        <span class="text-xs text-red-600">Open</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Confidence Score -->
+    <div class="mb-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-2">Confidence Score</h4>
+        <div class="bg-white rounded-lg p-3 border">
+            <div class="flex items-center justify-between">
+                <div class="text-2xl font-bold text-gray-900">{{ "%.1f"|format(run.v4_metrics.confidence_score * 100) }}%</div>
+                <div class="text-sm text-gray-500">{{ run.v4_metrics.confidence_level|title }}</div>
+            </div>
+            <div class="mt-2">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full" style="width: {{ run.v4_metrics.confidence_score * 100 }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risk Signals -->
+    {% if run.v4_metrics.risk_signals %}
+    <div class="mb-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-2">Risk Signals</h4>
+        <div class="space-y-1">
+            {% for signal in run.v4_metrics.risk_signals %}
+            <div class="flex items-center space-x-2 text-sm text-red-600">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                <span>{{ signal }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="flex space-x-2">
+        <button class="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            View Timeline
+        </button>
+        <button class="flex-1 bg-gray-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
+            Export Bundle
+        </button>
+    </div>
+</div>

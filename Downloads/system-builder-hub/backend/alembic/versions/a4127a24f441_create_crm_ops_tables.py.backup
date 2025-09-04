@@ -1,0 +1,349 @@
+"""
+Create CRM/Ops Template Tables
+
+Revision ID: a4127a24f441
+Revises: 5ecd76ed3373
+Create Date: 2024-01-15 12:00:00.000000
+
+"""
+from alembic import op
+import sqlalchemy as sa
+import uuid
+
+# revision identifiers, used by Alembic.
+revision = 'a4127a24f441'
+down_revision = '5ecd76ed3373'
+branch_labels = None
+depends_on = None
+
+def upgrade():
+    """Create CRM/Ops tables"""
+    
+    # Create tenant_users table
+    op.create_table(
+        'tenant_users',
+        sa.Column('id', sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())),
+        sa.Column('tenant_id', sa.String(255), nullable=False),
+        sa.Column('user_id', sa.String(255), nullable=False),
+        sa.Column('role', sa.String(50), nullable=False, default='viewer'),
+        sa.Column('is_active', sa.Boolean, default=True),
+        sa.Column('created_at', sa.DateTime, default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()),
+        
+    )
+    
+    # Create indexes for tenant_users
+    op.create_index('idx_tenant_users_tenant_id', 'tenant_users', ['tenant_id'])
+    op.create_index('idx_tenant_users_user_id', 'tenant_users', ['user_id'])
+    op.create_index('idx_tenant_users_tenant_user_unique', 'tenant_users', ['tenant_id', 'user_id'], unique=True)
+    
+    # Create contacts table
+    op.create_table(
+        'contacts',
+        sa.Column('id', sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())),
+        sa.Column('tenant_id', sa.String(255), nullable=False),
+        sa.Column('first_name', sa.String(255), nullable=False),
+        sa.Column('last_name', sa.String(255), nullable=False),
+        sa.Column('email', sa.String(255), nullable=True),
+        sa.Column('phone', sa.String(50), nullable=True),
+        sa.Column('company', sa.String(255), nullable=True),
+        sa.Column('tags', sa.JSON, nullable=False, default=[]),
+        sa.Column('custom_fields', sa.JSON, nullable=False, default={}),
+        sa.Column('is_active', sa.Boolean, default=True),
+        sa.Column('created_by', sa.String(255), nullable=False),
+        sa.Column('created_at', sa.DateTime, default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()),
+        
+    )
+    
+    # Create indexes for contacts
+    op.create_index('idx_contacts_tenant_id', 'contacts', ['tenant_id'])
+    op.create_index('idx_contacts_email', 'contacts', ['email'])
+    op.create_index('idx_contacts_tenant_email', 'contacts', ['tenant_id', 'email'])
+    op.create_index('idx_contacts_tenant_company', 'contacts', ['tenant_id', 'company'])
+    op.create_index('idx_contacts_tenant_tags', 'contacts', ['tenant_id', 'tags'])
+    
+    # Create deals table
+    op.create_table(
+        'deals',
+        sa.Column('id', sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())),
+        sa.Column('tenant_id', sa.String(255), nullable=False),
+        sa.Column('contact_id', sa.String(36), nullable=False),
+        sa.Column('title', sa.String(255), nullable=False),
+        sa.Column('pipeline_stage', sa.String(100), nullable=False, default='prospecting'),
+        sa.Column('value', sa.Numeric(15, 2), nullable=True),
+        sa.Column('status', sa.String(50), nullable=False, default='open'),
+        sa.Column('notes', sa.Text, nullable=True),
+        sa.Column('expected_close_date', sa.DateTime, nullable=True),
+        sa.Column('closed_at', sa.DateTime, nullable=True),
+        sa.Column('created_by', sa.String(255), nullable=False),
+        sa.Column('created_at', sa.DateTime, default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()),
+        
+    )
+    
+    # Create foreign key for deals
+    op.create_foreign_key(
+        'fk_deals_contact_id_contacts',
+        'deals', 'contacts',
+        ['contact_id'], ['id'],
+        
+        ondelete='CASCADE'
+    )
+    
+    # Create indexes for deals
+    op.create_index('idx_deals_tenant_id', 'deals', ['tenant_id'])
+    op.create_index('idx_deals_tenant_status', 'deals', ['tenant_id', 'status'])
+    op.create_index('idx_deals_tenant_stage', 'deals', ['tenant_id', 'pipeline_stage'])
+    op.create_index('idx_deals_tenant_contact', 'deals', ['tenant_id', 'contact_id'])
+    
+    # Create activities table
+    op.create_table(
+        'activities',
+        sa.Column('id', sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())),
+        sa.Column('tenant_id', sa.String(255), nullable=False),
+        sa.Column('deal_id', sa.String(36), nullable=True),
+        sa.Column('contact_id', sa.String(36), nullable=True),
+        sa.Column('type', sa.String(50), nullable=False),
+        sa.Column('title', sa.String(255), nullable=False),
+        sa.Column('description', sa.Text, nullable=True),
+        sa.Column('status', sa.String(50), nullable=False, default='pending'),
+        sa.Column('priority', sa.String(20), nullable=False, default='medium'),
+        sa.Column('due_date', sa.DateTime, nullable=True),
+        sa.Column('completed_at', sa.DateTime, nullable=True),
+        sa.Column('duration_minutes', sa.Integer, nullable=True),
+        sa.Column('created_by', sa.String(255), nullable=False),
+        sa.Column('created_at', sa.DateTime, default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()),
+        
+    )
+    
+    # Create foreign keys for activities
+    op.create_foreign_key(
+        'fk_activities_deal_id_deals',
+        'activities', 'deals',
+        ['deal_id'], ['id'],
+        
+        ondelete='SET NULL'
+    )
+    
+    op.create_foreign_key(
+        'fk_activities_contact_id_contacts',
+        'activities', 'contacts',
+        ['contact_id'], ['id'],
+        
+        ondelete='SET NULL'
+    )
+    
+    # Create indexes for activities
+    op.create_index('idx_activities_tenant_id', 'activities', ['tenant_id'])
+    op.create_index('idx_activities_tenant_type', 'activities', ['tenant_id', 'type'])
+    op.create_index('idx_activities_tenant_status', 'activities', ['tenant_id', 'status'])
+    op.create_index('idx_activities_tenant_due_date', 'activities', ['tenant_id', 'due_date'])
+    op.create_index('idx_activities_tenant_contact', 'activities', ['tenant_id', 'contact_id'])
+    op.create_index('idx_activities_tenant_deal', 'activities', ['tenant_id', 'deal_id'])
+    
+    # Create projects table
+    op.create_table(
+        'projects',
+        sa.Column('id', sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())),
+        sa.Column('tenant_id', sa.String(255), nullable=False),
+        sa.Column('name', sa.String(255), nullable=False),
+        sa.Column('description', sa.Text, nullable=True),
+        sa.Column('status', sa.String(50), nullable=False, default='active'),
+        sa.Column('start_date', sa.DateTime, nullable=True),
+        sa.Column('end_date', sa.DateTime, nullable=True),
+        sa.Column('created_by', sa.String(255), nullable=False),
+        sa.Column('created_at', sa.DateTime, default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()),
+        
+    )
+    
+    # Create indexes for projects
+    op.create_index('idx_projects_tenant_id', 'projects', ['tenant_id'])
+    op.create_index('idx_projects_tenant_status', 'projects', ['tenant_id', 'status'])
+    op.create_index('idx_projects_tenant_name', 'projects', ['tenant_id', 'name'])
+    
+    # Create tasks table
+    op.create_table(
+        'tasks',
+        sa.Column('id', sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())),
+        sa.Column('tenant_id', sa.String(255), nullable=False),
+        sa.Column('project_id', sa.String(36), nullable=False),
+        sa.Column('title', sa.String(255), nullable=False),
+        sa.Column('description', sa.Text, nullable=True),
+        sa.Column('assignee_id', sa.String(255), nullable=True),
+        sa.Column('priority', sa.String(20), nullable=False, default='medium'),
+        sa.Column('status', sa.String(50), nullable=False, default='todo'),
+        sa.Column('due_date', sa.DateTime, nullable=True),
+        sa.Column('completed_at', sa.DateTime, nullable=True),
+        sa.Column('estimated_hours', sa.Numeric(5, 2), nullable=True),
+        sa.Column('actual_hours', sa.Numeric(5, 2), nullable=True),
+        sa.Column('created_by', sa.String(255), nullable=False),
+        sa.Column('created_at', sa.DateTime, default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()),
+        
+    )
+    
+    # Create foreign key for tasks
+    op.create_foreign_key(
+        'fk_tasks_project_id_projects',
+        'tasks', 'projects',
+        ['project_id'], ['id'],
+        
+        ondelete='CASCADE'
+    )
+    
+    # Create indexes for tasks
+    op.create_index('idx_tasks_tenant_id', 'tasks', ['tenant_id'])
+    op.create_index('idx_tasks_tenant_status', 'tasks', ['tenant_id', 'status'])
+    op.create_index('idx_tasks_tenant_priority', 'tasks', ['tenant_id', 'priority'])
+    op.create_index('idx_tasks_tenant_assignee', 'tasks', ['tenant_id', 'assignee_id'])
+    op.create_index('idx_tasks_tenant_project', 'tasks', ['tenant_id', 'project_id'])
+    op.create_index('idx_tasks_tenant_due_date', 'tasks', ['tenant_id', 'due_date'])
+    
+    # Create message_threads table
+    op.create_table(
+        'message_threads',
+        sa.Column('id', sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())),
+        sa.Column('tenant_id', sa.String(255), nullable=False),
+        sa.Column('title', sa.String(255), nullable=False),
+        sa.Column('participants', sa.JSON, nullable=False, default=[]),
+        sa.Column('is_active', sa.Boolean, default=True),
+        sa.Column('created_by', sa.String(255), nullable=False),
+        sa.Column('created_at', sa.DateTime, default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()),
+        
+    )
+    
+    # Create indexes for message_threads
+    op.create_index('idx_message_threads_tenant_id', 'message_threads', ['tenant_id'])
+    op.create_index('idx_message_threads_tenant_participants', 'message_threads', ['tenant_id', 'participants'])
+    
+    # Create messages table
+    op.create_table(
+        'messages',
+        sa.Column('id', sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())),
+        sa.Column('tenant_id', sa.String(255), nullable=False),
+        sa.Column('thread_id', sa.String(36), nullable=False),
+        sa.Column('sender_id', sa.String(255), nullable=False),
+        sa.Column('body', sa.Text, nullable=False),
+        sa.Column('attachments', sa.JSON, nullable=False, default=[]),
+        sa.Column('is_edited', sa.Boolean, default=False),
+        sa.Column('edited_at', sa.DateTime, nullable=True),
+        sa.Column('created_at', sa.DateTime, default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()),
+        
+    )
+    
+    # Create foreign key for messages
+    op.create_foreign_key(
+        'fk_messages_thread_id_message_threads',
+        'messages', 'message_threads',
+        ['thread_id'], ['id'],
+        
+        ondelete='CASCADE'
+    )
+    
+    # Create indexes for messages
+    op.create_index('idx_messages_tenant_id', 'messages', ['tenant_id'])
+    op.create_index('idx_messages_tenant_thread', 'messages', ['tenant_id', 'thread_id'])
+    op.create_index('idx_messages_tenant_sender', 'messages', ['tenant_id', 'sender_id'])
+    op.create_index('idx_messages_tenant_created', 'messages', ['tenant_id', 'created_at'])
+    
+    # Create audit log table
+    op.create_table(
+        'crm_ops_audit_logs',
+        sa.Column('id', sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())),
+        sa.Column('tenant_id', sa.String(255), nullable=False),
+        sa.Column('user_id', sa.String(255), nullable=False),
+        sa.Column('action', sa.String(50), nullable=False),
+        sa.Column('table_name', sa.String(100), nullable=False),
+        sa.Column('record_id', sa.String(36), nullable=False),
+        sa.Column('old_values', sa.JSON, nullable=True),
+        sa.Column('new_values', sa.JSON, nullable=True),
+        sa.Column('ip_address', sa.String(45), nullable=True),
+        sa.Column('user_agent', sa.String(500), nullable=True),
+        sa.Column('created_at', sa.DateTime, default=sa.func.now()),
+        
+    )
+    
+    # Create indexes for audit logs
+    op.create_index('idx_crm_ops_audit_tenant_id', 'crm_ops_audit_logs', ['tenant_id'])
+    op.create_index('idx_crm_ops_audit_tenant_action', 'crm_ops_audit_logs', ['tenant_id', 'action'])
+    op.create_index('idx_crm_ops_audit_tenant_table', 'crm_ops_audit_logs', ['tenant_id', 'table_name'])
+    op.create_index('idx_crm_ops_audit_tenant_user', 'crm_ops_audit_logs', ['tenant_id', 'user_id'])
+    op.create_index('idx_crm_ops_audit_tenant_created', 'crm_ops_audit_logs', ['tenant_id', 'created_at'])
+
+def downgrade():
+    """Drop CRM/Ops tables"""
+    
+    # Drop audit log table
+    op.drop_index('idx_crm_ops_audit_tenant_created', table_name='crm_ops_audit_logs')
+    op.drop_index('idx_crm_ops_audit_tenant_user', table_name='crm_ops_audit_logs')
+    op.drop_index('idx_crm_ops_audit_tenant_table', table_name='crm_ops_audit_logs')
+    op.drop_index('idx_crm_ops_audit_tenant_action', table_name='crm_ops_audit_logs')
+    op.drop_index('idx_crm_ops_audit_tenant_id', table_name='crm_ops_audit_logs')
+    op.drop_table('crm_ops_audit_logs')
+    
+    # Drop messages table
+    op.drop_index('idx_messages_tenant_created', table_name='messages')
+    op.drop_index('idx_messages_tenant_sender', table_name='messages')
+    op.drop_index('idx_messages_tenant_thread', table_name='messages')
+    op.drop_index('idx_messages_tenant_id', table_name='messages')
+    op.drop_foreign_key('fk_messages_thread_id_message_threads', 'messages')
+    op.drop_table('messages')
+    
+    # Drop message_threads table
+    op.drop_index('idx_message_threads_tenant_participants', table_name='message_threads')
+    op.drop_index('idx_message_threads_tenant_id', table_name='message_threads')
+    op.drop_table('message_threads')
+    
+    # Drop tasks table
+    op.drop_index('idx_tasks_tenant_due_date', table_name='tasks')
+    op.drop_index('idx_tasks_tenant_project', table_name='tasks')
+    op.drop_index('idx_tasks_tenant_assignee', table_name='tasks')
+    op.drop_index('idx_tasks_tenant_priority', table_name='tasks')
+    op.drop_index('idx_tasks_tenant_status', table_name='tasks')
+    op.drop_index('idx_tasks_tenant_id', table_name='tasks')
+    op.drop_foreign_key('fk_tasks_project_id_projects', 'tasks')
+    op.drop_table('tasks')
+    
+    # Drop projects table
+    op.drop_index('idx_projects_tenant_name', table_name='projects')
+    op.drop_index('idx_projects_tenant_status', table_name='projects')
+    op.drop_index('idx_projects_tenant_id', table_name='projects')
+    op.drop_table('projects')
+    
+    # Drop activities table
+    op.drop_index('idx_activities_tenant_deal', table_name='activities')
+    op.drop_index('idx_activities_tenant_contact', table_name='activities')
+    op.drop_index('idx_activities_tenant_due_date', table_name='activities')
+    op.drop_index('idx_activities_tenant_status', table_name='activities')
+    op.drop_index('idx_activities_tenant_type', table_name='activities')
+    op.drop_index('idx_activities_tenant_id', table_name='activities')
+    op.drop_foreign_key('fk_activities_contact_id_contacts', 'activities')
+    op.drop_foreign_key('fk_activities_deal_id_deals', 'activities')
+    op.drop_table('activities')
+    
+    # Drop deals table
+    op.drop_index('idx_deals_tenant_contact', table_name='deals')
+    op.drop_index('idx_deals_tenant_stage', table_name='deals')
+    op.drop_index('idx_deals_tenant_status', table_name='deals')
+    op.drop_index('idx_deals_tenant_id', table_name='deals')
+    op.drop_foreign_key('fk_deals_contact_id_contacts', 'deals')
+    op.drop_table('deals')
+    
+    # Drop contacts table
+    op.drop_index('idx_contacts_tenant_tags', table_name='contacts')
+    op.drop_index('idx_contacts_tenant_company', table_name='contacts')
+    op.drop_index('idx_contacts_tenant_email', table_name='contacts')
+    op.drop_index('idx_contacts_email', table_name='contacts')
+    op.drop_index('idx_contacts_tenant_id', table_name='contacts')
+    op.drop_table('contacts')
+    
+    # Drop tenant_users table
+    op.drop_index('idx_tenant_users_tenant_user_unique', table_name='tenant_users')
+    op.drop_index('idx_tenant_users_user_id', table_name='tenant_users')
+    op.drop_index('idx_tenant_users_tenant_id', table_name='tenant_users')
+    op.drop_table('tenant_users')

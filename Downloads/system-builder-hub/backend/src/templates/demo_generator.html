@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Generator - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .demo-card {
+            border-left: 4px solid #17a2b8;
+            transition: transform 0.2s;
+        }
+        .demo-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .demo-card.embedded { border-left-color: #17a2b8; }
+        .demo-card.microsite { border-left-color: #28a745; }
+        .demo-card.video { border-left-color: #dc3545; }
+        .demo-card.interactive { border-left-color: #ffc107; }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .stats-card-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        .stats-card-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .stats-card-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .demo-preview {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 20px;
+            background: #f8f9fa;
+            min-height: 200px;
+            text-align: center;
+        }
+        
+        .embed-code {
+            font-family: 'Courier New', monospace;
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+        
+        .demo-iframe {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        
+        .conversion-funnel {
+            height: 300px;
+            position: relative;
+        }
+        
+        .demo-type-badge {
+            font-size: 0.8em;
+            padding: 0.25em 0.5em;
+        }
+        
+        .feature-highlight {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        
+        .analytics-chart {
+            height: 250px;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-md-9">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-play-circle"></i> Demo Generator</h2>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="showDashboard()">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showDemos()">
+                            <i class="fas fa-play"></i> My Demos
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showMicrosites()">
+                            <i class="fas fa-globe"></i> Microsites
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showAnalytics()">
+                            <i class="fas fa-chart-bar"></i> Analytics
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dashboard Interface -->
+                <div id="dashboard-interface">
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card stats-card">
+                                <div class="card-body text-center">
+                                    <h4 id="total-demos">0</h4>
+                                    <small>Total Demos</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-success">
+                                <div class="card-body text-center">
+                                    <h4 id="total-views">0</h4>
+                                    <small>Total Views</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-info">
+                                <div class="card-body text-center">
+                                    <h4 id="conversion-rate">0%</h4>
+                                    <small>Conversion Rate</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-warning">
+                                <div class="card-body text-center">
+                                    <h4 id="avg-time">0m</h4>
+                                    <small>Avg Time on Demo</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-plus"></i> Generate New Demo</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="demo-form">
+                                        <div class="mb-3">
+                                            <label for="system-id" class="form-label">System ID</label>
+                                            <input type="text" class="form-control" id="system-id" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="demo-title" class="form-label">Demo Title</label>
+                                            <input type="text" class="form-control" id="demo-title" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="demo-description" class="form-label">Description</label>
+                                            <textarea class="form-control" id="demo-description" rows="3" required></textarea>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="demo-type" class="form-label">Demo Type</label>
+                                                    <select class="form-select" id="demo-type" required>
+                                                        <option value="embedded">Embedded Widget</option>
+                                                        <option value="microsite">Microsite</option>
+                                                        <option value="video">Video Walkthrough</option>
+                                                        <option value="interactive">Interactive Demo</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="conversion-goal" class="form-label">Conversion Goal</label>
+                                                    <select class="form-select" id="conversion-goal" required>
+                                                        <option value="signup">Sign Up</option>
+                                                        <option value="purchase">Purchase</option>
+                                                        <option value="contact">Contact</option>
+                                                        <option value="download">Download</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="features-highlighted" class="form-label">Features to Highlight (comma-separated)</label>
+                                            <input type="text" class="form-control" id="features-highlighted" placeholder="feature1, feature2, feature3">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="target-audience" class="form-label">Target Audience</label>
+                                            <input type="text" class="form-control" id="target-audience" placeholder="e.g., developers, marketers, business owners">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-magic"></i> Generate Demo
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-line"></i> Performance Overview</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center mb-3">
+                                        <div class="col-4">
+                                            <h6>Active Demos</h6>
+                                            <span class="badge bg-success" id="active-demos">0</span>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6>Microsites</h6>
+                                            <span class="badge bg-info" id="total-microsites">0</span>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6>Conversions</h6>
+                                            <span class="badge bg-warning" id="total-conversions">0</span>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <small class="text-muted">This Month Views</small>
+                                            <div><strong id="monthly-views">0</strong></div>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Best Performing Demo</small>
+                                            <div><strong id="best-demo">-</strong></div>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="conversion-funnel">
+                                        <canvas id="conversionChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Demos -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-clock"></i> Recent Demos</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="recent-demos">
+                                        <!-- Recent demos will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Demos Interface -->
+                <div id="demos-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>My Demos</h4>
+                        <button class="btn btn-primary" onclick="showDashboard()">
+                            <i class="fas fa-plus"></i> Generate New Demo
+                        </button>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <select class="form-select" id="demo-type-filter" onchange="filterDemos()">
+                                <option value="">All Types</option>
+                                <option value="embedded">Embedded Widget</option>
+                                <option value="microsite">Microsite</option>
+                                <option value="video">Video Walkthrough</option>
+                                <option value="interactive">Interactive Demo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="demo-status-filter" onchange="filterDemos()">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="paused">Paused</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="demo-search" placeholder="Search demos..." onkeyup="searchDemos()">
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="demos-list">
+                        <!-- Demo cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Microsites Interface -->
+                <div id="microsites-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Microsites</h4>
+                        <button class="btn btn-primary" onclick="createMicrosite()">
+                            <i class="fas fa-plus"></i> Create Microsite
+                        </button>
+                    </div>
+                    
+                    <div class="row" id="microsites-list">
+                        <!-- Microsite cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Analytics Interface -->
+                <div id="analytics-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Demo Analytics</h4>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary" onclick="exportAnalytics()">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="refreshAnalytics()">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="analytics-data">
+                        <!-- Analytics data will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cog"></i> Demo Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Demo Types Info -->
+                        <h6>Demo Types</h6>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Embedded Widget</span>
+                                <span class="badge bg-info">Easy</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Microsite</span>
+                                <span class="badge bg-warning">Medium</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Video Walkthrough</span>
+                                <span class="badge bg-success">High Impact</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Interactive Demo</span>
+                                <span class="badge bg-danger">Advanced</span>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Quick Stats -->
+                        <h6>Quick Stats</h6>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Total Views</span>
+                                <span id="sidebar-total-views">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Avg Conversion</span>
+                                <span id="sidebar-avg-conversion">0%</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Active Demos</span>
+                                <span id="sidebar-active-demos">0</span>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Quick Actions -->
+                        <h6>Quick Actions</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="embedDemo()">
+                                <i class="fas fa-code"></i> Get Embed Code
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="shareDemo()">
+                                <i class="fas fa-share"></i> Share Demo
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="duplicateDemo()">
+                                <i class="fas fa-copy"></i> Duplicate Demo
+                            </button>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Tips -->
+                        <h6>Pro Tips</h6>
+                        <div class="alert alert-info alert-sm">
+                            <small><i class="fas fa-lightbulb"></i> Interactive demos have 3x higher conversion rates</small>
+                        </div>
+                        <div class="alert alert-info alert-sm">
+                            <small><i class="fas fa-lightbulb"></i> Keep demos under 2 minutes for best engagement</small>
+                        </div>
+                        <div class="alert alert-info alert-sm">
+                            <small><i class="fas fa-lightbulb"></i> Use clear CTAs to guide users to conversion</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Demo Details Modal -->
+    <div class="modal fade" id="demoDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Demo Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4 id="modal-demo-title"></h4>
+                            <p id="modal-demo-description"></p>
+                            <div class="mb-3">
+                                <span class="badge bg-primary demo-type-badge" id="modal-demo-type"></span>
+                                <span class="badge bg-success demo-type-badge" id="modal-demo-status"></span>
+                            </div>
+                            
+                            <!-- Demo Preview -->
+                            <div class="demo-preview mb-3">
+                                <div id="demo-preview-content">
+                                    <!-- Demo preview will be loaded here -->
+                                </div>
+                            </div>
+                            
+                            <!-- Features Highlighted -->
+                            <div class="mb-3">
+                                <h6>Features Highlighted:</h6>
+                                <div id="modal-features-highlighted"></div>
+                            </div>
+                            
+                            <!-- Embed Code -->
+                            <div class="mb-3">
+                                <h6>Embed Code:</h6>
+                                <div class="embed-code" id="modal-embed-code"></div>
+                                <button class="btn btn-sm btn-outline-primary mt-2" onclick="copyEmbedCode()">
+                                    <i class="fas fa-copy"></i> Copy Code
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6>Analytics</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <small>Total Views</small>
+                                        <div><strong id="modal-total-views">0</strong></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small>Conversions</small>
+                                        <div><strong id="modal-conversions">0</strong></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small>Conversion Rate</small>
+                                        <div><strong id="modal-conversion-rate">0%</strong></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small>Avg Time on Demo</small>
+                                        <div><strong id="modal-avg-time">0m</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h6>Quick Actions</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-primary btn-sm" onclick="launchDemo()">
+                                            <i class="fas fa-play"></i> Launch Demo
+                                        </button>
+                                        <button class="btn btn-info btn-sm" onclick="editDemo()">
+                                            <i class="fas fa-edit"></i> Edit Demo
+                                        </button>
+                                        <button class="btn btn-success btn-sm" onclick="createMicrosite()">
+                                            <i class="fas fa-globe"></i> Create Microsite
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="shareDemo()">
+                        <i class="fas fa-share"></i> Share
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Microsite Preview Modal -->
+    <div class="modal fade" id="micrositeModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Microsite Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="demo-iframe" id="microsite-iframe">
+                        <!-- Microsite iframe will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="customizeMicrosite()">
+                        <i class="fas fa-paint-brush"></i> Customize
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="publishMicrosite()">
+                        <i class="fas fa-rocket"></i> Publish
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let currentUserId = "user123"; // This would come from authentication
+        let currentOrganizationId = "org456"; // This would come from authentication
+        let conversionChart = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDemoStatistics();
+            setupEventListeners();
+            initializeConversionChart();
+        });
+
+        // Interface Functions
+        function showDashboard() {
+            document.getElementById('dashboard-interface').style.display = 'block';
+            document.getElementById('demos-interface').style.display = 'none';
+            document.getElementById('microsites-interface').style.display = 'none';
+            document.getElementById('analytics-interface').style.display = 'none';
+        }
+
+        function showDemos() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('demos-interface').style.display = 'block';
+            document.getElementById('microsites-interface').style.display = 'none';
+            document.getElementById('analytics-interface').style.display = 'none';
+            loadDemos();
+        }
+
+        function showMicrosites() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('demos-interface').style.display = 'none';
+            document.getElementById('microsites-interface').style.display = 'block';
+            document.getElementById('analytics-interface').style.display = 'none';
+            loadMicrosites();
+        }
+
+        function showAnalytics() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('demos-interface').style.display = 'none';
+            document.getElementById('microsites-interface').style.display = 'none';
+            document.getElementById('analytics-interface').style.display = 'block';
+            loadAnalytics();
+        }
+
+        // Statistics Functions
+        function loadDemoStatistics() {
+            fetch('/api/demo/statistics')
+            .then(response => response.json())
+            .then(stats => {
+                document.getElementById('total-demos').textContent = stats.total_demos;
+                document.getElementById('total-views').textContent = stats.total_views;
+                document.getElementById('conversion-rate').textContent = stats.average_conversion_rate.toFixed(1) + '%';
+                document.getElementById('avg-time').textContent = Math.round(stats.average_time_on_demo / 60) + 'm';
+                
+                document.getElementById('active-demos').textContent = stats.active_demos;
+                document.getElementById('total-microsites').textContent = stats.total_microsites;
+                document.getElementById('total-conversions').textContent = stats.total_conversions;
+                
+                document.getElementById('monthly-views').textContent = stats.monthly_views;
+                document.getElementById('best-demo').textContent = stats.best_performing_demo || '-';
+                
+                // Update sidebar
+                document.getElementById('sidebar-total-views').textContent = stats.total_views;
+                document.getElementById('sidebar-avg-conversion').textContent = stats.average_conversion_rate.toFixed(1) + '%';
+                document.getElementById('sidebar-active-demos').textContent = stats.active_demos;
+            })
+            .catch(error => console.error('Error loading demo statistics:', error));
+        }
+
+        function initializeConversionChart() {
+            const ctx = document.getElementById('conversionChart').getContext('2d');
+            conversionChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Views', 'Engaged', 'Converted'],
+                    datasets: [{
+                        data: [100, 30, 5],
+                        backgroundColor: ['#e9ecef', '#ffc107', '#28a745'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Demo Functions
+        function setupEventListeners() {
+            document.getElementById('demo-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                generateDemo();
+            });
+        }
+
+        function generateDemo() {
+            const formData = {
+                system_id: document.getElementById('system-id').value,
+                creator_id: currentUserId,
+                demo_type: document.getElementById('demo-type').value,
+                title: document.getElementById('demo-title').value,
+                description: document.getElementById('demo-description').value,
+                features_highlighted: document.getElementById('features-highlighted').value.split(',').map(f => f.trim()),
+                target_audience: document.getElementById('target-audience').value,
+                conversion_goal: document.getElementById('conversion-goal').value
+            };
+
+            fetch('/api/demo/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert('Demo generated successfully!');
+                    document.getElementById('demo-form').reset();
+                    loadDemos();
+                    loadDemoStatistics();
+                }
+            })
+            .catch(error => console.error('Error generating demo:', error));
+        }
+
+        function loadDemos() {
+            // This would load user's demos
+            const demosList = document.getElementById('demos-list');
+            demosList.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Your demos will be displayed here
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadMicrosites() {
+            // This would load user's microsites
+            const micrositesList = document.getElementById('microsites-list');
+            micrositesList.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Your microsites will be displayed here
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadAnalytics() {
+            // This would load analytics data
+            const analyticsData = document.getElementById('analytics-data');
+            analyticsData.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Analytics data will be displayed here
+                    </div>
+                </div>
+            `;
+        }
+
+        // Utility Functions
+        function filterDemos() {
+            const typeFilter = document.getElementById('demo-type-filter').value;
+            const statusFilter = document.getElementById('demo-status-filter').value;
+            // Implement demo filtering
+            console.log('Filtering by type:', typeFilter, 'status:', statusFilter);
+        }
+
+        function searchDemos() {
+            const searchTerm = document.getElementById('demo-search').value;
+            // Implement demo search
+            console.log('Searching for:', searchTerm);
+        }
+
+        function exportAnalytics() {
+            // This would export analytics data
+            alert('Export functionality would be implemented here');
+        }
+
+        function refreshAnalytics() {
+            loadAnalytics();
+        }
+
+        function embedDemo() {
+            // This would get embed code
+            alert('Embed code functionality would be implemented here');
+        }
+
+        function shareDemo() {
+            // This would share a demo
+            alert('Share functionality would be implemented here');
+        }
+
+        function duplicateDemo() {
+            // This would duplicate a demo
+            alert('Duplicate functionality would be implemented here');
+        }
+
+        function createMicrosite() {
+            // This would create a microsite
+            alert('Microsite creation would be implemented here');
+        }
+
+        function launchDemo() {
+            // This would launch a demo
+            alert('Launch functionality would be implemented here');
+        }
+
+        function editDemo() {
+            // This would edit a demo
+            alert('Edit functionality would be implemented here');
+        }
+
+        function copyEmbedCode() {
+            const codeElement = document.getElementById('modal-embed-code');
+            const textArea = document.createElement('textarea');
+            textArea.value = codeElement.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Embed code copied to clipboard!');
+        }
+
+        function customizeMicrosite() {
+            // This would customize microsite
+            alert('Customize functionality would be implemented here');
+        }
+
+        function publishMicrosite() {
+            // This would publish microsite
+            alert('Publish functionality would be implemented here');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,361 @@
+{% extends "settings/layout.html" %}
+
+{% block content %}
+<div x-data="privacySettings()" x-init="init()">
+    <!-- Privacy Mode -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Privacy Mode</h3>
+        <div class="bg-gray-50 rounded-lg p-6">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-900">Current Mode</h4>
+                        <p class="text-sm text-gray-600 mt-1" x-text="currentMode"></p>
+                    </div>
+                    <button @click="showModeSelector = true"
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                        Change Mode
+                    </button>
+                </div>
+                
+                <!-- Mode Descriptions -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h5 class="font-medium text-gray-900 mb-2">Local-Only</h5>
+                        <p class="text-sm text-gray-600">Maximum privacy, no external calls, no data retention</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h5 class="font-medium text-gray-900 mb-2">BYO Keys</h5>
+                        <p class="text-sm text-gray-600">Tenant-managed keys, no vendor data retention</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h5 class="font-medium text-gray-900 mb-2">Private Cloud</h5>
+                        <p class="text-sm text-gray-600">Platform-managed with strict controls and short retention</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Retention -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Data Retention</h3>
+        <div class="bg-gray-50 rounded-lg p-6">
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Prompt Retention</label>
+                    <select x-model="promptRetention" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="0">No retention</option>
+                        <option value="3600">1 hour</option>
+                        <option value="86400">24 hours</option>
+                        <option value="604800">7 days</option>
+                        <option value="2592000">30 days</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Response Retention</label>
+                    <select x-model="responseRetention" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="0">No retention</option>
+                        <option value="3600">1 hour</option>
+                        <option value="86400">24 hours</option>
+                        <option value="604800">7 days</option>
+                        <option value="2592000">30 days</option>
+                    </select>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" 
+                               x-model="doNotRetainPrompts"
+                               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-700">Do not retain prompts</span>
+                    </label>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" 
+                               x-model="doNotRetainModelOutputs"
+                               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-700">Do not retain model outputs</span>
+                    </label>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" 
+                               x-model="stripAttachmentsFromLogs"
+                               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-700">Strip attachments from logs</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- BYO Keys Configuration -->
+    <div x-show="currentMode === 'BYO Keys'" class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Bring Your Own Keys</h3>
+        <div class="bg-gray-50 rounded-lg p-6">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">OpenAI API Key</label>
+                    <input type="password" 
+                           x-model="byoOpenAIKey"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="sk-...">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Anthropic API Key</label>
+                    <input type="password" 
+                           x-model="byoAnthropicKey"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="sk-ant-...">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">AWS Access Key</label>
+                    <input type="password" 
+                           x-model="byoAWSAccessKey"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="AKIA...">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">AWS Secret Key</label>
+                    <input type="password" 
+                           x-model="byoAWSSecretKey"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="...">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Flow Transparency -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Data Flow Transparency</h3>
+        <div class="bg-gray-50 rounded-lg p-6">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-900">What Data Leaves Your Tenant?</h4>
+                        <p class="text-sm text-gray-600 mt-1">Current data flow and retention status</p>
+                    </div>
+                    <button @click="refreshTransparencyData()"
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                        Refresh
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h5 class="font-medium text-gray-900 mb-2">Prompts</h5>
+                        <p class="text-sm text-gray-600">
+                            <span x-show="transparencyData.prompts.retained" class="text-green-600">Retained</span>
+                            <span x-show="!transparencyData.prompts.retained" class="text-red-600">Not retained</span>
+                        </p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h5 class="font-medium text-gray-900 mb-2">Responses</h5>
+                        <p class="text-sm text-gray-600">
+                            <span x-show="transparencyData.responses.retained" class="text-green-600">Retained</span>
+                            <span x-show="!transparencyData.responses.retained" class="text-red-600">Not retained</span>
+                        </p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h5 class="font-medium text-gray-900 mb-2">Analytics</h5>
+                        <p class="text-sm text-gray-600">
+                            <span x-show="transparencyData.analytics.retained" class="text-green-600">Retained</span>
+                            <span x-show="!transparencyData.analytics.retained" class="text-red-600">Not retained</span>
+                        </p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h5 class="font-medium text-gray-900 mb-2">Audit Logs</h5>
+                        <p class="text-sm text-gray-600">
+                            <span x-show="transparencyData.audit.retained" class="text-green-600">Retained</span>
+                            <span x-show="!transparencyData.audit.retained" class="text-red-600">Not retained</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mode Selector Modal -->
+    <div x-show="showModeSelector" 
+         class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Select Privacy Mode</h3>
+                
+                <div class="space-y-4">
+                    <div class="border rounded-lg p-4 cursor-pointer hover:bg-gray-50"
+                         @click="selectMode('local_only')">
+                        <h4 class="font-medium text-gray-900">Local-Only</h4>
+                        <p class="text-sm text-gray-600">Maximum privacy, air-gapped environments</p>
+                    </div>
+                    
+                    <div class="border rounded-lg p-4 cursor-pointer hover:bg-gray-50"
+                         @click="selectMode('byo_keys')">
+                        <h4 class="font-medium text-gray-900">Bring Your Own Keys</h4>
+                        <p class="text-sm text-gray-600">Tenant-managed keys, no vendor data retention</p>
+                    </div>
+                    
+                    <div class="border rounded-lg p-4 cursor-pointer hover:bg-gray-50"
+                         @click="selectMode('private_cloud')">
+                        <h4 class="font-medium text-gray-900">Private Cloud</h4>
+                        <p class="text-sm text-gray-600">Platform-managed with strict controls</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex space-x-3">
+                    <button @click="showModeSelector = false" 
+                            class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
+                        Cancel
+                    </button>
+                    <button @click="saveModeChange()" 
+                            class="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function privacySettings() {
+    return {
+        currentMode: 'Private Cloud',
+        showModeSelector: false,
+        selectedMode: null,
+        promptRetention: 86400,
+        responseRetention: 86400,
+        doNotRetainPrompts: false,
+        doNotRetainModelOutputs: false,
+        stripAttachmentsFromLogs: true,
+        byoOpenAIKey: '',
+        byoAnthropicKey: '',
+        byoAWSAccessKey: '',
+        byoAWSSecretKey: '',
+        transparencyData: {
+            prompts: { retained: true },
+            responses: { retained: true },
+            analytics: { retained: true },
+            audit: { retained: true }
+        },
+        
+        async init() {
+            this.setPageInfo('Privacy & Data', 'Manage privacy settings and data retention', 'Workspace Privacy');
+            await this.loadPrivacyData();
+        },
+        
+        async loadPrivacyData() {
+            try {
+                const response = await fetch('/api/settings/workspace/privacy?tenant_id=current');
+                const data = await response.json();
+                
+                this.currentMode = data.data.privacy_mode;
+                this.promptRetention = data.data.prompt_retention_seconds;
+                this.responseRetention = data.data.response_retention_seconds;
+                this.doNotRetainPrompts = data.data.do_not_retain_prompts;
+                this.doNotRetainModelOutputs = data.data.do_not_retain_model_outputs;
+                this.stripAttachmentsFromLogs = data.data.strip_attachments_from_logs;
+                
+                await this.refreshTransparencyData();
+            } catch (error) {
+                console.error('Failed to load privacy data:', error);
+            }
+        },
+        
+        selectMode(mode) {
+            this.selectedMode = mode;
+        },
+        
+        async saveModeChange() {
+            if (!this.selectedMode) return;
+            
+            try {
+                const response = await fetch('/api/settings/workspace/privacy', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tenant_id: 'current',
+                        privacy_mode: this.selectedMode
+                    })
+                });
+                
+                this.currentMode = this.selectedMode;
+                this.showModeSelector = false;
+                this.showToast('success', 'Success', 'Privacy mode updated successfully');
+            } catch (error) {
+                console.error('Failed to update privacy mode:', error);
+            }
+        },
+        
+        async refreshTransparencyData() {
+            // TODO: Implement transparency data refresh
+            this.transparencyData = {
+                prompts: { retained: this.promptRetention > 0 },
+                responses: { retained: this.responseRetention > 0 },
+                analytics: { retained: true },
+                audit: { retained: true }
+            };
+        },
+        
+        async performSave() {
+            try {
+                const response = await fetch('/api/settings/workspace/privacy', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tenant_id: 'current',
+                        prompt_retention_seconds: parseInt(this.promptRetention),
+                        response_retention_seconds: parseInt(this.responseRetention),
+                        do_not_retain_prompts: this.doNotRetainPrompts,
+                        do_not_retain_model_outputs: this.doNotRetainModelOutputs,
+                        strip_attachments_from_logs: this.stripAttachmentsFromLogs
+                    })
+                });
+                
+                if (this.currentMode === 'BYO Keys') {
+                    // Save BYO keys
+                    if (this.byoOpenAIKey) {
+                        await fetch('/api/privacy/byo-keys', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                tenant_id: 'current',
+                                provider: 'openai',
+                                key: this.byoOpenAIKey
+                            })
+                        });
+                    }
+                    
+                    if (this.byoAnthropicKey) {
+                        await fetch('/api/privacy/byo-keys', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                tenant_id: 'current',
+                                provider: 'anthropic',
+                                key: this.byoAnthropicKey
+                            })
+                        });
+                    }
+                }
+                
+                this.showToast('success', 'Success', 'Privacy settings saved successfully');
+            } catch (error) {
+                throw new Error('Failed to save privacy settings');
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

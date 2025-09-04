@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Agent Planning & Negotiation - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .planning-canvas {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: white;
+        }
+        
+        .planning-node {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #007bff;
+            transition: all 0.3s ease;
+        }
+        
+        .planning-node:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .planning-node.goal { border-left-color: #28a745; }
+        .planning-node.task { border-left-color: #ffc107; }
+        .planning-node.milestone { border-left-color: #17a2b8; }
+        .planning-node.conflict { border-left-color: #dc3545; }
+        
+        .conflict-monitor {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .consensus-viewer {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .trust-scoreboard {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .agent-card {
+            background: rgba(248, 249, 250, 0.9);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .agent-card.leader { border-left-color: #28a745; }
+        .agent-card.planner { border-left-color: #ffc107; }
+        .agent-card.executor { border-left-color: #17a2b8; }
+        .agent-card.validator { border-left-color: #6f42c1; }
+        
+        .negotiation-timeline {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .timeline-item {
+            border-left: 3px solid #007bff;
+            padding-left: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #007bff;
+        }
+        
+        .timeline-item.proposal { border-left-color: #28a745; }
+        .timeline-item.proposal::before { background: #28a745; }
+        .timeline-item.counteroffer { border-left-color: #ffc107; }
+        .timeline-item.counteroffer::before { background: #ffc107; }
+        .timeline-item.consensus { border-left-color: #17a2b8; }
+        .timeline-item.consensus::before { background: #17a2b8; }
+        .timeline-item.conflict { border-left-color: #dc3545; }
+        .timeline-item.conflict::before { background: #dc3545; }
+        
+        .planning-controls {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+        
+        .status-forming { background: #fff3cd; color: #856404; }
+        .status-active { background: #d1ecf1; color: #0c5460; }
+        .status-negotiating { background: #f8d7da; color: #721c24; }
+        .status-consensus { background: #d4edda; color: #155724; }
+        .status-completed { background: #e2e3e5; color: #383d41; }
+        
+        .priority-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .priority-low { background: #28a745; }
+        .priority-medium { background: #ffc107; }
+        .priority-high { background: #fd7e14; }
+        .priority-critical { background: #dc3545; }
+        
+        .real-time-indicator {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .planning-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .metric-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-cogs"></i> System Builder Hub
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">Main Dashboard</a>
+                <a class="nav-link" href="/developer-dashboard">Developer Dashboard</a>
+                <a class="nav-link" href="/activity-feed">Activity Feed</a>
+                <a class="nav-link" href="/diagnostics">Diagnostics</a>
+                <a class="nav-link" href="/blackbox-inspector">Black Box Inspector</a>
+                <a class="nav-link" href="/agent-messaging">Agent Messaging</a>
+                <a class="nav-link active" href="/multi-agent-planner">Multi-Agent Planner</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-users"></i> Multi-Agent Planning & Negotiation
+                    <span class="badge bg-success real-time-indicator">Live</span>
+                </h1>
+            </div>
+        </div>
+
+        <!-- Planning Metrics -->
+        <div class="planning-metrics">
+            <div class="metric-card">
+                <div class="metric-number" id="active-sessions">0</div>
+                <div class="metric-label">Active Sessions</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-number" id="total-agents">0</div>
+                <div class="metric-label">Total Agents</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-number" id="consensus-rate">0%</div>
+                <div class="metric-label">Consensus Rate</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-number" id="avg-trust-score">0.0</div>
+                <div class="metric-label">Avg Trust Score</div>
+            </div>
+        </div>
+
+        <!-- Planning Controls -->
+        <div class="planning-controls">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-plus-circle"></i> Create Planning Session</h5>
+                    <form id="create-session-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Goal Description</label>
+                                <input type="text" id="goal-description" class="form-control" placeholder="Enter goal description" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Priority</label>
+                                <select id="goal-priority" class="form-select" required>
+                                    <option value="low">Low</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="critical">Critical</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Agent Group</label>
+                                <select id="agent-group" class="form-select" required>
+                                    <option value="">Select Agent Group</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Consensus Level</label>
+                                <select id="consensus-level" class="form-select" required>
+                                    <option value="majority">Majority</option>
+                                    <option value="unanimous">Unanimous</option>
+                                    <option value="weighted">Weighted</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <label class="form-label">Additional Context</label>
+                            <textarea id="session-context" class="form-control" rows="3" placeholder="Enter additional context..."></textarea>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-play"></i> Start Planning Session
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <h5><i class="fas fa-cog"></i> Session Controls</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Active Session</label>
+                            <select id="active-session-select" class="form-select">
+                                <option value="">Select Session</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Actions</label>
+                            <div class="d-grid gap-2">
+                                <button id="pause-session" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-pause"></i> Pause
+                                </button>
+                                <button id="resume-session" class="btn btn-success btn-sm">
+                                    <i class="fas fa-play"></i> Resume
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <button id="force-consensus" class="btn btn-info btn-sm">
+                                <i class="fas fa-handshake"></i> Force Consensus
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="arbitrate-conflict" class="btn btn-danger btn-sm">
+                                <i class="fas fa-gavel"></i> Arbitrate Conflict
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Tabs -->
+        <ul class="nav nav-tabs mb-4" id="planningTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="planning-canvas-tab" data-bs-toggle="tab" data-bs-target="#planning-canvas" type="button" role="tab">
+                    <i class="fas fa-project-diagram"></i> Planning Canvas
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="conflict-monitor-tab" data-bs-toggle="tab" data-bs-target="#conflict-monitor" type="button" role="tab">
+                    <i class="fas fa-exclamation-triangle"></i> Conflict Monitor
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="consensus-viewer-tab" data-bs-toggle="tab" data-bs-target="#consensus-viewer" type="button" role="tab">
+                    <i class="fas fa-handshake"></i> Consensus Viewer
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="trust-scoreboard-tab" data-bs-toggle="tab" data-bs-target="#trust-scoreboard" type="button" role="tab">
+                    <i class="fas fa-star"></i> Trust Scoreboard
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="negotiation-timeline-tab" data-bs-toggle="tab" data-bs-target="#negotiation-timeline" type="button" role="tab">
+                    <i class="fas fa-history"></i> Negotiation Timeline
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="planningTabContent">
+            <!-- Planning Canvas Tab -->
+            <div class="tab-pane fade show active" id="planning-canvas" role="tabpanel">
+                <div class="planning-canvas">
+                    <h5><i class="fas fa-project-diagram"></i> Live Planning Canvas</h5>
+                    <div id="planning-nodes-container">
+                        <div class="text-center text-white">
+                            <i class="fas fa-spinner fa-spin"></i> Loading planning nodes...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conflict Monitor Tab -->
+            <div class="tab-pane fade" id="conflict-monitor" role="tabpanel">
+                <div class="conflict-monitor">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Active Conflicts</h5>
+                    <div id="conflicts-container">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-check-circle"></i> No active conflicts detected
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Consensus Viewer Tab -->
+            <div class="tab-pane fade" id="consensus-viewer" role="tabpanel">
+                <div class="consensus-viewer">
+                    <h5><i class="fas fa-handshake"></i> Consensus Status</h5>
+                    <div id="consensus-container">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin"></i> Loading consensus data...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trust Scoreboard Tab -->
+            <div class="tab-pane fade" id="trust-scoreboard" role="tabpanel">
+                <div class="trust-scoreboard">
+                    <h5><i class="fas fa-star"></i> Agent Trust Scores</h5>
+                    <div id="trust-scores-container">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin"></i> Loading trust scores...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Negotiation Timeline Tab -->
+            <div class="tab-pane fade" id="negotiation-timeline" role="tabpanel">
+                <div class="negotiation-timeline">
+                    <h5><i class="fas fa-history"></i> Negotiation History</h5>
+                    <div id="negotiation-timeline-container">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-history"></i> No negotiation history available
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentSessions = [];
+        let currentConflicts = [];
+        let currentConsensus = [];
+        let currentTrustScores = [];
+        let currentNegotiations = [];
+        let updateInterval;
+
+        // Initialize Multi-Agent Planner
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePlanner();
+            loadPlanningMetrics();
+            loadAgentGroups();
+            startRealTimeUpdates();
+        });
+
+        function initializePlanner() {
+            // Form event listeners
+            document.getElementById('create-session-form').addEventListener('submit', createPlanningSession);
+            
+            // Control event listeners
+            document.getElementById('pause-session').addEventListener('click', pauseSession);
+            document.getElementById('resume-session').addEventListener('click', resumeSession);
+            document.getElementById('force-consensus').addEventListener('click', forceConsensus);
+            document.getElementById('arbitrate-conflict').addEventListener('click', arbitrateConflict);
+            
+            // Tab event listeners
+            document.getElementById('planning-canvas-tab').addEventListener('click', loadPlanningCanvas);
+            document.getElementById('conflict-monitor-tab').addEventListener('click', loadConflictMonitor);
+            document.getElementById('consensus-viewer-tab').addEventListener('click', loadConsensusViewer);
+            document.getElementById('trust-scoreboard-tab').addEventListener('click', loadTrustScoreboard);
+            document.getElementById('negotiation-timeline-tab').addEventListener('click', loadNegotiationTimeline);
+        }
+
+        function loadPlanningMetrics() {
+            fetch('/api/planning/metrics')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const metrics = data.data;
+                        document.getElementById('active-sessions').textContent = metrics.active_sessions || 0;
+                        document.getElementById('total-agents').textContent = metrics.total_agents || 0;
+                        document.getElementById('consensus-rate').textContent = (metrics.consensus_rate || 0) + '%';
+                        document.getElementById('avg-trust-score').textContent = (metrics.avg_trust_score || 0).toFixed(2);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading planning metrics:', error);
+                });
+        }
+
+        function loadAgentGroups() {
+            fetch('/api/planning/groups')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const groups = data.data;
+                        const select = document.getElementById('agent-group');
+                        select.innerHTML = '<option value="">Select Agent Group</option>';
+                        
+                        groups.forEach(group => {
+                            const option = document.createElement('option');
+                            option.value = group.group_id;
+                            option.textContent = `${group.name} (${group.agents.length} agents)`;
+                            select.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading agent groups:', error);
+                });
+        }
+
+        function createPlanningSession(event) {
+            event.preventDefault();
+            
+            const formData = {
+                goal_description: document.getElementById('goal-description').value,
+                priority: document.getElementById('goal-priority').value,
+                agent_group_id: document.getElementById('agent-group').value,
+                consensus_level: document.getElementById('consensus-level').value,
+                context: document.getElementById('session-context').value
+            };
+
+            fetch('/api/planning/sessions/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Planning session created successfully!');
+                    document.getElementById('create-session-form').reset();
+                    loadPlanningCanvas();
+                } else {
+                    alert('Error creating planning session: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error creating planning session:', error);
+                alert('Error creating planning session');
+            });
+        }
+
+        function loadPlanningCanvas() {
+            fetch('/api/planning/sessions')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        currentSessions = data.data;
+                        displayPlanningNodes();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading planning canvas:', error);
+                });
+        }
+
+        function displayPlanningNodes() {
+            const container = document.getElementById('planning-nodes-container');
+            
+            if (currentSessions.length === 0) {
+                container.innerHTML = '<div class="text-center text-white">No active planning sessions</div>';
+                return;
+            }
+
+            container.innerHTML = currentSessions.map(session => `
+                <div class="planning-node ${session.status.toLowerCase()}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="mb-1">${session.goal_description}</h6>
+                            <span class="priority-indicator priority-${session.priority}"></span>
+                            <span class="status-badge status-${session.status.toLowerCase()}">${session.status}</span>
+                        </div>
+                        <small class="text-muted">${new Date(session.created_at).toLocaleString()}</small>
+                    </div>
+                    <div class="mb-2">
+                        <p class="mb-1">Consensus: ${session.consensus_level}</p>
+                        <p class="mb-1">Agents: ${session.agent_count}</p>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Session ID: ${session.session_id}</small>
+                        <div>
+                            <button class="btn btn-sm btn-outline-light" onclick="viewSessionDetails('${session.session_id}')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadConflictMonitor() {
+            fetch('/api/planning/conflicts')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        currentConflicts = data.data;
+                        displayConflicts();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading conflicts:', error);
+                });
+        }
+
+        function displayConflicts() {
+            const container = document.getElementById('conflicts-container');
+            
+            if (currentConflicts.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted"><i class="fas fa-check-circle"></i> No active conflicts detected</div>';
+                return;
+            }
+
+            container.innerHTML = currentConflicts.map(conflict => `
+                <div class="alert alert-danger">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="alert-heading">${conflict.conflict_type}</h6>
+                            <p class="mb-1">${conflict.description}</p>
+                            <small>Session: ${conflict.session_id}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="resolveConflict('${conflict.conflict_id}')">
+                            <i class="fas fa-wrench"></i> Resolve
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadConsensusViewer() {
+            fetch('/api/planning/consensus/logs')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        currentConsensus = data.data;
+                        displayConsensus();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading consensus:', error);
+                });
+        }
+
+        function displayConsensus() {
+            const container = document.getElementById('consensus-container');
+            
+            if (currentConsensus.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Loading consensus data...</div>';
+                return;
+            }
+
+            container.innerHTML = currentConsensus.map(consensus => `
+                <div class="alert alert-success">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="alert-heading">Consensus Achieved</h6>
+                            <p class="mb-1">${consensus.description}</p>
+                            <small>Level: ${consensus.consensus_level}</small>
+                        </div>
+                        <small class="text-muted">${new Date(consensus.timestamp).toLocaleString()}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadTrustScoreboard() {
+            fetch('/api/planning/agents/trust-scores')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        currentTrustScores = data.data;
+                        displayTrustScores();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading trust scores:', error);
+                });
+        }
+
+        function displayTrustScores() {
+            const container = document.getElementById('trust-scores-container');
+            
+            if (currentTrustScores.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Loading trust scores...</div>';
+                return;
+            }
+
+            container.innerHTML = currentTrustScores.map(agent => `
+                <div class="agent-card ${agent.role.toLowerCase()}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${agent.agent_id}</h6>
+                            <span class="badge bg-secondary">${agent.role}</span>
+                        </div>
+                        <div class="text-end">
+                            <div class="h5 mb-0">${(agent.trust_score * 100).toFixed(1)}%</div>
+                            <small class="text-muted">Trust Score</small>
+                        </div>
+                    </div>
+                    <div class="progress mt-2" style="height: 8px;">
+                        <div class="progress-bar" style="width: ${agent.trust_score * 100}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadNegotiationTimeline() {
+            fetch('/api/planning/negotiations/history')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        currentNegotiations = data.data;
+                        displayNegotiationTimeline();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading negotiation timeline:', error);
+                });
+        }
+
+        function displayNegotiationTimeline() {
+            const container = document.getElementById('negotiation-timeline-container');
+            
+            if (currentNegotiations.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted"><i class="fas fa-history"></i> No negotiation history available</div>';
+                return;
+            }
+
+            container.innerHTML = currentNegotiations.map(negotiation => `
+                <div class="timeline-item ${negotiation.type.toLowerCase()}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">${negotiation.title}</h6>
+                            <p class="mb-1">${negotiation.description}</p>
+                            <small>Session: ${negotiation.session_id}</small>
+                        </div>
+                        <small class="text-muted">${new Date(negotiation.timestamp).toLocaleString()}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function pauseSession() {
+            const sessionId = document.getElementById('active-session-select').value;
+            if (!sessionId) {
+                alert('Please select a session to pause');
+                return;
+            }
+
+            fetch(`/api/planning/sessions/${sessionId}/pause`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Session paused successfully');
+                        loadPlanningCanvas();
+                    } else {
+                        alert('Error pausing session: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error pausing session:', error);
+                    alert('Error pausing session');
+                });
+        }
+
+        function resumeSession() {
+            const sessionId = document.getElementById('active-session-select').value;
+            if (!sessionId) {
+                alert('Please select a session to resume');
+                return;
+            }
+
+            fetch(`/api/planning/sessions/${sessionId}/resume`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Session resumed successfully');
+                        loadPlanningCanvas();
+                    } else {
+                        alert('Error resuming session: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error resuming session:', error);
+                    alert('Error resuming session');
+                });
+        }
+
+        function forceConsensus() {
+            const sessionId = document.getElementById('active-session-select').value;
+            if (!sessionId) {
+                alert('Please select a session to force consensus');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to force consensus? This may override agent decisions.')) {
+                return;
+            }
+
+            fetch(`/api/planning/sessions/${sessionId}/force-consensus`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Consensus forced successfully');
+                        loadConsensusViewer();
+                    } else {
+                        alert('Error forcing consensus: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error forcing consensus:', error);
+                    alert('Error forcing consensus');
+                });
+        }
+
+        function arbitrateConflict() {
+            const sessionId = document.getElementById('active-session-select').value;
+            if (!sessionId) {
+                alert('Please select a session to arbitrate');
+                return;
+            }
+
+            fetch(`/api/planning/sessions/${sessionId}/arbitrate`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Conflict arbitrated successfully');
+                        loadConflictMonitor();
+                    } else {
+                        alert('Error arbitrating conflict: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error arbitrating conflict:', error);
+                    alert('Error arbitrating conflict');
+                });
+        }
+
+        function viewSessionDetails(sessionId) {
+            // This would open a modal or navigate to a detailed view
+            alert(`Viewing details for session: ${sessionId}`);
+        }
+
+        function resolveConflict(conflictId) {
+            if (!confirm('Are you sure you want to resolve this conflict?')) {
+                return;
+            }
+
+            fetch(`/api/planning/conflicts/${conflictId}/resolve`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Conflict resolved successfully');
+                        loadConflictMonitor();
+                    } else {
+                        alert('Error resolving conflict: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error resolving conflict:', error);
+                    alert('Error resolving conflict');
+                });
+        }
+
+        function startRealTimeUpdates() {
+            // Update data every 30 seconds
+            updateInterval = setInterval(() => {
+                loadPlanningMetrics();
+                
+                // Update current tab
+                const activeTab = document.querySelector('.nav-link.active');
+                if (activeTab) {
+                    const tabId = activeTab.id;
+                    if (tabId === 'planning-canvas-tab') loadPlanningCanvas();
+                    else if (tabId === 'conflict-monitor-tab') loadConflictMonitor();
+                    else if (tabId === 'consensus-viewer-tab') loadConsensusViewer();
+                    else if (tabId === 'trust-scoreboard-tab') loadTrustScoreboard();
+                    else if (tabId === 'negotiation-timeline-tab') loadNegotiationTimeline();
+                }
+            }, 30000);
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        });
+    </script>
+</body>
+</html>

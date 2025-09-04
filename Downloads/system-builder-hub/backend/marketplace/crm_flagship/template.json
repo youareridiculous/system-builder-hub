@@ -1,0 +1,26 @@
+{
+  "id": "crm_flagship",
+  "name": "CRM Flagship",
+  "description": "Production-grade CRM starter: accounts, contacts, deals, pipelines, activities, and permissions.",
+  "category": "Business Apps",
+  "tags": ["crm", "sales", "contacts", "deals", "pipelines"],
+  "complexity": "advanced",
+  "version": "1.0.0",
+  "modules": [
+    {"key": "accounts", "name": "Accounts", "desc": "Companies and organizations"},
+    {"key": "contacts", "name": "Contacts", "desc": "People linked to accounts"},
+    {"key": "deals", "name": "Deals", "desc": "Opportunities tracked through a pipeline"},
+    {"key": "pipelines", "name": "Pipelines", "desc": "Stages and Kanban views"},
+    {"key": "activities", "name": "Activities", "desc": "Tasks, notes, calls, meetings"},
+    {"key": "permissions", "name": "Permissions", "desc": "Roles and access control"}
+  ],
+  "llm_recommendations": {
+    "default_prompt": "Scaffold a CRM with Accounts, Contacts, Deals, Pipelines (Kanban), Activities, and role-based Permissions. Include list/detail pages and simple filters.",
+    "models": ["gpt-4o-mini", "gpt-4o", "o1-mini", "claude-3.5-sonnet"]
+  },
+  "ui": {
+    "icon": "building-2",
+    "accent": "#2563eb",
+    "cta": "Launch CRM"
+  }
+}

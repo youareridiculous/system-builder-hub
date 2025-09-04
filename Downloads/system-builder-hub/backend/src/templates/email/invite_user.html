@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You're Invited to Join CRM/Ops</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #3B82F6; color: white; padding: 30px; text-align: center; }
+        .content { padding: 30px; background: white; }
+        .button { display: inline-block; padding: 12px 24px; background: #3B82F6; color: white; text-decoration: none; border-radius: 6px; }
+        .footer { padding: 20px; text-align: center; color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>You're Invited!</h1>
+        </div>
+        <div class="content">
+            <h2>Hi there,</h2>
+            <p>{{ inviter_name }} has invited you to join their CRM/Ops workspace at <strong>{{ company_name }}</strong>.</p>
+            
+            <p>You'll be joining as a <strong>{{ role }}</strong> with the following permissions:</p>
+            <ul>
+                {% if role == 'admin' %}
+                    <li>Full access to all features and settings</li>
+                    <li>Can manage users and subscriptions</li>
+                    <li>Can view and edit all data</li>
+                {% elif role == 'member' %}
+                    <li>Can create and edit contacts, deals, and tasks</li>
+                    <li>Can view most data and analytics</li>
+                    <li>Can participate in team messaging</li>
+                {% else %}
+                    <li>Read-only access to basic information</li>
+                    <li>Can view contacts and deals</li>
+                {% endif %}
+            </ul>
+            
+            <p style="text-align: center; margin: 30px 0;">
+                <a href="{{ invite_url }}" class="button">Accept Invitation</a>
+            </p>
+            
+            <p>This invitation will expire in 7 days. If you have any questions, please contact {{ inviter_name }}.</p>
+            
+            <p>Best regards,<br>The CRM/Ops Team</p>
+        </div>
+        <div class="footer">
+            <p>This email was sent to {{ email }}. If you didn't expect this invitation, please ignore it.</p>
+        </div>
+    </div>
+</body>
+</html>

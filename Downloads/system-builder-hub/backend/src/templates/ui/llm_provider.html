@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Provider Setup - SBH</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: var(--bg-primary);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .status-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+        }
+
+        .status-dot.online {
+            background: var(--success);
+        }
+
+        .status-dot.offline {
+            background: var(--error);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            font-size: 1rem;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+        
+        <div class="header">
+            <h1>🤖 LLM Provider Setup</h1>
+            <p>Configure your LLM provider to enable guided features</p>
+        </div>
+
+        <div class="status-card">
+            <div class="status-indicator">
+                <span id="status-dot" class="status-dot"></span>
+                <span id="status-text">Checking LLM status...</span>
+            </div>
+            <div id="status-details"></div>
+        </div>
+
+        <div id="setup-form">
+            <h2>Configure Provider</h2>
+            
+            <div class="form-group">
+                <label for="provider">Provider:</label>
+                <select id="provider" class="form-control">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                    <option value="local">Local</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="api-key">API Key:</label>
+                <input type="password" id="api-key" class="form-control" placeholder="Enter your API key">
+            </div>
+
+            <div class="form-group">
+                <label for="model">Model (optional):</label>
+                <input type="text" id="model" class="form-control" placeholder="Auto-detected">
+            </div>
+
+            <div class="btn-group">
+                <button id="test-btn" class="btn btn-secondary">Test Connection</button>
+                <button id="save-btn" class="btn btn-primary">Save Configuration</button>
+            </div>
+        </div>
+
+        <div id="alerts"></div>
+    </div>
+
+    <script>
+        let llmStatus = { available: false };
+
+        async function checkLLMStatus() {
+            try {
+                const response = await fetch('/api/llm/provider/status');
+                llmStatus = await response.json();
+                updateStatusDisplay();
+            } catch (error) {
+                console.error('Failed to check LLM status:', error);
+                llmStatus = { available: false, error: 'Failed to check status' };
+                updateStatusDisplay();
+            }
+        }
+
+        function updateStatusDisplay() {
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            const statusDetails = document.getElementById('status-details');
+
+            if (llmStatus.available) {
+                statusDot.className = 'status-dot online';
+                statusText.textContent = `Connected to ${llmStatus.provider} (${llmStatus.model})`;
+                statusDetails.innerHTML = `
+                    <p><strong>Provider:</strong> ${llmStatus.provider}</p>
+                    <p><strong>Model:</strong> ${llmStatus.model}</p>
+                    <p><strong>Status:</strong> <span style="color: var(--success);">✓ Available</span></p>
+                `;
+            } else {
+                statusDot.className = 'status-dot offline';
+                statusText.textContent = 'Not configured';
+                statusDetails.innerHTML = `
+                    <p><strong>Status:</strong> <span style="color: var(--error);">✗ Not configured</span></p>
+                    <p>Configure an LLM provider to enable guided features.</p>
+                `;
+            }
+        }
+
+        async function testConnection() {
+            const testBtn = document.getElementById('test-btn');
+            testBtn.textContent = 'Testing...';
+            testBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/llm/test', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.ok) {
+                    showAlert('Connection successful! Latency: ' + result.latency_ms + 'ms', 'success');
+                } else {
+                    showAlert('Connection failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Test failed: ' + error.message, 'error');
+            } finally {
+                testBtn.textContent = 'Test Connection';
+                testBtn.disabled = false;
+            }
+        }
+
+        async function saveConfiguration() {
+            const provider = document.getElementById('provider').value;
+            const apiKey = document.getElementById('api-key').value;
+            const model = document.getElementById('model').value;
+
+            if (!apiKey) {
+                showAlert('Please enter an API key', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/llm/provider/configure', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, api_key: apiKey, default_model: model })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showAlert('Configuration saved successfully!', 'success');
+                    await checkLLMStatus();
+                } else {
+                    showAlert('Save failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Save failed: ' + error.message, 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alerts = document.getElementById('alerts');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alerts.appendChild(alert);
+
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Event listeners
+        document.getElementById('test-btn').addEventListener('click', testConnection);
+        document.getElementById('save-btn').addEventListener('click', saveConfiguration);
+
+        // Check status on page load
+        checkLLMStatus();
+    </script>
+</body>
+</html>

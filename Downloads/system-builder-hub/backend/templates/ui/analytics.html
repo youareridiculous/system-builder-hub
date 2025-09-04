@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .nav-tabs .nav-link {
+            color: #6c757d;
+        }
+        .nav-tabs .nav-link.active {
+            color: #495057;
+            font-weight: 500;
+        }
+        .kpi-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .kpi-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        .filter-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .events-table {
+            font-size: 0.9rem;
+        }
+        .props-cell {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/dashboard">
+                                <i class="bi bi-house"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/domains">
+                                <i class="bi bi-globe"></i> Custom Domains
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/integrations">
+                                <i class="bi bi-plug"></i> Integrations
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/ui/analytics">
+                                <i class="bi bi-graph-up"></i> Analytics
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/builder">
+                                <i class="bi bi-puzzle"></i> Visual Builder
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Analytics</h1>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="exportData()">
+                            <i class="bi bi-download"></i> Export CSV
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="refreshData()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filter-section">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="dateRange" class="form-label">Date Range</label>
+                            <select class="form-select" id="dateRange" onchange="updateFilters()">
+                                <option value="7">Last 7 days</option>
+                                <option value="30" selected>Last 30 days</option>
+                                <option value="90">Last 90 days</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="eventFilter" class="form-label">Event Type</label>
+                            <select class="form-select" id="eventFilter" onchange="updateFilters()">
+                                <option value="">All Events</option>
+                                <option value="auth.user.registered">User Registration</option>
+                                <option value="auth.user.login">User Login</option>
+                                <option value="builder.generate.completed">Build Completed</option>
+                                <option value="apikey.request">API Request</option>
+                                <option value="files.uploaded">File Upload</option>
+                                <option value="webhook.delivered">Webhook Delivered</option>
+                                <option value="email.sent">Email Sent</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="sourceFilter" class="form-label">Source</label>
+                            <select class="form-select" id="sourceFilter" onchange="updateFilters()">
+                                <option value="">All Sources</option>
+                                <option value="app">App</option>
+                                <option value="api">API</option>
+                                <option value="webhook">Webhook</option>
+                                <option value="builder">Builder</option>
+                                <option value="agent">Agent</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="metricSelect" class="form-label">Chart Metric</label>
+                            <select class="form-select" id="metricSelect" onchange="updateChart()">
+                                <option value="auth.user.login">User Logins</option>
+                                <option value="builder.generate.completed">Builds</option>
+                                <option value="apikey.request">API Requests</option>
+                                <option value="files.uploaded">File Uploads</option>
+                                <option value="webhook.delivered">Webhooks</option>
+                                <option value="email.sent">Emails</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="row" id="kpiCards">
+                    <div class="col-md-3">
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="kpiSignups">-</div>
+                            <div class="kpi-label">Signups (30d)</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="kpiLogins">-</div>
+                            <div class="kpi-label">Active Users (30d)</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="kpiBuilds">-</div>
+                            <div class="kpi-label">Builds (30d)</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="kpiApiRequests">-</div>
+                            <div class="kpi-label">API Requests (30d)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Usage Over Time</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="usageChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Events Table -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>Recent Events</h5>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" onclick="previousPage()">
+                                <i class="bi bi-chevron-left"></i> Previous
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="nextPage()">
+                                Next <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped events-table">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Event</th>
+                                        <th>Source</th>
+                                        <th>User</th>
+                                        <th>Properties</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="eventsTable">
+                                    <!-- Events will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div id="eventsLoading" class="loading-spinner text-center py-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        
+                        <div id="eventsEmpty" class="empty-state" style="display: none;">
+                            <i class="bi bi-graph-up" style="font-size: 3rem;"></i>
+                            <h4 class="mt-3">No Events Found</h4>
+                            <p>Try adjusting your filters or check back later.</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/analytics.js"></script>
+</body>
+</html>

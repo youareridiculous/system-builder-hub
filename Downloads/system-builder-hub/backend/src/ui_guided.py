@@ -1,0 +1,250 @@
+"""
+Guided Prompt Hook - P47 integration
+"""
+import logging
+import json
+import uuid
+from datetime import datetime
+from typing import Dict, Any, Optional
+from flask import Blueprint, request, jsonify, current_app
+
+# Mock decorators for now
+def idempotent():
+    def decorator(f):
+        return f
+    return decorator
+
+def cost_accounted(service, operation):
+    def decorator(f):
+        return f
+    return decorator
+
+def flag_required(flag):
+    def decorator(f):
+        return f
+    return decorator
+
+def require_auth(f):
+    return f
+
+def require_role(role):
+    def decorator(f):
+        return f
+    return decorator
+
+class MockTraceManager:
+    def fire_event(self, event, data):
+        pass
+
+trace_manager = MockTraceManager()
+
+logger = logging.getLogger(__name__)
+
+ui_guided_bp = Blueprint('ui_guided', __name__)
+
+# Mock data storage
+@ui_guided_bp.route('/api/guided/commit/<session_id>', methods=['POST'])
+@idempotent()
+@cost_accounted('guided', 'commit')
+@require_auth
+def commit_guided_session(session_id):
+    try:
+        session = current_app.guided_sessions.get(session_id)
+        if not session:
+            return jsonify({'error': 'Guided session not found'}), 404
+        
+        data = request.get_json() or {}
+        project_id = data.get('project_id')
+        
+        if not project_id:
+            return jsonify({'error': 'Project ID required'}), 400
+        
+        # Mark session as committed
+        session['committed'] = True
+        session['committed_at'] = datetime.utcnow().isoformat()
+        session['project_id'] = project_id
+        
+        # Generate blueprint from guided session
+        blueprint = generateBlueprintFromSession(session)
+        
+        # Update builder state
+        if not hasattr(current_app, 'builder_states'):
+            current_app.builder_states = {}
+        
+        current_app.builder_states[project_id] = {
+            'blueprint': blueprint,
+            'canvas': generateCanvasFromBlueprint(blueprint),
+            'modules': [],
+            'version': 1,
+            'guided_session_id': session_id,
+            'last_saved': datetime.utcnow().isoformat()
+        }
+        
+        # Fire telemetry event
+        trace_manager.fire_event('guided_session_committed', {
+            'session_id': session_id,
+            'project_id': project_id,
+            'blueprint_size': len(str(blueprint))
+        })
+        
+        return jsonify({
+            'session_id': session_id,
+            'project_id': project_id,
+            'success': True
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to commit guided session: {e}")
+        return jsonify({'error': 'Failed to commit guided session'}), 500
+
+def generateBlueprintFromSession(session):
+    """Generate blueprint from guided session"""
+    # This would integrate with P47 to generate a proper blueprint
+    # For now, create a simple blueprint based on session data
+    
+    prompt = session.get('initial_prompt', '')
+    
+    # Simple heuristic to determine system type
+    if 'api' in prompt.lower() or 'rest' in prompt.lower():
+        return {
+            'type': 'api',
+            'entities': [
+                {
+                    'name': 'Resource',
+                    'fields': [
+                        {'name': 'id', 'type': 'uuid', 'primary': True},
+                        {'name': 'name', 'type': 'string', 'required': True},
+                        {'name': 'created_at', 'type': 'datetime'}
+                    ]
+                }
+            ],
+            'endpoints': [
+                {
+                    'path': '/api/resources',
+                    'method': 'GET',
+                    'description': 'List all resources'
+                },
+                {
+                    'path': '/api/resources',
+                    'method': 'POST',
+                    'description': 'Create a new resource'
+                }
+            ]
+        }
+    elif 'dashboard' in prompt.lower() or 'ui' in prompt.lower():
+        return {
+            'type': 'dashboard',
+            'pages': [
+                {
+                    'name': 'Dashboard',
+                    'route': '/',
+                    'components': ['chart', 'table', 'stats']
+                }
+            ],
+            'data_sources': [
+                {
+                    'name': 'main_data',
+                    'type': 'database',
+                    'connection': 'default'
+                }
+            ]
+        }
+    else:
+        return {
+            'type': 'general',
+            'description': prompt,
+            'components': ['basic_ui', 'data_storage']
+        }
+
+def generateCanvasFromBlueprint(blueprint):
+    """Generate canvas layout from blueprint"""
+    canvas = []
+    
+    if blueprint.get('type') == 'api':
+        # Add REST API blocks
+        canvas.append({
+            'id': 1,
+            'type': 'rest-api',
+            'x': 100,
+            'y': 100,
+            'properties': {
+                'name': 'API Gateway',
+                'method': 'GET',
+                'path': '/api'
+            }
+        })
+        canvas.append({
+            'id': 2,
+            'type': 'db-table',
+            'x': 300,
+            'y': 100,
+            'properties': {
+                'name': 'Data Store',
+                'columns': ['id', 'name', 'created_at']
+            }
+        })
+    elif blueprint.get('type') == 'dashboard':
+        # Add UI blocks
+        canvas.append({
+            'id': 1,
+            'type': 'ui-page',
+            'x': 100,
+            'y': 100,
+            'properties': {
+                'name': 'Dashboard',
+                'route': '/'
+            }
+        })
+        canvas.append({
+            'id': 2,
+            'type': 'db-table',
+            'x': 300,
+            'y': 100,
+            'properties': {
+                'name': 'Data Source',
+                'columns': ['id', 'value', 'timestamp']
+            }
+        })
+    else:
+        # Generic layout
+        canvas.append({
+            'id': 1,
+            'type': 'ui-page',
+            'x': 100,
+            'y': 100,
+            'properties': {
+                'name': 'Main Page',
+                'route': '/'
+            }
+        })
+    
+    return canvas
+
+@ui_guided_bp.route('/api/guided/questions', methods=['GET'])
+@require_auth
+def get_guided_questions():
+    """Get guided questions (works without LLM)"""
+    try:
+        from llm_core import LLMAvailability, LLMStub
+        
+        llm_status = LLMAvailability.get_status()
+        if llm_status['available']:
+            # In real app, this would call the LLM
+            questions = [
+                "What type of system are you building?",
+                "What is the primary functionality?",
+                "Any specific requirements?"
+            ]
+        else:
+            # Use stub questions
+            questions = LLMStub.guided_questions()
+        
+        return jsonify({
+            'questions': questions,
+            'llm_available': llm_status['available'],
+            'stubbed': not llm_status['available']
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to get guided questions: {e}")
+        return jsonify({'error': 'Failed to get guided questions'}), 500

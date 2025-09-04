@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 Autonomous Builder - System Build Hub OS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            color: #333;
+        }
+
+        .loops-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-top: 30px;
+        }
+
+        .loops-section h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .loop-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s ease;
+        }
+
+        .loop-card:hover {
+            transform: translateX(5px);
+        }
+
+        .loop-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .loop-title {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .loop-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-running {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-paused {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-completed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-stopped {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .loop-progress {
+            margin-bottom: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .loop-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .detail-item {
+            text-align: center;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .loop-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 0.8rem;
+        }
+
+        .goal-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .goal-title {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .goal-priority {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+        }
+
+        .goal-description {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .goal-criteria {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .status {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .nav-back {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #667eea;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .nav-back:hover {
+            background: white;
+        }
+
+        .add-goal-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .goal-form {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px dashed #667eea;
+        }
+
+        .goal-form.hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            .loop-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="nav-back">← Back to Dashboard</a>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Autonomous Builder</h1>
+            <p>Continuous build loops with goal-driven development and checkpoint management</p>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <h3>🚀 Start New Loop</h3>
+                <form id="startLoopForm">
+                    <div class="form-group">
+                        <label for="systemId">System ID</label>
+                        <input type="text" id="systemId" placeholder="system-abc123" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="maxIterations">Max Iterations</label>
+                        <input type="number" id="maxIterations" value="100" min="1" max="1000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="checkpointInterval">Checkpoint Interval</label>
+                        <input type="number" id="checkpointInterval" value="10" min="1" max="100">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="autoPauseOnError" checked>
+                            Auto-pause on error
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableRollback" checked>
+                            Enable rollback
+                        </label>
+                    </div>
+                    
+                    <h4 style="margin: 20px 0 15px 0; color: #667eea;">Goals</h4>
+                    <div id="goalsContainer">
+                        <!-- Goals will be added here -->
+                    </div>
+                    
+                    <button type="button" class="add-goal-btn" onclick="addGoalForm()">+ Add Goal</button>
+                    
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">Start Autonomous Build</button>
+                </form>
+                
+                <div class="loading" id="startLoading">
+                    <div class="spinner"></div>
+                    <p>Starting autonomous build...</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>⚙️ Loop Configuration</h3>
+                <div class="form-group">
+                    <label for="configSystemId">System ID</label>
+                    <input type="text" id="configSystemId" placeholder="system-abc123">
+                </div>
+                
+                <div class="form-group">
+                    <label for="configLoopId">Loop ID</label>
+                    <input type="text" id="configLoopId" placeholder="loop-abc123">
+                </div>
+                
+                <div class="form-group">
+                    <label for="configAction">Action</label>
+                    <select id="configAction">
+                        <option value="pause">Pause Loop</option>
+                        <option value="resume">Resume Loop</option>
+                        <option value="stop">Stop Loop</option>
+                        <option value="checkpoint">Create Checkpoint</option>
+                        <option value="status">Get Status</option>
+                    </select>
+                </div>
+                
+                <button type="button" class="btn" onclick="executeConfigAction()">Execute Action</button>
+                
+                <div class="loading" id="configLoading">
+                    <div class="spinner"></div>
+                    <p>Executing action...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="loops-section">
+            <h3>🔄 Active Loops</h3>
+            <div id="loopsContainer">
+                <!-- Active loops will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let goalCounter = 0;
+
+        // Start loop form handling
+        document.getElementById('startLoopForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const systemId = document.getElementById('systemId').value;
+            const maxIterations = parseInt(document.getElementById('maxIterations').value);
+            const checkpointInterval = parseInt(document.getElementById('checkpointInterval').value);
+            const autoPauseOnError = document.getElementById('autoPauseOnError').checked;
+            const enableRollback = document.getElementById('enableRollback').checked;
+            
+            // Collect goals
+            const goals = [];
+            const goalForms = document.querySelectorAll('.goal-form');
+            goalForms.forEach(form => {
+                const goalType = form.querySelector('.goal-type').value;
+                const description = form.querySelector('.goal-description').value;
+                const priority = parseInt(form.querySelector('.goal-priority').value);
+                const criteria = form.querySelector('.goal-criteria').value.split(',').map(c => c.trim()).filter(c => c);
+                
+                if (description) {
+                    goals.push({
+                        type: goalType,
+                        description: description,
+                        priority: priority,
+                        success_criteria: criteria
+                    });
+                }
+            });
+            
+            if (goals.length === 0) {
+                showStatus('error', 'At least one goal is required');
+                return;
+            }
+            
+            const loading = document.getElementById('startLoading');
+            loading.style.display = 'block';
+            
+            try {
+                const config = {
+                    max_iterations: maxIterations,
+                    checkpoint_interval: checkpointInterval,
+                    auto_pause_on_error: autoPauseOnError,
+                    enable_rollback: enableRollback
+                };
+                
+                const response = await fetch('/api/autonomous/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        system_id: systemId,
+                        goals: goals,
+                        config: config
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus('success', `Autonomous build started! Loop ID: ${data.loop_id}`);
+                    document.getElementById('startLoopForm').reset();
+                    clearGoals();
+                    loadActiveLoops();
+                } else {
+                    showStatus('error', `Failed to start loop: ${data.error}`);
+                }
+            } catch (error) {
+                showStatus('error', `Network error: ${error.message}`);
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        // Configuration action handling
+        async function executeConfigAction() {
+            const systemId = document.getElementById('configSystemId').value;
+            const loopId = document.getElementById('configLoopId').value;
+            const action = document.getElementById('configAction').value;
+            
+            if (!loopId) {
+                showStatus('error', 'Loop ID is required');
+                return;
+            }
+            
+            const loading = document.getElementById('configLoading');
+            loading.style.display = 'block';
+            
+            try {
+                let response;
+                
+                switch (action) {
+                    case 'pause':
+                        response = await fetch(`/api/autonomous/pause/${loopId}`, { method: 'POST' });
+                        break;
+                    case 'resume':
+                        response = await fetch(`/api/autonomous/resume/${loopId}`, { method: 'POST' });
+                        break;
+                    case 'stop':
+                        response = await fetch(`/api/autonomous/stop/${loopId}`, { method: 'POST' });
+                        break;
+                    case 'checkpoint':
+                        response = await fetch(`/api/autonomous/checkpoint/${loopId}`, { method: 'POST' });
+                        break;
+                    case 'status':
+                        response = await fetch(`/api/autonomous/status/${loopId}`);
+                        break;
+                }
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (action === 'status') {
+                        displayLoopStatus(data);
+                    } else {
+                        showStatus('success', `Action executed successfully: ${action}`);
+                        loadActiveLoops();
+                    }
+                } else {
+                    showStatus('error', `Action failed: ${data.error}`);
+                }
+            } catch (error) {
+                showStatus('error', `Network error: ${error.message}`);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // Goal management
+        function addGoalForm() {
+            goalCounter++;
+            const goalsContainer = document.getElementById('goalsContainer');
+            
+            const goalForm = document.createElement('div');
+            goalForm.className = 'goal-form';
+            goalForm.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h5 style="color: #667eea; margin: 0;">Goal ${goalCounter}</h5>
+                    <button type="button" onclick="removeGoal(this)" style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">×</button>
+                </div>
+                <div class="form-group">
+                    <label>Goal Type</label>
+                    <select class="goal-type">
+                        <option value="completion">Completion</option>
+                        <option value="optimization">Optimization</option>
+                        <option value="feature_addition">Feature Addition</option>
+                        <option value="bug_fix">Bug Fix</option>
+                        <option value="refactoring">Refactoring</option>
+                        <option value="deployment">Deployment</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea class="goal-description" rows="2" placeholder="Describe the goal..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Priority (1-10)</label>
+                    <input type="number" class="goal-priority" value="5" min="1" max="10">
+                </div>
+                <div class="form-group">
+                    <label>Success Criteria (comma-separated)</label>
+                    <input type="text" class="goal-criteria" placeholder="tests pass, deployment ready, etc.">
+                </div>
+            `;
+            
+            goalsContainer.appendChild(goalForm);
+        }
+
+        function removeGoal(button) {
+            button.closest('.goal-form').remove();
+        }
+
+        function clearGoals() {
+            document.getElementById('goalsContainer').innerHTML = '';
+            goalCounter = 0;
+        }
+
+        // Load active loops
+        async function loadActiveLoops() {
+            try {
+                const response = await fetch('/api/autonomous/status');
+                const data = await response.json();
+                
+                const container = document.getElementById('loopsContainer');
+                container.innerHTML = '';
+                
+                if (data.loops && data.loops.length > 0) {
+                    data.loops.forEach(loop => {
+                        container.appendChild(createLoopCard(loop));
+                    });
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No active loops found</p>';
+                }
+            } catch (error) {
+                console.error('Failed to load active loops:', error);
+            }
+        }
+
+        function createLoopCard(loop) {
+            const card = document.createElement('div');
+            card.className = 'loop-card';
+            
+            const progressPercent = (loop.goals_completed / loop.total_goals) * 100;
+            
+            card.innerHTML = `
+                <div class="loop-header">
+                    <div class="loop-title">Loop ${loop.loop_id}</div>
+                    <div class="loop-status status-${loop.status}">${loop.status}</div>
+                </div>
+                
+                <div class="loop-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                    </div>
+                    <div class="progress-text">${loop.goals_completed}/${loop.total_goals} goals completed</div>
+                </div>
+                
+                <div class="loop-details">
+                    <div class="detail-item">
+                        <div class="detail-label">System</div>
+                        <div class="detail-value">${loop.system_id}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Iteration</div>
+                        <div class="detail-value">${loop.current_iteration}/${loop.total_iterations}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Started</div>
+                        <div class="detail-value">${new Date(loop.start_time).toLocaleDateString()}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Checkpoints</div>
+                        <div class="detail-value">${loop.checkpoints.length}</div>
+                    </div>
+                </div>
+                
+                <div class="loop-actions">
+                    ${loop.status === 'running' ? 
+                        `<button class="btn btn-warning btn-small" onclick="pauseLoop('${loop.loop_id}')">Pause</button>` : 
+                        `<button class="btn btn-success btn-small" onclick="resumeLoop('${loop.loop_id}')">Resume</button>`
+                    }
+                    <button class="btn btn-danger btn-small" onclick="stopLoop('${loop.loop_id}')">Stop</button>
+                    <button class="btn btn-small" onclick="createCheckpoint('${loop.loop_id}')">Checkpoint</button>
+                    <button class="btn btn-small" onclick="getLoopStatus('${loop.loop_id}')">Status</button>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Loop control functions
+        async function pauseLoop(loopId) {
+            await executeLoopAction(loopId, 'pause');
+        }
+
+        async function resumeLoop(loopId) {
+            await executeLoopAction(loopId, 'resume');
+        }
+
+        async function stopLoop(loopId) {
+            if (confirm('Are you sure you want to stop this loop?')) {
+                await executeLoopAction(loopId, 'stop');
+            }
+        }
+
+        async function createCheckpoint(loopId) {
+            await executeLoopAction(loopId, 'checkpoint');
+        }
+
+        async function getLoopStatus(loopId) {
+            try {
+                const response = await fetch(`/api/autonomous/status/${loopId}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayLoopStatus(data);
+                } else {
+                    showStatus('error', `Failed to get status: ${data.error}`);
+                }
+            } catch (error) {
+                showStatus('error', `Network error: ${error.message}`);
+            }
+        }
+
+        async function executeLoopAction(loopId, action) {
+            try {
+                let response;
+                
+                switch (action) {
+                    case 'pause':
+                        response = await fetch(`/api/autonomous/pause/${loopId}`, { method: 'POST' });
+                        break;
+                    case 'resume':
+                        response = await fetch(`/api/autonomous/resume/${loopId}`, { method: 'POST' });
+                        break;
+                    case 'stop':
+                        response = await fetch(`/api/autonomous/stop/${loopId}`, { method: 'POST' });
+                        break;
+                    case 'checkpoint':
+                        response = await fetch(`/api/autonomous/checkpoint/${loopId}`, { method: 'POST' });
+                        break;
+                }
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus('success', `Loop ${action} successful`);
+                    loadActiveLoops();
+                } else {
+                    showStatus('error', `Failed to ${action} loop: ${data.error}`);
+                }
+            } catch (error) {
+                showStatus('error', `Network error: ${error.message}`);
+            }
+        }
+
+        function displayLoopStatus(status) {
+            const statusText = `
+Loop ID: ${status.loop_id}
+System ID: ${status.system_id}
+Status: ${status.status}
+Iteration: ${status.current_iteration}/${status.total_iterations}
+Goals Completed: ${status.goals_completed}/${status.total_goals}
+Start Time: ${new Date(status.start_time).toLocaleString()}
+Last Activity: ${new Date(status.last_activity).toLocaleString()}
+Checkpoints: ${status.checkpoints.length}
+            `;
+            
+            alert(statusText);
+        }
+
+        function showStatus(type, message) {
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            
+            // Insert at the top of the container
+            const container = document.querySelector('.container');
+            container.insertBefore(status, container.firstChild);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                status.remove();
+            }, 5000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadActiveLoops();
+            addGoalForm(); // Add initial goal form
+            
+            // Auto-refresh loops every 10 seconds
+            setInterval(loadActiveLoops, 10000);
+        });
+    </script>
+</body>
+</html>

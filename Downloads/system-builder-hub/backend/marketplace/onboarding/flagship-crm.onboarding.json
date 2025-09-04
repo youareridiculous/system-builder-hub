@@ -1,0 +1,211 @@
+{
+  "module": "flagship-crm",
+  "name": "Flagship CRM & Ops",
+  "version": "1.01",
+  "description": "Complete onboarding checklist for CRM setup and configuration",
+  "estimated_time": "30 minutes",
+  "steps": [
+    {
+      "id": "welcome",
+      "title": "Welcome to Flagship CRM",
+      "description": "Let's get your CRM up and running in just a few steps",
+      "type": "info",
+      "required": false,
+      "estimated_time": "2 minutes"
+    },
+    {
+      "id": "company_setup",
+      "title": "Set Up Your Company",
+      "description": "Configure your company information and basic settings",
+      "type": "form",
+      "required": true,
+      "estimated_time": "5 minutes",
+      "fields": [
+        {
+          "name": "company_name",
+          "label": "Company Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "Enter your company name"
+        },
+        {
+          "name": "industry",
+          "label": "Industry",
+          "type": "select",
+          "required": false,
+          "options": [
+            "Technology",
+            "Finance",
+            "Healthcare",
+            "Education",
+            "Manufacturing",
+            "Retail",
+            "Services",
+            "Other"
+          ]
+        },
+        {
+          "name": "company_size",
+          "label": "Company Size",
+          "type": "select",
+          "required": false,
+          "options": [
+            "1-10 employees",
+            "11-50 employees",
+            "51-200 employees",
+            "201-1000 employees",
+            "1000+ employees"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "import_contacts",
+      "title": "Import Your Contacts",
+      "description": "Bring your existing contacts into the CRM",
+      "type": "action",
+      "required": false,
+      "estimated_time": "10 minutes",
+      "actions": [
+        {
+          "name": "csv_import",
+          "label": "Import from CSV",
+          "description": "Upload a CSV file with your contacts",
+          "endpoint": "/api/contacts/import",
+          "method": "POST"
+        },
+        {
+          "name": "manual_add",
+          "label": "Add Manually",
+          "description": "Create contacts one by one",
+          "endpoint": "/api/contacts/",
+          "method": "POST"
+        },
+        {
+          "name": "skip",
+          "label": "Skip for Now",
+          "description": "I'll add contacts later"
+        }
+      ]
+    },
+    {
+      "id": "create_pipeline",
+      "title": "Set Up Your Sales Pipeline",
+      "description": "Configure your deal stages and sales process",
+      "type": "action",
+      "required": true,
+      "estimated_time": "8 minutes",
+      "actions": [
+        {
+          "name": "use_template",
+          "label": "Use Template",
+          "description": "Start with a standard sales pipeline",
+          "endpoint": "/api/deals/pipeline/template",
+          "method": "POST"
+        },
+        {
+          "name": "custom_pipeline",
+          "label": "Create Custom",
+          "description": "Build your own pipeline stages",
+          "endpoint": "/api/deals/pipeline/custom",
+          "method": "POST"
+        }
+      ]
+    },
+    {
+      "id": "invite_team",
+      "title": "Invite Your Team",
+      "description": "Add team members to collaborate in the CRM",
+      "type": "form",
+      "required": false,
+      "estimated_time": "5 minutes",
+      "fields": [
+        {
+          "name": "team_emails",
+          "label": "Team Member Emails",
+          "type": "email_list",
+          "required": false,
+          "placeholder": "Enter email addresses separated by commas",
+          "description": "We'll send invitations to join your CRM"
+        }
+      ]
+    },
+    {
+      "id": "create_first_deal",
+      "title": "Create Your First Deal",
+      "description": "Set up your first deal in the pipeline",
+      "type": "action",
+      "required": false,
+      "estimated_time": "5 minutes",
+      "actions": [
+        {
+          "name": "create_deal",
+          "label": "Create Deal",
+          "description": "Add a new deal to your pipeline",
+          "endpoint": "/api/deals/",
+          "method": "POST"
+        },
+        {
+          "name": "skip",
+          "label": "Skip for Now",
+          "description": "I'll create deals later"
+        }
+      ]
+    },
+    {
+      "id": "configure_integrations",
+      "title": "Set Up Integrations",
+      "description": "Connect your CRM with other tools you use",
+      "type": "action",
+      "required": false,
+      "estimated_time": "10 minutes",
+      "actions": [
+        {
+          "name": "email_integration",
+          "label": "Email Integration",
+          "description": "Connect your email provider",
+          "endpoint": "/api/integrations/email",
+          "method": "POST"
+        },
+        {
+          "name": "calendar_integration",
+          "label": "Calendar Integration",
+          "description": "Sync with your calendar",
+          "endpoint": "/api/integrations/calendar",
+          "method": "POST"
+        },
+        {
+          "name": "skip",
+          "label": "Skip for Now",
+          "description": "I'll set up integrations later"
+        }
+      ]
+    },
+    {
+      "id": "complete",
+      "title": "You're All Set!",
+      "description": "Your CRM is ready to use. Start managing your contacts and deals!",
+      "type": "completion",
+      "required": false,
+      "estimated_time": "1 minute",
+      "next_steps": [
+        "Explore the dashboard",
+        "Add more contacts",
+        "Create your first deal",
+        "Set up automations",
+        "Configure reports"
+      ]
+    }
+  ],
+  "tips": [
+    "Take your time with the pipeline setup - it's the foundation of your sales process",
+    "Start with a few key contacts and grow from there",
+    "Use the template pipeline to get started quickly",
+    "You can always modify settings later in the admin panel"
+  ],
+  "support": {
+    "documentation": "/ui/docs/crm/onboarding",
+    "video_tutorial": "https://example.com/crm-onboarding-video",
+    "contact": "support@sbh.com"
+  }
+}

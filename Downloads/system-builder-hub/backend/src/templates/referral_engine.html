@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Referral Engine - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .referral-card {
+            border-left: 4px solid #007bff;
+            transition: transform 0.2s;
+        }
+        .referral-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .tier-bronze { border-left-color: #cd7f32; }
+        .tier-silver { border-left-color: #c0c0c0; }
+        .tier-gold { border-left-color: #ffd700; }
+        .tier-platinum { border-left-color: #e5e4e2; }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .stats-card-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        .stats-card-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .stats-card-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .leaderboard-item {
+            border-left: 4px solid #007bff;
+            transition: all 0.2s;
+        }
+        .leaderboard-item:hover {
+            transform: translateX(5px);
+        }
+        .rank-1 { border-left-color: #ffd700; }
+        .rank-2 { border-left-color: #c0c0c0; }
+        .rank-3 { border-left-color: #cd7f32; }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform-origin: 50% 50%;
+        }
+        
+        .referral-code {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            border: 2px dashed #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-md-9">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-share-alt"></i> Referral Engine</h2>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="showDashboard()">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showCodes()">
+                            <i class="fas fa-code"></i> My Codes
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showReferrals()">
+                            <i class="fas fa-users"></i> Referrals
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showLeaderboard()">
+                            <i class="fas fa-trophy"></i> Leaderboard
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dashboard Interface -->
+                <div id="dashboard-interface">
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card stats-card">
+                                <div class="card-body text-center">
+                                    <h4 id="total-referrals">0</h4>
+                                    <small>Total Referrals</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-success">
+                                <div class="card-body text-center">
+                                    <h4 id="completed-referrals">0</h4>
+                                    <small>Completed</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-info">
+                                <div class="card-body text-center">
+                                    <h4 id="total-earned">$0</h4>
+                                    <small>Total Earned</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-warning">
+                                <div class="card-body text-center">
+                                    <h4 id="conversion-rate">0%</h4>
+                                    <small>Conversion Rate</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-plus"></i> Generate New Referral Code</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="referral-code-form">
+                                        <div class="mb-3">
+                                            <label for="reward-type" class="form-label">Reward Type</label>
+                                            <select class="form-select" id="reward-type" required>
+                                                <option value="discount">Discount</option>
+                                                <option value="commission">Commission</option>
+                                                <option value="credit">Platform Credit</option>
+                                                <option value="feature_access">Feature Access</option>
+                                                <option value="badge">Badge</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="reward-value" class="form-label">Reward Value</label>
+                                            <input type="number" class="form-control" id="reward-value" step="0.01" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="max-uses" class="form-label">Max Uses (-1 for unlimited)</label>
+                                            <input type="number" class="form-control" id="max-uses" value="-1">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="expires-days" class="form-label">Expires In (days)</label>
+                                            <input type="number" class="form-control" id="expires-days" value="365">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-magic"></i> Generate Code
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-line"></i> Your Performance</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <h6>Current Tier</h6>
+                                            <span class="badge bg-warning" id="current-tier">Bronze</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <h6>Rank Position</h6>
+                                            <span class="h4" id="rank-position">-</span>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <small class="text-muted">Active Referrals</small>
+                                            <div><strong id="active-referrals">0</strong></div>
+                                        </div>
+                                        <div class="col-4">
+                                            <small class="text-muted">Avg Value</small>
+                                            <div><strong id="avg-value">$0</strong></div>
+                                        </div>
+                                        <div class="col-4">
+                                            <small class="text-muted">Pending Payout</small>
+                                            <div><strong id="pending-payout">$0</strong></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-clock"></i> Recent Referral Activity</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="recent-activity">
+                                        <!-- Activity items will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Codes Interface -->
+                <div id="codes-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>My Referral Codes</h4>
+                        <button class="btn btn-primary" onclick="showDashboard()">
+                            <i class="fas fa-plus"></i> Generate New Code
+                        </button>
+                    </div>
+                    
+                    <div class="row" id="referral-codes-list">
+                        <!-- Referral code cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Referrals Interface -->
+                <div id="referrals-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>My Referrals</h4>
+                        <select class="form-select" id="referral-status-filter" style="width: auto;" onchange="filterReferrals()">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="completed">Completed</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row" id="referrals-list">
+                        <!-- Referral cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Leaderboard Interface -->
+                <div id="leaderboard-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Referral Leaderboard</h4>
+                        <button class="btn btn-outline-primary" onclick="refreshLeaderboard()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                    
+                    <div class="row" id="leaderboard-list">
+                        <!-- Leaderboard items will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cog"></i> Referral Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Tier Information -->
+                        <h6>Your Tier Benefits</h6>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Bronze (0-9)</span>
+                                <span>1.0x multiplier</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Silver (10-24)</span>
+                                <span>1.2x multiplier</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Gold (25-49)</span>
+                                <span>1.5x multiplier</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Platinum (50+)</span>
+                                <span>2.0x multiplier</span>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Quick Actions -->
+                        <h6>Quick Actions</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="requestPayout()">
+                                <i class="fas fa-money-bill"></i> Request Payout
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="exportReferralData()">
+                                <i class="fas fa-download"></i> Export Data
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="shareReferralLink()">
+                                <i class="fas fa-share"></i> Share Link
+                            </button>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Tips -->
+                        <h6>Pro Tips</h6>
+                        <div class="alert alert-info alert-sm">
+                            <small><i class="fas fa-lightbulb"></i> Share your referral code on social media for better reach</small>
+                        </div>
+                        <div class="alert alert-info alert-sm">
+                            <small><i class="fas fa-lightbulb"></i> Commission rewards scale with your tier level</small>
+                        </div>
+                        <div class="alert alert-info alert-sm">
+                            <small><i class="fas fa-lightbulb"></i> Track your referrals to optimize your strategy</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Referral Code Modal -->
+    <div class="modal fade" id="referralCodeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Referral Code Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Referral Code</label>
+                        <div class="referral-code" id="modal-referral-code"></div>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="copyReferralCode()">
+                            <i class="fas fa-copy"></i> Copy Code
+                        </button>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reward</label>
+                        <p id="modal-reward-description"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Usage</label>
+                        <p id="modal-usage-info"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Expires</label>
+                        <p id="modal-expires-info"></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="shareReferralCode()">
+                        <i class="fas fa-share"></i> Share
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentUserId = "user123"; // This would come from authentication
+        let currentOrganizationId = "org456"; // This would come from authentication
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadReferralStatistics();
+            loadUserAnalytics();
+            loadRecentActivity();
+            setupEventListeners();
+        });
+
+        // Interface Functions
+        function showDashboard() {
+            document.getElementById('dashboard-interface').style.display = 'block';
+            document.getElementById('codes-interface').style.display = 'none';
+            document.getElementById('referrals-interface').style.display = 'none';
+            document.getElementById('leaderboard-interface').style.display = 'none';
+        }
+
+        function showCodes() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('codes-interface').style.display = 'block';
+            document.getElementById('referrals-interface').style.display = 'none';
+            document.getElementById('leaderboard-interface').style.display = 'none';
+            loadReferralCodes();
+        }
+
+        function showReferrals() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('codes-interface').style.display = 'none';
+            document.getElementById('referrals-interface').style.display = 'block';
+            document.getElementById('leaderboard-interface').style.display = 'none';
+            loadReferrals();
+        }
+
+        function showLeaderboard() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('codes-interface').style.display = 'none';
+            document.getElementById('referrals-interface').style.display = 'none';
+            document.getElementById('leaderboard-interface').style.display = 'block';
+            loadLeaderboard();
+        }
+
+        // Statistics Functions
+        function loadReferralStatistics() {
+            fetch('/api/referral/statistics')
+            .then(response => response.json())
+            .then(stats => {
+                document.getElementById('total-referrals').textContent = stats.total_referrals;
+                document.getElementById('completed-referrals').textContent = stats.completed_referrals;
+                document.getElementById('total-earned').textContent = '$' + stats.total_reward_earned.toLocaleString();
+                document.getElementById('conversion-rate').textContent = stats.conversion_rate.toFixed(1) + '%';
+            })
+            .catch(error => console.error('Error loading referral statistics:', error));
+        }
+
+        function loadUserAnalytics() {
+            fetch(`/api/referral/analytics/${currentUserId}`)
+            .then(response => response.json())
+            .then(analytics => {
+                document.getElementById('current-tier').textContent = analytics.tier_level.replace('_', ' ').toUpperCase();
+                document.getElementById('rank-position').textContent = analytics.rank_position;
+                document.getElementById('active-referrals').textContent = analytics.active_referrals;
+                document.getElementById('avg-value').textContent = '$' + analytics.average_conversion_value.toFixed(2);
+                document.getElementById('pending-payout').textContent = '$' + (analytics.total_reward_earned - analytics.total_reward_paid).toFixed(2);
+            })
+            .catch(error => console.error('Error loading user analytics:', error));
+        }
+
+        function loadRecentActivity() {
+            // This would load recent referral activity
+            const activityContainer = document.getElementById('recent-activity');
+            activityContainer.innerHTML = `
+                <div class="alert alert-info">
+                    <small><i class="fas fa-info-circle"></i> Recent activity will be displayed here</small>
+                </div>
+            `;
+        }
+
+        // Referral Code Functions
+        function setupEventListeners() {
+            document.getElementById('referral-code-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                generateReferralCode();
+            });
+        }
+
+        function generateReferralCode() {
+            const formData = {
+                user_id: currentUserId,
+                organization_id: currentOrganizationId,
+                reward_type: document.getElementById('reward-type').value,
+                reward_value: parseFloat(document.getElementById('reward-value').value),
+                max_uses: parseInt(document.getElementById('max-uses').value),
+                expires_days: parseInt(document.getElementById('expires-days').value)
+            };
+
+            fetch('/api/referral/generate-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert('Referral code generated successfully!');
+                    document.getElementById('referral-code-form').reset();
+                    loadReferralCodes();
+                }
+            })
+            .catch(error => console.error('Error generating referral code:', error));
+        }
+
+        function loadReferralCodes() {
+            // This would load user's referral codes
+            const codesList = document.getElementById('referral-codes-list');
+            codesList.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Your referral codes will be displayed here
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadReferrals() {
+            // This would load user's referrals
+            const referralsList = document.getElementById('referrals-list');
+            referralsList.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Your referrals will be displayed here
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadLeaderboard() {
+            fetch('/api/referral/leaderboard?limit=20')
+            .then(response => response.json())
+            .then(leaderboard => {
+                const leaderboardList = document.getElementById('leaderboard-list');
+                leaderboardList.innerHTML = '';
+                
+                leaderboard.forEach((entry, index) => {
+                    const rankClass = index < 3 ? `rank-${index + 1}` : '';
+                    const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+                    
+                    const leaderboardItem = document.createElement('div');
+                    leaderboardItem.className = 'col-12 mb-3';
+                    leaderboardItem.innerHTML = `
+                        <div class="card leaderboard-item ${rankClass}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        <span class="h4 me-3">${rankIcon} ${entry.rank_position}</span>
+                                        <div>
+                                            <h6 class="mb-0">${entry.user_id}</h6>
+                                            <small class="text-muted">${entry.tier_level.replace('_', ' ')}</small>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="h5 mb-0">$${entry.total_reward_earned.toFixed(2)}</div>
+                                        <small class="text-muted">${entry.completed_referrals} referrals</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    leaderboardList.appendChild(leaderboardItem);
+                });
+            })
+            .catch(error => console.error('Error loading leaderboard:', error));
+        }
+
+        // Utility Functions
+        function filterReferrals() {
+            const statusFilter = document.getElementById('referral-status-filter').value;
+            // Implement referral filtering
+            console.log('Filtering by status:', statusFilter);
+        }
+
+        function refreshLeaderboard() {
+            loadLeaderboard();
+        }
+
+        function requestPayout() {
+            const amount = prompt('Enter payout amount:');
+            if (amount && !isNaN(amount)) {
+                // This would call the payout API
+                alert('Payout request submitted!');
+            }
+        }
+
+        function exportReferralData() {
+            // This would export referral data
+            alert('Export functionality would be implemented here');
+        }
+
+        function shareReferralLink() {
+            // This would share referral link
+            alert('Share functionality would be implemented here');
+        }
+
+        function copyReferralCode() {
+            const codeElement = document.getElementById('modal-referral-code');
+            const textArea = document.createElement('textarea');
+            textArea.value = codeElement.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Referral code copied to clipboard!');
+        }
+
+        function shareReferralCode() {
+            // This would implement sharing functionality
+            alert('Share functionality would be implemented here');
+        }
+    </script>
+</body>
+</html>

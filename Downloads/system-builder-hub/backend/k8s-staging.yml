@@ -1,0 +1,165 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sbh-revops_suite_staging
+  labels:
+    app: sbh
+    ecosystem: revops_suite
+    environment: staging
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: revops_suite_staging-config
+  namespace: sbh-revops_suite_staging
+data:
+  FLASK_ENV: staging
+  DEBUG: 'false'
+  DATABASE: /data/staging.db
+  LOG_LEVEL: INFO
+  FEATURE_CROSS_MODULE_SYNC: 'true'
+  FEATURE_UNIFIED_DASHBOARD: 'true'
+  FEATURE_ADVANCED_ANALYTICS: 'true'
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: revops_suite_staging-secrets
+  namespace: sbh-revops_suite_staging
+type: Opaque
+data:
+  secret-key: cGxhY2Vob2xkZXItY2hhbmdlLWluLXByb2R1Y3Rpb24=
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: sbh-revops_suite_staging
+  labels:
+    app: backend
+    ecosystem: revops_suite
+spec:
+  selector:
+    app: backend
+  ports:
+  - name: http-5001
+    port: 5001
+    targetPort: 5001
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: sbh-revops_suite_staging
+  labels:
+    app: backend
+    ecosystem: revops_suite
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: sbh-backend:staging
+        ports:
+        - containerPort: 5001
+        envFrom:
+        - configMapRef:
+            name: revops_suite_staging-config
+        resources:
+          requests:
+            memory: 128Mi
+            cpu: 100m
+          limits:
+            memory: 256Mi
+            cpu: 200m
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 5001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-deployment
+  namespace: sbh-revops_suite_staging
+  labels:
+    app: db
+    ecosystem: revops_suite
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - name: db
+        image: alpine:latest
+        ports: []
+        envFrom:
+        - configMapRef:
+            name: revops_suite_staging-config
+        resources:
+          requests:
+            memory: 128Mi
+            cpu: 100m
+          limits:
+            memory: 256Mi
+            cpu: 200m
+        command:
+        - tail
+        - -f
+        - /dev/null
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-deployment
+  namespace: sbh-revops_suite_staging
+  labels:
+    app: worker
+    ecosystem: revops_suite
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+      - name: worker
+        image: sbh-backend:staging
+        ports: []
+        envFrom:
+        - configMapRef:
+            name: revops_suite_staging-config
+        resources:
+          requests:
+            memory: 128Mi
+            cpu: 100m
+          limits:
+            memory: 256Mi
+            cpu: 200m
+        command:
+        - python
+        - -m
+        - src.cli
+        - worker
+---

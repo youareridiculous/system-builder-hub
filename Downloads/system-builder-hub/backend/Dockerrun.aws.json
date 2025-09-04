@@ -1,0 +1,23 @@
+{
+  "AWSEBDockerrunVersion": 2,
+  "containerDefinitions": [
+    {
+      "name": "sbh",
+      "image": "public.ecr.aws/____/sbh:latest",
+      "essential": true,
+      "memory": 1024,
+      "portMappings": [{ "containerPort": 5001, "hostPort": 5001 }],
+      "environment": [
+        { "name": "ENV", "value": "production" },
+        { "name": "PORT", "value": "5001" }
+      ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -fsS http://localhost:5001/healthz || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 30
+      }
+    }
+  ]
+}

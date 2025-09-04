@@ -1,0 +1,30 @@
+{
+  "slug": "test_project",
+  "name": "Test Project Management",
+  "description": "A test project management system for testing the Spec API",
+  "category": "productivity",
+  "tags": [
+    "test_project",
+    "productivity"
+  ],
+  "version": "1.0.0",
+  "author": "SBH Team",
+  "features": [
+    "projects",
+    "tasks",
+    "timeline"
+  ],
+  "plans": {
+    "Starter": {
+      "name": "Starter",
+      "price": 799,
+      "billing_cycle": "monthly",
+      "features": [
+        "Up to unlimited test_project items"
+      ]
+    }
+  },
+  "is_active": true,
+  "created_at": "2025-09-02T06:26:33.258025Z",
+  "updated_at": "2025-09-02T06:26:33.258027Z"
+}

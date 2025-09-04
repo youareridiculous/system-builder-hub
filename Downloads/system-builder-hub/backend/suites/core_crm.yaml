@@ -1,0 +1,260 @@
+name: "Core CRM"
+description: "Core CRM functionality evaluation suite with 20 golden cases covering contacts, deals, tasks, automations, and analytics."
+
+golden_cases:
+  - name: "Create Contact"
+    description: "Create a new contact with basic information"
+    prompt: "Create a contact for John Doe with email john@example.com and phone +1-555-0123"
+    sla_class: "normal"
+    assertions:
+      - name: "contact_created"
+        type: "contains"
+        expected: "John Doe"
+        description: "Contact name should be present"
+      - name: "email_present"
+        type: "contains"
+        expected: "john@example.com"
+        description: "Email should be present"
+      - name: "phone_present"
+        type: "contains"
+        expected: "+1-555-0123"
+        description: "Phone number should be present"
+
+  - name: "Create Deal"
+    description: "Create a new deal with value and stage"
+    prompt: "Create a deal titled 'Enterprise Contract' with value $50000 and stage 'negotiation'"
+    sla_class: "normal"
+    assertions:
+      - name: "deal_title"
+        type: "contains"
+        expected: "Enterprise Contract"
+        description: "Deal title should be present"
+      - name: "deal_value"
+        type: "contains"
+        expected: "50000"
+        description: "Deal value should be present"
+      - name: "deal_stage"
+        type: "contains"
+        expected: "negotiation"
+        description: "Deal stage should be present"
+
+  - name: "Create Task"
+    description: "Create a task with due date and priority"
+    prompt: "Create a task 'Follow up with client' due tomorrow with high priority"
+    sla_class: "normal"
+    assertions:
+      - name: "task_title"
+        type: "contains"
+        expected: "Follow up with client"
+        description: "Task title should be present"
+      - name: "task_priority"
+        type: "contains"
+        expected: "high"
+        description: "Task priority should be high"
+
+  - name: "Contact Validation"
+    description: "Validate contact data format"
+    prompt: "Validate contact data: name=Jane Smith, email=invalid-email, phone=123"
+    sla_class: "fast"
+    assertions:
+      - name: "validation_error"
+        type: "contains"
+        expected: "invalid"
+        description: "Should detect invalid email"
+
+  - name: "Deal Pipeline"
+    description: "Create deal in pipeline"
+    prompt: "Create a deal 'Software License' worth $25000 in the pipeline"
+    sla_class: "normal"
+    assertions:
+      - name: "deal_in_pipeline"
+        type: "contains"
+        expected: "Software License"
+        description: "Deal should be created"
+
+  - name: "Contact Search"
+    description: "Search for contacts"
+    prompt: "Search for contacts with email domain @acme.com"
+    sla_class: "fast"
+    assertions:
+      - name: "search_results"
+        type: "contains"
+        expected: "acme.com"
+        description: "Should find contacts with acme.com domain"
+
+  - name: "Deal Analytics"
+    description: "Calculate deal analytics"
+    prompt: "Calculate total value of deals in 'closed won' stage"
+    sla_class: "normal"
+    assertions:
+      - name: "analytics_calculated"
+        type: "contains"
+        expected: "total"
+        description: "Should calculate total value"
+
+  - name: "Task Assignment"
+    description: "Assign task to user"
+    prompt: "Assign task 'Review proposal' to user ID 123"
+    sla_class: "fast"
+    assertions:
+      - name: "task_assigned"
+        type: "contains"
+        expected: "Review proposal"
+        description: "Task should be assigned"
+
+  - name: "Contact Import"
+    description: "Import contacts from CSV"
+    prompt: "Import contacts from CSV file with headers: name,email,phone"
+    sla_class: "thorough"
+    assertions:
+      - name: "import_success"
+        type: "contains"
+        expected: "import"
+        description: "Should handle CSV import"
+
+  - name: "Deal Forecasting"
+    description: "Generate deal forecast"
+    prompt: "Generate 30-day sales forecast based on current pipeline"
+    sla_class: "normal"
+    assertions:
+      - name: "forecast_generated"
+        type: "contains"
+        expected: "forecast"
+        description: "Should generate forecast"
+
+  - name: "Contact Merge"
+    description: "Merge duplicate contacts"
+    prompt: "Merge duplicate contacts for john.doe@example.com"
+    sla_class: "normal"
+    assertions:
+      - name: "merge_success"
+        type: "contains"
+        expected: "merge"
+        description: "Should merge duplicates"
+
+  - name: "Deal Approval"
+    description: "Request deal approval"
+    prompt: "Request approval for deal 'Enterprise License' worth $100000"
+    sla_class: "normal"
+    assertions:
+      - name: "approval_requested"
+        type: "contains"
+        expected: "approval"
+        description: "Should request approval"
+
+  - name: "Task Automation"
+    description: "Create task automation"
+    prompt: "Create automation to create follow-up task when deal stage changes to 'proposal'"
+    sla_class: "thorough"
+    assertions:
+      - name: "automation_created"
+        type: "contains"
+        expected: "automation"
+        description: "Should create automation"
+
+  - name: "Contact Export"
+    description: "Export contacts to CSV"
+    prompt: "Export all contacts to CSV file"
+    sla_class: "normal"
+    assertions:
+      - name: "export_success"
+        type: "contains"
+        expected: "export"
+        description: "Should export contacts"
+
+  - name: "Deal Reporting"
+    description: "Generate deal report"
+    prompt: "Generate monthly deal report with win rate and average deal size"
+    sla_class: "normal"
+    assertions:
+      - name: "report_generated"
+        type: "contains"
+        expected: "report"
+        description: "Should generate report"
+
+  - name: "Contact Segmentation"
+    description: "Segment contacts by criteria"
+    prompt: "Segment contacts by industry and create lists for 'Technology' and 'Healthcare'"
+    sla_class: "normal"
+    assertions:
+      - name: "segmentation_success"
+        type: "contains"
+        expected: "segment"
+        description: "Should segment contacts"
+
+  - name: "Deal Scoring"
+    description: "Score deal probability"
+    prompt: "Calculate probability score for deal 'Consulting Project' based on engagement level"
+    sla_class: "fast"
+    assertions:
+      - name: "scoring_success"
+        type: "contains"
+        expected: "probability"
+        description: "Should calculate probability"
+
+  - name: "Task Dependencies"
+    description: "Create task dependencies"
+    prompt: "Create task 'Review contract' that depends on 'Legal approval' task"
+    sla_class: "normal"
+    assertions:
+      - name: "dependencies_created"
+        type: "contains"
+        expected: "depend"
+        description: "Should create dependencies"
+
+  - name: "Contact Activity"
+    description: "Track contact activity"
+    prompt: "Log activity 'Email sent' for contact john@example.com"
+    sla_class: "fast"
+    assertions:
+      - name: "activity_logged"
+        type: "contains"
+        expected: "activity"
+        description: "Should log activity"
+
+  - name: "Deal Integration"
+    description: "Integrate with external system"
+    prompt: "Sync deal 'Partnership Agreement' with accounting system"
+    sla_class: "thorough"
+    assertions:
+      - name: "integration_success"
+        type: "contains"
+        expected: "sync"
+        description: "Should sync with external system"
+
+  - name: "Contact Analytics"
+    description: "Analyze contact data"
+    prompt: "Analyze contact engagement patterns and identify high-value prospects"
+    sla_class: "normal"
+    assertions:
+      - name: "analytics_success"
+        type: "contains"
+        expected: "analyze"
+        description: "Should analyze contact data"
+
+kpi_guards:
+  - name: "pass_rate_minimum"
+    metric: "pass_rate"
+    threshold: 0.95
+    operator: ">="
+    description: "Minimum 95% pass rate required"
+    severity: "error"
+
+  - name: "p95_latency_max"
+    metric: "p95_latency_ms"
+    threshold: 5000
+    operator: "<="
+    description: "P95 latency should be under 5 seconds"
+    severity: "warning"
+
+  - name: "cost_per_case_max"
+    metric: "cost_per_case_usd"
+    threshold: 0.10
+    operator: "<="
+    description: "Cost per case should be under $0.10"
+    severity: "warning"
+
+metadata:
+  tags: ["crm", "core", "golden"]
+  priority: "high"
+  estimated_duration_minutes: 15

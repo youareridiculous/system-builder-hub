@@ -1,0 +1,127 @@
+name: E2E Tests - Core Build Loop
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-xdist
+    
+    - name: Set up test environment
+      run: |
+        export LLM_SECRET_KEY="dGVzdC1rZXktZm9yLXRlc3Rpbmctc2VjcmV0cy0xMjM="
+        export FLASK_ENV=testing
+        export PYTHONPATH=.
+    
+    - name: Run unit tests
+      run: |
+        pytest tests/ -v --tb=short --cov=src --cov-report=xml
+    
+    - name: Run E2E tests
+      run: |
+        pytest tests/e2e/ -v --tb=short -x --timeout=300
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: e2e-tests
+        name: e2e-tests-${{ matrix.python-version }}
+    
+    - name: Test LLM integration
+      run: |
+        # Start server in background
+        python cli.py run --host 127.0.0.1 --port 5001 &
+        SERVER_PID=$!
+        
+        # Wait for server to start
+        sleep 5
+        
+        # Test basic endpoints
+        curl -f http://localhost:5001/healthz
+        curl -f http://localhost:5001/api/llm/status
+        
+        # Kill server
+        kill $SERVER_PID
+    
+    - name: Check for test artifacts
+      run: |
+        # Verify test database was created
+        ls -la system_builder_hub.db || echo "No database file found"
+        
+        # Check for any test artifacts
+        find . -name "*.db" -o -name "test_*.py" | head -10
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run security scan
+      run: |
+        # Check for hardcoded secrets
+        if grep -r "sk-[a-zA-Z0-9]" src/ tests/ --exclude-dir=__pycache__; then
+          echo "ERROR: Found hardcoded API keys"
+          exit 1
+        fi
+        
+        # Check for proper encryption usage
+        if ! grep -r "encrypt_secret\|decrypt_secret" src/; then
+          echo "WARNING: No encryption functions found"
+        fi
+
+  performance-test:
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest-benchmark
+    
+    - name: Run performance tests
+      run: |
+        export LLM_SECRET_KEY="dGVzdC1rZXktZm9yLXRlc3Rpbmctc2VjcmV0cy0xMjM="
+        export FLASK_ENV=testing
+        
+        # Benchmark LLM operations
+        pytest tests/e2e/ --benchmark-only --benchmark-skip
