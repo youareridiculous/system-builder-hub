@@ -1,0 +1,63 @@
+from flask import Flask, jsonify, request
+from venture_os.service.entity_service import create_entity
+from venture_os.model.entity import EntityKind
+
+app = Flask(__name__)
+
+# Existing routes
+
+@app.route('/api/venture_os/entities', methods=['GET'])
+def list_entities():
+    # Implementation for listing entities
+    return jsonify({'items': []})
+
+
+def admin_required(f):
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        tenant_id = request.headers.get('X-Tenant-ID')
+        user = _user_from_request(tenant_id)
+        if user.role != 'admin':
+            return jsonify({'error': 'forbidden', 'code': 'forbidden'}), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/api/venture_os/entities', methods=['POST'])
+@admin_required
+def create_entity_route():
+    data = request.get_json() or {}
+    entity_id = data.get('id')
+    kind = data.get('kind')
+    name = data.get('name')
+    status = data.get('status')
+    metadata = data.get('metadata')
+
+    missing_fields = []
+    if not entity_id:
+        missing_fields.append('id')
+    if not kind:
+        missing_fields.append('kind')
+    if not name:
+        missing_fields.append('name')
+    if missing_fields:
+        return jsonify({'error': 'invalid', 'missing': missing_fields}), 400
+
+    try:
+        kind_enum = EntityKind(kind)
+    except ValueError:
+        return jsonify({'error': 'invalid_kind'}), 400
+
+    user = _user_from_request(request.headers['X-Tenant-ID'])
+    res = create_entity(
+        user=user,
+        repo=_repo,
+        tenant_id=request.headers['X-Tenant-ID'],
+        kind=kind_enum,
+        name=name,
+        status=status or 'active',
+        metadata={**(metadata or {}), 'id': entity_id}
+    )
+    if res['code'] == 'forbidden':
+        return jsonify({'error': 'forbidden'}), 403
+    return jsonify({'ok': True, 'entity': res['entity']}), 200
