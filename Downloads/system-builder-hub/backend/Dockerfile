@@ -1,10 +1,5 @@
-# Multi-stage build for System Builder Hub
-ARG APP_VERSION=0.1.0
-ARG BUILD_DATE
-ARG BUILD_ID
-
-# Multi-stage build for System Builder Hub
-FROM python:3.11-slim as builder
+# SBH Backend Dockerfile - Phase 1 Cloud Migration
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
@@ -12,49 +7,21 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
-    g++ \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+# Copy requirements first for better Docker layer caching
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Production stage
-FROM python:3.11-slim
-
-# Create non-root user
-RUN groupadd -r sbh && useradd -r -g sbh sbh
-
-# Set working directory
-WORKDIR /app
-
-# Copy Python packages from builder
-COPY --from=builder /root/.local /home/sbh/.local
-
-# Copy application code
-COPY . .
+# Copy the application code
+COPY backend/ .
 
 # Create necessary directories
-RUN mkdir -p /app/db /app/logs /app/backups /app/instance/uploads && \
-    chown -R sbh:sbh /app
+RUN mkdir -p /app/db /app/logs /app/backups /app/workspace
 
-# Switch to non-root user
-USER sbh
+# Expose Flask server on port 8000 (standardized for cloud)
+EXPOSE 8000
 
-# Set environment variables
-ENV PYTHONPATH=/app
-ENV PATH=/home/sbh/.local/bin:$PATH
-ENV APP_VERSION=${APP_VERSION}
-ENV BUILD_DATE=${BUILD_DATE}
-ENV BUILD_ID=${BUILD_ID}
-
-# Expose port
-EXPOSE 5001
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5001/healthz || exit 1
-
-# Production command using Gunicorn
-CMD ["gunicorn", "-c", "gunicorn.conf.py", "wsgi:app"]
+# Use gunicorn for production with proper configuration
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120", "--keep-alive", "2", "--max-requests", "1000", "--max-requests-jitter", "100", "wsgi:app"]
