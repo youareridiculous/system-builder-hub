@@ -6,7 +6,7 @@ A system that builds systems, taking specs as input and outputting bootable appl
 
 ### GitHub Repository Setup
 
-1. Create a new private repository on GitHub: `ericlarson/system-builder-hub`
+1. Create a new private repository on GitHub: `youareridiculous/system-builder-hub`
 2. Set up the following repository variables (Settings > Secrets and variables > Actions > Variables):
    - `AWS_REGION`: `us-west-2`
    - `AWS_ACCOUNT_ID`: `776567512687`
@@ -21,7 +21,7 @@ A system that builds systems, taking specs as input and outputting bootable appl
 The following IAM role has been created for GitHub Actions OIDC:
 
 - **Role ARN**: `arn:aws:iam::776567512687:role/sbh-github-oidc-deployer-dev`
-- **Trust Policy**: Allows GitHub Actions from `repo:ericlarson/system-builder-hub:*`
+- **Trust Policy**: Allows GitHub Actions from `repo:youareridiculous/system-builder-hub:*`
 - **Permissions**: ECR push, ECS deploy, CloudWatch Logs, S3 read (least-privilege)
 
 ### Deployment Process

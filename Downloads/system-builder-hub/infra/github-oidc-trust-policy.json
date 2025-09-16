@@ -12,7 +12,7 @@
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
         },
         "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:ericlarson/system-builder-hub:*"
+          "token.actions.githubusercontent.com:sub": "repo:youareridiculous/system-builder-hub:*"
         }
       }
     }
