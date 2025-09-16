@@ -44,39 +44,38 @@ def create_app():
     # Initialize OpenAI
     openai.api_key = app.config['OPENAI_API_KEY']
     
-    # Initialize database manager
+    # One-time engine init
     try:
-        from .database_manager import init_database, get_current_session, remove_current_session
-        db_initialized = init_database()
-        if db_initialized:
-            logger.info("Database manager initialized")
-        else:
-            logger.error("Failed to initialize database manager")
+        from .database_manager import init_engine
+        init_engine(app.config['DATABASE_URL'])
+        db_initialized = True
+        logger.info("Database engine initialized")
     except Exception as e:
-        logger.error(f"Failed to initialize database manager: {e}")
+        logger.error(f"Failed to initialize database engine: {e}")
         db_initialized = False
-    
-    # Flask session management - one session per request
+
     @app.before_request
-    def before_request():
-        """Create database session for each request"""
-        if db_initialized:
-            g.db = get_current_session()
-            logger.debug("Created database session for request")
-    
-    @app.teardown_appcontext
-    def teardown_appcontext(error):
-        """Clean up database session after each request"""
-        if hasattr(g, 'db'):
-            if error:
-                g.db.rollback()
-                logger.debug("Rolled back database session due to error")
-            else:
-                g.db.commit()
-                logger.debug("Committed database session")
-            g.db.close()
+    def _open_session():
+        from .database_manager import get_current_session
+        g.db = get_current_session()
+
+    @app.teardown_request
+    def _close_session(exc):
+        from .database_manager import remove_current_session
+        sess = getattr(g, "db", None)
+        if not sess:
             remove_current_session()
-            logger.debug("Closed database session")
+            return
+        try:
+            if exc is None:
+                sess.commit()
+            else:
+                sess.rollback()
+        finally:
+            # close() returns the connection to the pool; scoped_session registry still holds ref,
+            # so we must remove() to drop the thread/greenlet-local handle.
+            sess.close()
+            remove_current_session()
     
     # Initialize S3 build storage
     try:

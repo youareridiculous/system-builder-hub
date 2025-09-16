@@ -10,7 +10,7 @@ from uuid import uuid4
 from flask import request, g
 from sqlalchemy.orm import Session
 
-from .database_manager import get_db_session, get_current_session
+from .database_manager import get_current_session
 from .models import User, Tenant, UserTenant, Session as UserSession
 
 logger = logging.getLogger(__name__)
@@ -145,19 +145,19 @@ def require_auth():
 def get_database_counts() -> Dict[str, int]:
     """Get database table counts for health check"""
     try:
-        with get_db_session() as session:
-            from .models import User, Tenant, UserSession, Conversation, Message, BuildSpec, BuildRun
-            
-            counts = {
-                'users': session.query(User).count(),
-                'tenants': session.query(Tenant).count(),
-                'sessions': session.query(UserSession).count(),
-                'conversations': session.query(Conversation).count(),
-                'messages': session.query(Message).count(),
-                'build_specs': session.query(BuildSpec).count(),
-                'build_runs': session.query(BuildRun).count()
-            }
-            return counts
+        session = get_current_session()
+        from .models import User, Tenant, UserSession, Conversation, Message, BuildSpec, BuildRun
+        
+        counts = {
+            'users': session.query(User).count(),
+            'tenants': session.query(Tenant).count(),
+            'sessions': session.query(UserSession).count(),
+            'conversations': session.query(Conversation).count(),
+            'messages': session.query(Message).count(),
+            'build_specs': session.query(BuildSpec).count(),
+            'build_runs': session.query(BuildRun).count()
+        }
+        return counts
     except Exception as e:
         logger.error(f"Failed to get database counts: {e}")
         return {}

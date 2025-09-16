@@ -6,11 +6,11 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from uuid import uuid4
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
-from .database_manager import get_db_session, get_current_session
+from .database_manager import get_current_session
 from .auth import get_current_context, require_auth
 from .models import Conversation, Message, BuildSpec, BuildRun, MessageRole, BuildSpecStatus, BuildRunStatus
 
@@ -30,7 +30,7 @@ def create_conversation():
         data = request.get_json() or {}
         title = data.get('title', 'New Conversation')
         
-        session = get_current_session()
+        session = g.db
         conversation = Conversation(
             tenant_id=tenant_id,
             user_id=user_id,
@@ -69,7 +69,7 @@ def list_conversations():
         per_page = int(request.args.get('per_page', 20))
         offset = (page - 1) * per_page
         
-        session = get_current_session()
+        session = g.db
         conversations = session.query(Conversation).filter(
             Conversation.tenant_id == tenant_id
         ).order_by(desc(Conversation.updated_at)).offset(offset).limit(per_page).all()
@@ -124,7 +124,7 @@ def add_message(conversation_id: str):
         if not content:
             return jsonify({'ok': False, 'error': 'Content is required'}), 400
         
-        session = get_current_session()
+        session = g.db
         # Verify conversation exists and belongs to tenant
         conversation = session.query(Conversation).filter(
             Conversation.id == conversation_id,
@@ -177,7 +177,7 @@ def list_messages(conversation_id: str):
         per_page = int(request.args.get('per_page', 50))
         offset = (page - 1) * per_page
         
-        session = get_current_session()
+        session = g.db
         # Verify conversation exists and belongs to tenant
         conversation = session.query(Conversation).filter(
             Conversation.id == conversation_id,
@@ -243,7 +243,7 @@ def create_spec():
         if status not in ['draft', 'finalized']:
             return jsonify({'ok': False, 'error': 'Invalid status. Must be draft or finalized'}), 400
         
-        session = get_current_session()
+        session = g.db
         # Verify conversation exists and belongs to tenant if provided
         if conversation_id:
             conversation = session.query(Conversation).filter(
