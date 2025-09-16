@@ -6,28 +6,41 @@ env:
     AWS_REGION: us-west-2
     ACCOUNT_ID: "776567512687"
     ECR_REPO: "sbh-repo-dev"
-    IMAGE_TAG: "phase3-${CODEBUILD_BUILD_NUMBER}"
 
 phases:
   pre_build:
     commands:
-      - set -euo pipefail
-      - echo "Logging in to ECR for ${AWS_REGION}"
-      - aws --version
-      - REPO_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
-      - aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-      - docker buildx version || true
-      - docker buildx create --use --name arm || true
+      - |
+        set -euo pipefail
+        REPO_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+        IMAGE_TAG="phase3-${CODEBUILD_BUILD_NUMBER}"
+        echo "Logging in to ECR at ${REPO_URI}"
+        aws ecr get-login-password --region "${AWS_REGION}" \
+          | docker login --username AWS --password-stdin "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        docker buildx version || true
+        docker buildx create --use --name arm || true
 
   build:
     commands:
-      - echo "Building and pushing ${REPO_URI}:${IMAGE_TAG} (linux/arm64)"
-      - docker buildx build --platform linux/arm64 -t "${REPO_URI}:${IMAGE_TAG}" -f backend/Dockerfile --push backend
+      - |
+        set -euo pipefail
+        REPO_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+        IMAGE_TAG="phase3-${CODEBUILD_BUILD_NUMBER}"
+        echo "Building and pushing ${REPO_URI}:${IMAGE_TAG} (linux/arm64)"
+        docker buildx build \
+          --platform linux/arm64 \
+          -t "${REPO_URI}:${IMAGE_TAG}" \
+          -f backend/Dockerfile \
+          --push backend
 
   post_build:
     commands:
-      - echo "Image pushed: ${REPO_URI}:${IMAGE_TAG}"
-      - printf '{"ImageURI":"%s"}' "${REPO_URI}:${IMAGE_TAG}" > imageDetail.json
+      - |
+        set -euo pipefail
+        REPO_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+        IMAGE_TAG="phase3-${CODEBUILD_BUILD_NUMBER}"
+        echo "Image pushed: ${REPO_URI}:${IMAGE_TAG}"
+        printf '{"ImageURI":"%s"}' "${REPO_URI}:${IMAGE_TAG}" > imageDetail.json
 
 artifacts:
   files:
