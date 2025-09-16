@@ -11,11 +11,14 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better Docker layer caching
-COPY backend/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application code
-COPY backend/ .
+# Copy only necessary application files
+COPY src/ ./src/
+COPY wsgi.py .
+COPY alembic/ ./alembic/
+COPY alembic.ini .
 
 # Create necessary directories
 RUN mkdir -p /app/db /app/logs /app/backups /app/workspace

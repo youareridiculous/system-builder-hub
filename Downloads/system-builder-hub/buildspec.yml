@@ -1,0 +1,25 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REPOSITORY_URI
+      - echo Build started on `date`
+      - echo Running build script with guardrails...
+      - cd backend
+
+  build:
+    commands:
+      - echo Executing build script with bash (no exec bit required)...
+      - bash scripts/build-with-guardrails.sh phase3-$CODEBUILD_BUILD_NUMBER
+      - echo Build completed on `date`
+
+  post_build:
+    commands:
+      - echo "🎉 Build script completed all phases successfully!"
+      - echo "📊 Final summary from build script above"
+
+artifacts:
+  files:
+    - new_task_def.json
