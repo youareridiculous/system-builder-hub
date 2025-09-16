@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context Engine + Intelligent Instruction Expansion - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .context-engine {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: white;
+        }
+        
+        .prompt-scoring {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .score-metric {
+            background: rgba(248, 249, 250, 0.9);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .score-metric.excellent { border-left-color: #28a745; }
+        .score-metric.good { border-left-color: #17a2b8; }
+        .score-metric.fair { border-left-color: #ffc107; }
+        .score-metric.poor { border-left-color: #fd7e14; }
+        .score-metric.unusable { border-left-color: #dc3545; }
+        
+        .voice-recorder {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .recording-indicator {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .recording-indicator.recording {
+            background: #dc3545;
+            animation: pulse 1s infinite;
+        }
+        
+        .recording-indicator.stopped {
+            background: #6c757d;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .audio-visualizer {
+            width: 100%;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin: 15px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .audio-bar {
+            position: absolute;
+            bottom: 0;
+            width: 4px;
+            background: #007bff;
+            border-radius: 2px;
+            transition: height 0.1s ease;
+        }
+        
+        .prompt-improvement {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .prompt-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .prompt-panel {
+            background: rgba(248, 249, 250, 0.9);
+            border-radius: 8px;
+            padding: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .prompt-panel:hover {
+            border-color: #007bff;
+            transform: translateY(-2px);
+        }
+        
+        .prompt-panel.selected {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        
+        .clarification-questions {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .question-card {
+            background: rgba(248, 249, 250, 0.9);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .question-card.high-priority { border-left-color: #dc3545; }
+        .question-card.medium-priority { border-left-color: #fd7e14; }
+        .question-card.low-priority { border-left-color: #17a2b8; }
+        
+        .priority-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+        
+        .priority-high { background: #dc3545; color: white; }
+        .priority-medium { background: #fd7e14; color: white; }
+        .priority-low { background: #17a2b8; color: white; }
+        
+        .voice-history {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            background: rgba(248, 249, 250, 0.9);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #007bff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .history-item:hover {
+            background: rgba(0, 123, 255, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .real-time-indicator {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-cogs"></i> System Builder Hub
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">Main Dashboard</a>
+                <a class="nav-link" href="/developer-dashboard">Developer Dashboard</a>
+                <a class="nav-link" href="/activity-feed">Activity Feed</a>
+                <a class="nav-link" href="/diagnostics">Diagnostics</a>
+                <a class="nav-link" href="/blackbox-inspector">Black Box Inspector</a>
+                <a class="nav-link" href="/agent-messaging">Agent Messaging</a>
+                <a class="nav-link" href="/multi-agent-planner">Multi-Agent Planner</a>
+                <a class="nav-link active" href="/context-expansion">Context Engine</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-brain"></i> Context Engine + Intelligent Instruction Expansion (CIEL)
+                    <span class="badge bg-success real-time-indicator">Live</span>
+                </h1>
+            </div>
+        </div>
+
+        <!-- System Stats -->
+        <div class="stats-cards">
+            <div class="stat-card">
+                <div class="stat-number" id="total-prompts">0</div>
+                <div class="stat-label">Total Prompts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avg-score">0.0</div>
+                <div class="stat-label">Average Score</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="total-expansions">0</div>
+                <div class="stat-label">Expansions Generated</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="total-questions">0</div>
+                <div class="stat-label">Clarification Questions</div>
+            </div>
+        </div>
+
+        <!-- Main Content Tabs -->
+        <ul class="nav nav-tabs mb-4" id="contextTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="voice-input-tab" data-bs-toggle="tab" data-bs-target="#voice-input" type="button" role="tab">
+                    <i class="fas fa-microphone"></i> Voice Input
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="prompt-scoring-tab" data-bs-toggle="tab" data-bs-target="#prompt-scoring" type="button" role="tab">
+                    <i class="fas fa-chart-bar"></i> Prompt Scoring
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="prompt-improvement-tab" data-bs-toggle="tab" data-bs-target="#prompt-improvement" type="button" role="tab">
+                    <i class="fas fa-magic"></i> Prompt Improvement
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="clarification-tab" data-bs-toggle="tab" data-bs-target="#clarification" type="button" role="tab">
+                    <i class="fas fa-question-circle"></i> Clarification Questions
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">
+                    <i class="fas fa-history"></i> Voice History
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="contextTabContent">
+            <!-- Voice Input Tab -->
+            <div class="tab-pane fade show active" id="voice-input" role="tabpanel">
+                <div class="voice-recorder">
+                    <h5><i class="fas fa-microphone"></i> Voice Memo Recording</h5>
+                    
+                    <div class="recording-indicator stopped" id="recordingIndicator">
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                    
+                    <div class="audio-visualizer" id="audioVisualizer">
+                        <!-- Audio bars will be generated here -->
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button id="startRecording" class="btn btn-danger btn-lg">
+                                <i class="fas fa-record-vinyl"></i> Start Recording
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="stopRecording" class="btn btn-secondary btn-lg" disabled>
+                                <i class="fas fa-stop"></i> Stop Recording
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="form-label">Recording Duration (seconds)</label>
+                        <input type="range" id="recordingDuration" class="form-range" min="5" max="60" value="30">
+                        <div class="text-center">
+                            <span id="durationDisplay">30 seconds</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3" id="recordingStatus">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Click "Start Recording" to begin voice memo
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="context-engine">
+                    <h5><i class="fas fa-upload"></i> Upload Audio File</h5>
+                    <form id="audioUploadForm">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <input type="file" id="audioFile" class="form-control" accept="audio/*" required>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-upload"></i> Upload & Process
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Prompt Scoring Tab -->
+            <div class="tab-pane fade" id="prompt-scoring" role="tabpanel">
+                <div class="prompt-scoring">
+                    <h5><i class="fas fa-chart-bar"></i> Prompt Quality Analysis</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <label class="form-label">Enter your system-building prompt</label>
+                            <textarea id="promptInput" class="form-control" rows="6" 
+                                      placeholder="Describe the system you want to build..."></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Prompt Type</label>
+                            <select id="promptType" class="form-select">
+                                <option value="system_build">System Build</option>
+                                <option value="component_create">Component Create</option>
+                                <option value="integration">Integration</option>
+                                <option value="testing">Testing</option>
+                                <option value="deployment">Deployment</option>
+                            </select>
+                            
+                            <div class="mt-3">
+                                <button id="analyzePrompt" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Analyze Prompt
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="scoringResults" class="mt-4" style="display: none;">
+                        <h6>Analysis Results</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="score-metric" id="clarityScore">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>Clarity Score</strong>
+                                            <div class="progress mt-2" style="height: 8px;">
+                                                <div class="progress-bar" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="h5 mb-0" id="clarityValue">0.0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="score-metric" id="goalCoverageScore">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>Goal Coverage</strong>
+                                            <div class="progress mt-2" style="height: 8px;">
+                                                <div class="progress-bar" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="h5 mb-0" id="goalCoverageValue">0.0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="score-metric" id="inputSpecScore">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>Input Specification</strong>
+                                            <div class="progress mt-2" style="height: 8px;">
+                                                <div class="progress-bar" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="h5 mb-0" id="inputSpecValue">0.0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="score-metric" id="outputSpecScore">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>Output Specification</strong>
+                                            <div class="progress mt-2" style="height: 8px;">
+                                                <div class="progress-bar" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="h5 mb-0" id="outputSpecValue">0.0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="score-metric" id="contextRichnessScore">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>Context Richness</strong>
+                                            <div class="progress mt-2" style="height: 8px;">
+                                                <div class="progress-bar" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="h5 mb-0" id="contextRichnessValue">0.0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="score-metric" id="overallScore">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>Overall Score</strong>
+                                            <div class="progress mt-2" style="height: 8px;">
+                                                <div class="progress-bar" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="h5 mb-0" id="overallValue">0.0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prompt Improvement Tab -->
+            <div class="tab-pane fade" id="prompt-improvement" role="tabpanel">
+                <div class="prompt-improvement">
+                    <h5><i class="fas fa-magic"></i> Prompt Improvement Suggestions</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <button id="generateExpansions" class="btn btn-primary">
+                                <i class="fas fa-magic"></i> Generate Expansions
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="fetchMemory" class="btn btn-info">
+                                <i class="fas fa-brain"></i> Fetch Past Memory
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="improvementResults" style="display: none;">
+                        <div class="prompt-comparison" id="promptComparison">
+                            <!-- Prompt comparison panels will be generated here -->
+                        </div>
+                        
+                        <div class="text-center">
+                            <button id="useSelectedPrompt" class="btn btn-success btn-lg">
+                                <i class="fas fa-check"></i> Use Selected Prompt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clarification Questions Tab -->
+            <div class="tab-pane fade" id="clarification" role="tabpanel">
+                <div class="clarification-questions">
+                    <h5><i class="fas fa-question-circle"></i> Clarification Questions</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <button id="generateQuestions" class="btn btn-warning">
+                                <i class="fas fa-question"></i> Generate Questions
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="answerQuestions" class="btn btn-success">
+                                <i class="fas fa-reply"></i> Answer Questions
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="questionsContainer">
+                        <!-- Questions will be generated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice History Tab -->
+            <div class="tab-pane fade" id="history" role="tabpanel">
+                <div class="voice-history">
+                    <h5><i class="fas fa-history"></i> Voice Processing History</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <input type="text" id="historySearch" class="form-control" placeholder="Search transcripts...">
+                        </div>
+                        <div class="col-md-4">
+                            <select id="historyFilter" class="form-select">
+                                <option value="">All Types</option>
+                                <option value="system_build">System Build</option>
+                                <option value="component_create">Component Create</option>
+                                <option value="integration">Integration</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button id="loadHistory" class="btn btn-primary">
+                                <i class="fas fa-sync"></i> Load History
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="historyContainer">
+                        <!-- History items will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentPrompt = "";
+        let currentPromptScore = null;
+        let currentExpansions = [];
+        let currentQuestions = [];
+        let isRecording = false;
+        let recordingInterval = null;
+        let audioBars = [];
+
+        // Initialize Context Engine
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeContextEngine();
+            loadSystemStats();
+            setupAudioVisualizer();
+        });
+
+        function initializeContextEngine() {
+            // Tab event listeners
+            document.getElementById('voice-input-tab').addEventListener('click', initializeVoiceInput);
+            document.getElementById('prompt-scoring-tab').addEventListener('click', initializePromptScoring);
+            document.getElementById('prompt-improvement-tab').addEventListener('click', initializePromptImprovement);
+            document.getElementById('clarification-tab').addEventListener('click', initializeClarification);
+            document.getElementById('history-tab').addEventListener('click', loadVoiceHistory);
+            
+            // Voice recording controls
+            document.getElementById('startRecording').addEventListener('click', startRecording);
+            document.getElementById('stopRecording').addEventListener('click', stopRecording);
+            document.getElementById('recordingDuration').addEventListener('input', updateDurationDisplay);
+            
+            // Audio upload
+            document.getElementById('audioUploadForm').addEventListener('submit', uploadAudioFile);
+            
+            // Prompt analysis
+            document.getElementById('analyzePrompt').addEventListener('click', analyzePrompt);
+            
+            // Prompt improvement
+            document.getElementById('generateExpansions').addEventListener('click', generateExpansions);
+            document.getElementById('fetchMemory').addEventListener('click', fetchMemory);
+            document.getElementById('useSelectedPrompt').addEventListener('click', useSelectedPrompt);
+            
+            // Clarification questions
+            document.getElementById('generateQuestions').addEventListener('click', generateQuestions);
+            document.getElementById('answerQuestions').addEventListener('click', answerQuestions);
+            
+            // History
+            document.getElementById('loadHistory').addEventListener('click', loadVoiceHistory);
+        }
+
+        function loadSystemStats() {
+            fetch('/api/context/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const stats = data.data;
+                        document.getElementById('total-prompts').textContent = stats.total_prompts || 0;
+                        document.getElementById('avg-score').textContent = (stats.average_score || 0).toFixed(2);
+                        document.getElementById('total-expansions').textContent = stats.total_expansions || 0;
+                        document.getElementById('total-questions').textContent = stats.total_questions || 0;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading system stats:', error);
+                });
+        }
+
+        function setupAudioVisualizer() {
+            const visualizer = document.getElementById('audioVisualizer');
+            const barCount = 50;
+            
+            for (let i = 0; i < barCount; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'audio-bar';
+                bar.style.left = `${(i / barCount) * 100}%`;
+                bar.style.height = '0px';
+                visualizer.appendChild(bar);
+                audioBars.push(bar);
+            }
+        }
+
+        function updateAudioVisualizer(level) {
+            audioBars.forEach((bar, index) => {
+                const height = Math.random() * level * 60;
+                bar.style.height = `${height}px`;
+            });
+        }
+
+        function startRecording() {
+            if (isRecording) return;
+            
+            isRecording = true;
+            document.getElementById('startRecording').disabled = true;
+            document.getElementById('stopRecording').disabled = false;
+            
+            const indicator = document.getElementById('recordingIndicator');
+            indicator.className = 'recording-indicator recording';
+            indicator.innerHTML = '<i class="fas fa-microphone"></i>';
+            
+            // Update status
+            document.getElementById('recordingStatus').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-record-vinyl"></i> Recording in progress...
+                </div>
+            `;
+            
+            // Simulate audio level updates
+            recordingInterval = setInterval(() => {
+                const level = Math.random() * 0.8 + 0.2;
+                updateAudioVisualizer(level);
+            }, 100);
+            
+            // Start actual recording (would connect to backend)
+            fetch('/api/context/voice/start-recording', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log('Recording started');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error starting recording:', error);
+                });
+        }
+
+        function stopRecording() {
+            if (!isRecording) return;
+            
+            isRecording = false;
+            document.getElementById('startRecording').disabled = false;
+            document.getElementById('stopRecording').disabled = true;
+            
+            const indicator = document.getElementById('recordingIndicator');
+            indicator.className = 'recording-indicator stopped';
+            indicator.innerHTML = '<i class="fas fa-microphone"></i>';
+            
+            // Clear audio visualization
+            audioBars.forEach(bar => bar.style.height = '0px');
+            
+            if (recordingInterval) {
+                clearInterval(recordingInterval);
+                recordingInterval = null;
+            }
+            
+            // Update status
+            document.getElementById('recordingStatus').innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check"></i> Recording completed! Processing audio...
+                </div>
+            `;
+            
+            // Process the recording
+            fetch('/api/context/voice/stop-recording', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('recordingStatus').innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="fas fa-check"></i> Audio processed successfully!
+                                <br>Transcript: "${data.data.transcript.transcript_text}"
+                            </div>
+                        `;
+                        
+                        // Auto-analyze the transcript
+                        currentPrompt = data.data.transcript.transcript_text;
+                        document.getElementById('promptInput').value = currentPrompt;
+                        analyzePrompt();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error stopping recording:', error);
+                    document.getElementById('recordingStatus').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Error processing audio
+                        </div>
+                    `;
+                });
+        }
+
+        function updateDurationDisplay() {
+            const duration = document.getElementById('recordingDuration').value;
+            document.getElementById('durationDisplay').textContent = `${duration} seconds`;
+        }
+
+        function uploadAudioFile(event) {
+            event.preventDefault();
+            
+            const fileInput = document.getElementById('audioFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select an audio file');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('audio_file', file);
+            
+            fetch('/api/context/from-voice', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Audio file processed successfully!');
+                    
+                    // Auto-analyze the transcript
+                    currentPrompt = data.data.transcript.transcript_text;
+                    document.getElementById('promptInput').value = currentPrompt;
+                    analyzePrompt();
+                } else {
+                    alert('Error processing audio file: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading audio:', error);
+                alert('Error uploading audio file');
+            });
+        }
+
+        function analyzePrompt() {
+            const prompt = document.getElementById('promptInput').value;
+            const promptType = document.getElementById('promptType').value;
+            
+            if (!prompt.trim()) {
+                alert('Please enter a prompt to analyze');
+                return;
+            }
+            
+            currentPrompt = prompt;
+            
+            fetch('/api/context/score-prompt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    prompt_type: promptType
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentPromptScore = data.data;
+                    displayPromptScore(data.data);
+                } else {
+                    alert('Error analyzing prompt: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error analyzing prompt:', error);
+                alert('Error analyzing prompt');
+            });
+        }
+
+        function displayPromptScore(scoreData) {
+            const results = document.getElementById('scoringResults');
+            results.style.display = 'block';
+            
+            // Update score values and progress bars
+            updateScoreMetric('clarity', scoreData.clarity_score);
+            updateScoreMetric('goalCoverage', scoreData.goal_coverage_score);
+            updateScoreMetric('inputSpec', scoreData.input_spec_score);
+            updateScoreMetric('outputSpec', scoreData.output_spec_score);
+            updateScoreMetric('contextRichness', scoreData.context_richness_score);
+            updateScoreMetric('overall', scoreData.overall_score);
+            
+            // Update clarity level styling
+            const clarityLevel = scoreData.clarity_level;
+            document.getElementById('clarityScore').className = `score-metric ${clarityLevel}`;
+        }
+
+        function updateScoreMetric(metricName, score) {
+            const valueElement = document.getElementById(`${metricName}Value`);
+            const progressBar = document.querySelector(`#${metricName}Score .progress-bar`);
+            
+            valueElement.textContent = score.toFixed(2);
+            progressBar.style.width = `${score * 100}%`;
+            
+            // Update progress bar color based on score
+            if (score >= 0.8) progressBar.className = 'progress-bar bg-success';
+            else if (score >= 0.6) progressBar.className = 'progress-bar bg-info';
+            else if (score >= 0.4) progressBar.className = 'progress-bar bg-warning';
+            else progressBar.className = 'progress-bar bg-danger';
+        }
+
+        function generateExpansions() {
+            if (!currentPrompt) {
+                alert('Please analyze a prompt first');
+                return;
+            }
+            
+            fetch('/api/context/expand-prompt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    prompt: currentPrompt
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentExpansions = data.data;
+                    displayPromptExpansions(data.data);
+                } else {
+                    alert('Error generating expansions: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error generating expansions:', error);
+                alert('Error generating expansions');
+            });
+        }
+
+        function displayPromptExpansions(expansions) {
+            const results = document.getElementById('improvementResults');
+            const comparison = document.getElementById('promptComparison');
+            
+            results.style.display = 'block';
+            comparison.innerHTML = '';
+            
+            // Original prompt panel
+            const originalPanel = document.createElement('div');
+            originalPanel.className = 'prompt-panel';
+            originalPanel.innerHTML = `
+                <h6><i class="fas fa-file-alt"></i> Original Prompt</h6>
+                <p>${currentPrompt}</p>
+                <div class="text-muted">
+                    <small>Score: ${currentPromptScore ? currentPromptScore.overall_score.toFixed(2) : 'N/A'}</small>
+                </div>
+            `;
+            comparison.appendChild(originalPanel);
+            
+            // Expansion panels
+            expansions.forEach((expansion, index) => {
+                const expansionPanel = document.createElement('div');
+                expansionPanel.className = 'prompt-panel';
+                expansionPanel.innerHTML = `
+                    <h6><i class="fas fa-magic"></i> Expansion ${index + 1}</h6>
+                    <p>${expansion.expanded_prompt}</p>
+                    <div class="text-muted">
+                        <small>Confidence: ${(expansion.confidence_score * 100).toFixed(0)}%</small>
+                        <br><small>Method: ${expansion.expansion_method}</small>
+                    </div>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-primary select-expansion" data-index="${index}">
+                            <i class="fas fa-check"></i> Select
+                        </button>
+                    </div>
+                `;
+                comparison.appendChild(expansionPanel);
+                
+                // Add click handler
+                expansionPanel.querySelector('.select-expansion').addEventListener('click', function() {
+                    selectExpansion(index);
+                });
+            });
+        }
+
+        function selectExpansion(index) {
+            // Remove previous selections
+            document.querySelectorAll('.prompt-panel').forEach(panel => {
+                panel.classList.remove('selected');
+            });
+            
+            // Select the clicked expansion
+            const panels = document.querySelectorAll('.prompt-panel');
+            panels[index + 1].classList.add('selected'); // +1 because first panel is original
+            
+            // Update the prompt input with the selected expansion
+            const selectedExpansion = currentExpansions[index];
+            document.getElementById('promptInput').value = selectedExpansion.expanded_prompt;
+            currentPrompt = selectedExpansion.expanded_prompt;
+        }
+
+        function useSelectedPrompt() {
+            const selectedPanel = document.querySelector('.prompt-panel.selected');
+            if (!selectedPanel) {
+                alert('Please select an expansion first');
+                return;
+            }
+            
+            alert('Selected prompt has been applied!');
+            // The prompt is already updated in the input field
+        }
+
+        function fetchMemory() {
+            if (!currentPrompt) {
+                alert('Please analyze a prompt first');
+                return;
+            }
+            
+            fetch('/api/context/suggestions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    prompt: currentPrompt
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    displayMemorySuggestions(data.data);
+                } else {
+                    alert('Error fetching memory suggestions: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching memory:', error);
+                alert('Error fetching memory suggestions');
+            });
+        }
+
+        function displayMemorySuggestions(suggestions) {
+            // Display memory-based suggestions
+            alert(`Found ${suggestions.length} memory suggestions`);
+        }
+
+        function generateQuestions() {
+            if (!currentPrompt) {
+                alert('Please analyze a prompt first');
+                return;
+            }
+            
+            fetch('/api/context/ask-clarification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    prompt: currentPrompt
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentQuestions = data.data;
+                    displayClarificationQuestions(data.data);
+                } else {
+                    alert('Error generating questions: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error generating questions:', error);
+                alert('Error generating questions');
+            });
+        }
+
+        function displayClarificationQuestions(questions) {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+            
+            if (questions.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">No clarification questions needed!</div>';
+                return;
+            }
+            
+            questions.forEach((question, index) => {
+                const questionCard = document.createElement('div');
+                questionCard.className = `question-card priority-${question.priority >= 4 ? 'high' : question.priority >= 3 ? 'medium' : 'low'}`;
+                questionCard.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6>Question ${index + 1}</h6>
+                            <p>${question.question_text}</p>
+                            <div class="text-muted">
+                                <small>Type: ${question.question_type}</small>
+                                <span class="badge priority-badge priority-${question.priority >= 4 ? 'high' : question.priority >= 3 ? 'medium' : 'low'} ms-2">
+                                    Priority ${question.priority}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(questionCard);
+            });
+        }
+
+        function answerQuestions() {
+            // This would open a modal or form to answer the questions
+            alert('Question answering interface would open here');
+        }
+
+        function loadVoiceHistory() {
+            fetch('/api/context/history')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayVoiceHistory(data.data);
+                    } else {
+                        console.error('Error loading history:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading voice history:', error);
+                });
+        }
+
+        function displayVoiceHistory(history) {
+            const container = document.getElementById('historyContainer');
+            container.innerHTML = '';
+            
+            if (history.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">No voice history found</div>';
+                return;
+            }
+            
+            history.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6>${item.transcript_text.substring(0, 50)}...</h6>
+                            <div class="text-muted">
+                                <small>Confidence: ${(item.confidence_score * 100).toFixed(0)}%</small>
+                                <br><small>Duration: ${item.duration_seconds.toFixed(1)}s</small>
+                                <br><small>Score: ${item.prompt_score ? item.prompt_score.toFixed(2) : 'N/A'}</small>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted">${new Date(item.timestamp).toLocaleString()}</small>
+                        </div>
+                    </div>
+                `;
+                
+                historyItem.addEventListener('click', function() {
+                    // Load this transcript for analysis
+                    document.getElementById('promptInput').value = item.transcript_text;
+                    currentPrompt = item.transcript_text;
+                    analyzePrompt();
+                });
+                
+                container.appendChild(historyItem);
+            });
+        }
+
+        // Tab initialization functions
+        function initializeVoiceInput() {
+            // Voice input is already initialized
+        }
+
+        function initializePromptScoring() {
+            // Prompt scoring is already initialized
+        }
+
+        function initializePromptImprovement() {
+            // Prompt improvement is already initialized
+        }
+
+        function initializeClarification() {
+            // Clarification is already initialized
+        }
+    </script>
+</body>
+</html>

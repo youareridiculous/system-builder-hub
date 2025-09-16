@@ -1,0 +1,98 @@
+{
+  "slug": "analytics-dashboard",
+  "name": "Analytics Dashboard",
+  "description": "Comprehensive analytics platform with customizable dashboards, KPIs, drilldowns, and reporting.",
+  "category": "Analytics",
+  "tags": ["analytics", "dashboard", "kpis", "reporting", "visualization"],
+  "badges": ["Multi-tenant", "S3", "RBAC", "Real-time", "Customizable"],
+  "version": "1.0.0",
+  "author": "SBH Team",
+  "repository": "https://github.com/sbh/analytics",
+  "documentation": "/ui/docs/analytics",
+  "screenshots": [
+    "/marketplace/assets/analytics/dashboard.png",
+    "/marketplace/assets/analytics/kpis.png",
+    "/marketplace/assets/analytics/reports.png"
+  ],
+  "demo_video_url": "https://example.com/analytics-demo",
+  "features": [
+    "Custom Dashboards",
+    "KPI Tracking",
+    "Data Visualization",
+    "Drill-down Reports",
+    "Real-time Updates",
+    "Export Capabilities",
+    "Scheduled Reports",
+    "Multi-tenant RBAC"
+  ],
+  "plans": {
+    "starter": {
+      "name": "Starter",
+      "price": 0,
+      "features": ["Up to 5 dashboards", "Basic KPIs", "Email support"]
+    },
+    "pro": {
+      "name": "Pro",
+      "price": 89,
+      "features": ["Unlimited dashboards", "Advanced visualizations", "Scheduled reports", "Priority support"]
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": 349,
+      "features": ["Custom data sources", "API access", "Dedicated support"]
+    }
+  },
+  "guided_prompt_schema": {
+    "role": {"type": "string", "required": true},
+    "context": {"type": "string", "required": true},
+    "task": {"type": "string", "required": true},
+    "audience": {"type": "string", "required": true},
+    "output": {"type": "string", "required": true}
+  },
+  "rbac_matrix": {
+    "owner": ["read", "write", "admin"],
+    "admin": ["read", "write"],
+    "member": ["read", "write"],
+    "viewer": ["read"]
+  },
+  "api_endpoints": [
+    {"method": "GET", "path": "/api/dashboards", "description": "List dashboards"},
+    {"method": "POST", "path": "/api/dashboards", "description": "Create dashboard"},
+    {"method": "GET", "path": "/api/kpis", "description": "List KPIs"},
+    {"method": "POST", "path": "/api/kpis", "description": "Create KPI"}
+  ],
+  "ui_routes": [
+    {"path": "/ui/dashboards", "name": "Dashboards", "description": "Dashboard management"},
+    {"path": "/ui/kpis", "name": "KPIs", "description": "KPI management"},
+    {"path": "/ui/reports", "name": "Reports", "description": "Report generation"}
+  ],
+  "dependencies": [],
+  "conflicts": [],
+  "installation": {
+    "type": "marketplace",
+    "steps": ["Select plan", "Configure settings", "Launch template"]
+  },
+  "configuration": {
+    "max_dashboards": {"type": "integer", "default": 10},
+    "enable_real_time": {"type": "boolean", "default": false},
+    "export_enabled": {"type": "boolean", "default": true}
+  },
+  "examples": [
+    {
+      "name": "Business Intelligence",
+      "description": "Configure for business intelligence with real-time data",
+      "config": {"max_dashboards": 50, "enable_real_time": true}
+    }
+  ],
+  "support": {
+    "documentation": "/ui/docs/analytics",
+    "community": "https://community.sbh.com",
+    "email": "support@sbh.com"
+  },
+  "changelog": [
+    {"version": "1.0.0", "date": "2024-01-01", "changes": ["Initial release"]}
+  ],
+  "is_active": true,
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
+}

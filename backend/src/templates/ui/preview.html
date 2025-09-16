@@ -1,0 +1,437 @@
+{% extends "ui/base.html" %}
+
+{% block title %}System Preview{% endblock %}
+
+{% block content %}
+<div class="preview-container">
+    <div class="preview-header">
+        <h1>System Preview</h1>
+        <div class="preview-controls">
+            <div class="device-toolbar">
+                <button class="device-btn active" data-device="desktop">🖥️ Desktop</button>
+                <button class="device-btn" data-device="tablet">📱 Tablet</button>
+                <button class="device-btn" data-device="mobile">📱 Mobile</button>
+            </div>
+            <button id="reload-btn" class="btn btn-secondary">🔄 Reload</button>
+            <button id="stop-btn" class="btn btn-danger">⏹️ Stop Preview</button>
+        </div>
+    </div>
+
+    <div class="preview-layout">
+        <!-- Preview Frame -->
+        <div class="preview-frame-container">
+            <div class="preview-frame" id="preview-frame">
+                <div class="preview-loading">
+                    <div class="spinner"></div>
+                    <p>Starting preview...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Panel -->
+        <div class="preview-logs">
+            <div class="logs-header">
+                <h3>Build Logs</h3>
+                <button id="clear-logs" class="btn btn-sm">Clear</button>
+            </div>
+            <div class="logs-content" id="logs-content">
+                <div class="log-entry">Preview session started</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.preview-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.preview-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.device-toolbar {
+    display: flex;
+    gap: 0.25rem;
+    background: var(--bg-primary);
+    border-radius: 0.375rem;
+    padding: 0.25rem;
+}
+
+.device-btn {
+    padding: 0.5rem;
+    border: none;
+    background: transparent;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.device-btn.active {
+    background: var(--accent);
+    color: white;
+}
+
+.preview-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.preview-frame-container {
+    flex: 1;
+    padding: 1rem;
+    background: var(--bg-primary);
+}
+
+.preview-frame {
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.preview-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+}
+
+.spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid var(--border-color);
+    border-top: 2px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.preview-logs {
+    width: 400px;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.logs-content {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.log-entry {
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.log-entry.info {
+    color: var(--text-primary);
+}
+
+.log-entry.success {
+    color: var(--success);
+}
+
+.log-entry.error {
+    color: var(--error);
+}
+
+.log-entry.warning {
+    color: var(--warning);
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary {
+    background: var(--secondary);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: var(--secondary-dark);
+}
+
+.btn-danger {
+    background: var(--error);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: var(--error-dark);
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Device-specific frame sizes */
+.preview-frame.desktop {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.preview-frame.tablet {
+    max-width: 768px;
+    margin: 0 auto;
+}
+
+.preview-frame.mobile {
+    max-width: 375px;
+    margin: 0 auto;
+}
+</style>
+
+<script>
+let currentDevice = 'desktop';
+let previewSessionId = null;
+let logsEventSource = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectId = urlParams.get('project');
+    
+    if (projectId) {
+        startPreview(projectId);
+    } else {
+        addLog('No project specified', 'error');
+    }
+    
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Device buttons
+    document.querySelectorAll('.device-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            setDevice(btn.dataset.device);
+        });
+    });
+    
+    // Reload button
+    document.getElementById('reload-btn').addEventListener('click', reloadPreview);
+    
+    // Stop button
+    document.getElementById('stop-btn').addEventListener('click', stopPreview);
+    
+    // Clear logs
+    document.getElementById('clear-logs').addEventListener('click', clearLogs);
+}
+
+async function startPreview(projectId) {
+    try {
+        addLog('Starting preview session...', 'info');
+        
+        const response = await fetch('/api/preview/system', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ project_id: projectId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            previewSessionId = data.preview_id;
+            addLog(`Preview session started: ${previewSessionId}`, 'success');
+            
+            // Start polling for status
+            pollPreviewStatus();
+            
+            // Start SSE for logs
+            startLogsStream();
+            
+            // Fire telemetry
+            fireTelemetry('preview_opened', { project_id: projectId, preview_id: previewSessionId });
+        } else {
+            addLog(`Failed to start preview: ${data.error}`, 'error');
+        }
+    } catch (error) {
+        addLog(`Error starting preview: ${error.message}`, 'error');
+    }
+}
+
+async function pollPreviewStatus() {
+    if (!previewSessionId) return;
+    
+    try {
+        const response = await fetch(`/api/preview/status/${previewSessionId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            updatePreviewStatus(data.status);
+            
+            if (data.status === 'ready') {
+                addLog('Preview is ready!', 'success');
+                loadPreviewFrame(data.url);
+            } else if (data.status === 'error') {
+                addLog(`Preview failed: ${data.error}`, 'error');
+            } else {
+                // Continue polling
+                setTimeout(pollPreviewStatus, 2000);
+            }
+        }
+    } catch (error) {
+        addLog(`Error polling status: ${error.message}`, 'error');
+    }
+}
+
+function updatePreviewStatus(status) {
+    const frame = document.getElementById('preview-frame');
+    const loading = frame.querySelector('.preview-loading');
+    
+    if (status === 'ready') {
+        loading.style.display = 'none';
+    } else {
+        loading.querySelector('p').textContent = `Status: ${status}`;
+    }
+}
+
+function loadPreviewFrame(url) {
+    const frame = document.getElementById('preview-frame');
+    frame.innerHTML = `<iframe src="${url}" width="100%" height="100%" frameborder="0"></iframe>`;
+}
+
+function startLogsStream() {
+    if (logsEventSource) {
+        logsEventSource.close();
+    }
+    
+    logsEventSource = new EventSource(`/api/preview/logs/${previewSessionId}/stream`);
+    
+    logsEventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        addLog(data.message, data.level || 'info');
+    };
+    
+    logsEventSource.onerror = function(event) {
+        addLog('Logs stream disconnected', 'warning');
+    };
+}
+
+function setDevice(device) {
+    currentDevice = device;
+    
+    // Update active button
+    document.querySelectorAll('.device-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.device === device);
+    });
+    
+    // Update frame size
+    const frame = document.getElementById('preview-frame');
+    frame.className = `preview-frame ${device}`;
+    
+    // Fire telemetry
+    fireTelemetry('preview_device_changed', { device: device });
+}
+
+function reloadPreview() {
+    const iframe = document.getElementById('preview-frame').querySelector('iframe');
+    if (iframe) {
+        iframe.src = iframe.src;
+        addLog('Preview reloaded', 'info');
+    }
+}
+
+async function stopPreview() {
+    if (!previewSessionId) return;
+    
+    try {
+        const response = await fetch(`/api/preview/stop/${previewSessionId}`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            addLog('Preview stopped', 'info');
+            previewSessionId = null;
+            
+            // Close SSE
+            if (logsEventSource) {
+                logsEventSource.close();
+                logsEventSource = null;
+            }
+            
+            // Reset frame
+            const frame = document.getElementById('preview-frame');
+            frame.innerHTML = `
+                <div class="preview-loading">
+                    <div class="spinner"></div>
+                    <p>Preview stopped</p>
+                </div>
+            `;
+            
+            // Fire telemetry
+            fireTelemetry('preview_stopped', { preview_id: previewSessionId });
+        }
+    } catch (error) {
+        addLog(`Error stopping preview: ${error.message}`, 'error');
+    }
+}
+
+function addLog(message, level = 'info') {
+    const logsContent = document.getElementById('logs-content');
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-entry ${level}`;
+    logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+    logsContent.appendChild(logEntry);
+    logsContent.scrollTop = logsContent.scrollHeight;
+}
+
+function clearLogs() {
+    document.getElementById('logs-content').innerHTML = '';
+}
+
+function fireTelemetry(event, data) {
+    // Fire telemetry event
+    if (window.gtag) {
+        window.gtag('event', event, data);
+    }
+}
+</script>
+{% endblock %}

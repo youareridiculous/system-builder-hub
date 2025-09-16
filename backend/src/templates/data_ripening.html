@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Ripening Engine - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background-color: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #0056b3;
+            background-color: #e9ecef;
+        }
+        .upload-area.dragover {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+        .processing-step {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        .processing-step.completed {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .processing-step.error {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .score-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+        .feedback-item {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .feedback-item.resolved {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .status-badge {
+            font-size: 0.8em;
+            padding: 4px 8px;
+        }
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="row bg-primary text-white p-3">
+            <div class="col">
+                <h1><i class="fas fa-seedling"></i> Verdant Data Ripening Engine</h1>
+                <p class="mb-0">AI Data Ripening & Readiness Engine</p>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <!-- Left Panel: File Upload & Processing -->
+            <div class="col-md-8">
+                <!-- File Upload Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-upload"></i> Data Ingestion</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="upload-area" id="uploadArea">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                            <h5>Drag & Drop Files Here</h5>
+                            <p class="text-muted">or click to browse</p>
+                            <input type="file" id="fileInput" class="d-none" accept=".csv,.xlsx,.json,.txt,.pdf,.parquet">
+                            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-folder-open"></i> Browse Files
+                            </button>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    Supported formats: CSV, Excel, JSON, TXT, PDF, Parquet
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- File Preview -->
+                        <div id="filePreview" class="mt-3" style="display: none;">
+                            <h6>File Preview:</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered" id="previewTable">
+                                    <thead id="previewHeader"></thead>
+                                    <tbody id="previewBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Processing Pipeline -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cogs"></i> Processing Pipeline</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="processingSteps">
+                            <div class="processing-step" id="step1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-download text-primary"></i>
+                                        <strong>Data Ingestion</strong>
+                                        <small class="text-muted d-block">Loading and validating file</small>
+                                    </div>
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status" style="display: none;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="processing-step" id="step2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-broom text-primary"></i>
+                                        <strong>Data Cleaning</strong>
+                                        <small class="text-muted d-block">Removing duplicates, handling missing values</small>
+                                    </div>
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status" style="display: none;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="processing-step" id="step3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-tags text-primary"></i>
+                                        <strong>Schema Labeling</strong>
+                                        <small class="text-muted d-block">Auto-detecting field types and patterns</small>
+                                    </div>
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status" style="display: none;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="processing-step" id="step4">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-magic text-primary"></i>
+                                        <strong>Ripening Strategy</strong>
+                                        <small class="text-muted d-block">Applying optimization strategy</small>
+                                    </div>
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status" style="display: none;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Ripening Method Selection -->
+                        <div class="mt-4">
+                            <h6>Ripening Method:</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <select class="form-select" id="ripeningMethod">
+                                        <option value="rag_optimization">RAG Optimization</option>
+                                        <option value="training_preparation">Training Preparation</option>
+                                        <option value="prompt_building">Prompt Building</option>
+                                        <option value="config_building">Config Building</option>
+                                        <option value="schema_inference">Schema Inference</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <button class="btn btn-success w-100" id="startProcessing" disabled>
+                                        <i class="fas fa-play"></i> Start Processing
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div class="card mt-4" id="resultsSection" style="display: none;">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-line"></i> Processing Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="score-card">
+                                    <h6>Overall Score</h6>
+                                    <h2 id="overallScore">0.0</h2>
+                                    <div class="progress">
+                                        <div class="progress-bar" id="overallScoreBar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="score-card">
+                                    <h6>Quality Score</h6>
+                                    <h2 id="qualityScore">0.0</h2>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" id="qualityScoreBar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="score-card">
+                                    <h6>Schema Score</h6>
+                                    <h2 id="schemaScore">0.0</h2>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-info" id="schemaScoreBar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="score-card">
+                                    <h6>Performance Score</h6>
+                                    <h2 id="performanceScore">0.0</h2>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-warning" id="performanceScoreBar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Download Results -->
+                        <div class="mt-4">
+                            <h6>Download Results:</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <button class="btn btn-outline-primary w-100" id="downloadCleaned">
+                                        <i class="fas fa-download"></i> Cleaned Data
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button class="btn btn-outline-info w-100" id="downloadSchema">
+                                        <i class="fas fa-download"></i> Schema
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button class="btn btn-outline-success w-100" id="downloadRipened">
+                                        <i class="fas fa-download"></i> Ripened Dataset
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Feedback & Statistics -->
+            <div class="col-md-4">
+                <!-- Dataset Status -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> Dataset Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="datasetStatus">
+                            <p class="text-muted">No dataset loaded</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feedback Section -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-comments"></i> Feedback</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="feedbackList">
+                            <p class="text-muted">No feedback available</p>
+                        </div>
+                        
+                        <!-- Add Feedback Form -->
+                        <div class="mt-3">
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+                                <i class="fas fa-plus"></i> Add Feedback
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-bar"></i> Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="statsChart" width="300" height="200"></canvas>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <div>Total Datasets: <span id="totalDatasets">0</span></div>
+                                <div>Average Score: <span id="avgScore">0.0</span></div>
+                                <div>Processing Success: <span id="successRate">0%</span></div>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div class="modal fade" id="feedbackModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Feedback</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="feedbackForm">
+                        <div class="mb-3">
+                            <label class="form-label">Feedback Type</label>
+                            <select class="form-select" id="feedbackType" required>
+                                <option value="quality_issue">Quality Issue</option>
+                                <option value="schema_mismatch">Schema Mismatch</option>
+                                <option value="processing_error">Processing Error</option>
+                                <option value="performance_feedback">Performance Feedback</option>
+                                <option value="user_correction">User Correction</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Severity</label>
+                            <select class="form-select" id="feedbackSeverity" required>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="feedbackDescription" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Suggested Improvements</label>
+                            <textarea class="form-control" id="feedbackImprovements" rows="2" placeholder="Enter suggestions separated by commas"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="submitFeedback">Submit Feedback</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentDatasetId = null;
+        let statsChart = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeUploadArea();
+            loadStatistics();
+            setupEventListeners();
+        });
+
+        function initializeUploadArea() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            // Drag and drop functionality
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileSelect(files[0]);
+                }
+            });
+
+            // File input change
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+        }
+
+        function handleFileSelect(file) {
+            // Show file preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (file.name.endsWith('.csv')) {
+                    previewCSV(e.target.result);
+                } else if (file.name.endsWith('.json')) {
+                    previewJSON(e.target.result);
+                }
+                document.getElementById('filePreview').style.display = 'block';
+                document.getElementById('startProcessing').disabled = false;
+            };
+            reader.readAsText(file);
+        }
+
+        function previewCSV(csvText) {
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',');
+            const data = lines.slice(1, 6); // Show first 5 rows
+
+            const headerRow = document.getElementById('previewHeader');
+            const body = document.getElementById('previewBody');
+
+            headerRow.innerHTML = headers.map(h => `<th>${h.trim()}</th>`).join('');
+            body.innerHTML = data.map(row => {
+                const cells = row.split(',');
+                return `<tr>${cells.map(cell => `<td>${cell.trim()}</td>`).join('')}</tr>`;
+            }).join('');
+        }
+
+        function previewJSON(jsonText) {
+            try {
+                const data = JSON.parse(jsonText);
+                const headers = Object.keys(Array.isArray(data) ? data[0] : data);
+                const sampleData = Array.isArray(data) ? data.slice(0, 5) : [data];
+
+                const headerRow = document.getElementById('previewHeader');
+                const body = document.getElementById('previewBody');
+
+                headerRow.innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+                body.innerHTML = sampleData.map(row => {
+                    return `<tr>${headers.map(h => `<td>${JSON.stringify(row[h])}</td>`).join('')}</tr>`;
+                }).join('');
+            } catch (e) {
+                console.error('Error parsing JSON:', e);
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('startProcessing').addEventListener('click', startProcessing);
+            document.getElementById('submitFeedback').addEventListener('click', submitFeedback);
+        }
+
+        async function startProcessing() {
+            const method = document.getElementById('ripeningMethod').value;
+            
+            // Simulate processing steps
+            await simulateProcessingStep('step1', 'Data Ingestion');
+            await simulateProcessingStep('step2', 'Data Cleaning');
+            await simulateProcessingStep('step3', 'Schema Labeling');
+            await simulateProcessingStep('step4', 'Ripening Strategy');
+
+            // Show results
+            showResults();
+            loadDatasetFeedback();
+        }
+
+        async function simulateProcessingStep(stepId, stepName) {
+            const step = document.getElementById(stepId);
+            const spinner = step.querySelector('.spinner-border');
+            
+            // Show spinner
+            spinner.style.display = 'block';
+            
+            // Simulate processing time
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Mark as completed
+            step.classList.add('completed');
+            step.classList.remove('processing-step');
+            step.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-check-circle text-success"></i>
+                        <strong>${stepName}</strong>
+                        <small class="text-success d-block">Completed successfully</small>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showResults() {
+            // Generate random scores for demonstration
+            const overallScore = (Math.random() * 0.4 + 0.6).toFixed(2);
+            const qualityScore = (Math.random() * 0.4 + 0.6).toFixed(2);
+            const schemaScore = (Math.random() * 0.4 + 0.6).toFixed(2);
+            const performanceScore = (Math.random() * 0.4 + 0.6).toFixed(2);
+
+            // Update score displays
+            document.getElementById('overallScore').textContent = overallScore;
+            document.getElementById('qualityScore').textContent = qualityScore;
+            document.getElementById('schemaScore').textContent = schemaScore;
+            document.getElementById('performanceScore').textContent = performanceScore;
+
+            // Update progress bars
+            document.getElementById('overallScoreBar').style.width = (overallScore * 100) + '%';
+            document.getElementById('qualityScoreBar').style.width = (qualityScore * 100) + '%';
+            document.getElementById('schemaScoreBar').style.width = (schemaScore * 100) + '%';
+            document.getElementById('performanceScoreBar').style.width = (performanceScore * 100) + '%';
+
+            // Show results section
+            document.getElementById('resultsSection').style.display = 'block';
+
+            // Update dataset status
+            document.getElementById('datasetStatus').innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>Dataset processed successfully</strong><br>
+                    <small>Overall Score: ${overallScore}</small>
+                </div>
+            `;
+        }
+
+        async function loadStatistics() {
+            try {
+                const response = await fetch('/api/data/stats');
+                const stats = await response.json();
+
+                // Update statistics
+                document.getElementById('totalDatasets').textContent = stats.total_datasets || 0;
+                document.getElementById('avgScore').textContent = (stats.average_schema_score || 0).toFixed(2);
+                document.getElementById('successRate').textContent = '95%'; // Mock data
+
+                // Create chart
+                createStatsChart(stats);
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        function createStatsChart(stats) {
+            const ctx = document.getElementById('statsChart').getContext('2d');
+            
+            if (statsChart) {
+                statsChart.destroy();
+            }
+
+            statsChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['RAG Optimization', 'Training Prep', 'Prompt Building', 'Config Building', 'Schema Inference'],
+                    datasets: [{
+                        data: [25, 20, 15, 20, 20],
+                        backgroundColor: [
+                            '#FF6384',
+                            '#36A2EB',
+                            '#FFCE56',
+                            '#4BC0C0',
+                            '#9966FF'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadDatasetFeedback() {
+            if (!currentDatasetId) return;
+
+            try {
+                const response = await fetch(`/api/data/feedback/${currentDatasetId}`);
+                const feedback = await response.json();
+
+                const feedbackList = document.getElementById('feedbackList');
+                if (feedback.length === 0) {
+                    feedbackList.innerHTML = '<p class="text-muted">No feedback available</p>';
+                    return;
+                }
+
+                feedbackList.innerHTML = feedback.map(f => `
+                    <div class="feedback-item ${f.resolved ? 'resolved' : ''}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>${f.feedback_type}</strong>
+                                <span class="badge bg-${getSeverityColor(f.severity)} status-badge">${f.severity}</span>
+                            </div>
+                            <small class="text-muted">${new Date(f.timestamp).toLocaleDateString()}</small>
+                        </div>
+                        <p class="mb-1">${f.description}</p>
+                        ${f.resolved ? `<small class="text-success">Resolved: ${f.resolution_notes}</small>` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading feedback:', error);
+            }
+        }
+
+        function getSeverityColor(severity) {
+            switch (severity.toLowerCase()) {
+                case 'critical': return 'danger';
+                case 'high': return 'warning';
+                case 'medium': return 'info';
+                case 'low': return 'secondary';
+                default: return 'secondary';
+            }
+        }
+
+        async function submitFeedback() {
+            const formData = {
+                feedback_type: document.getElementById('feedbackType').value,
+                severity: document.getElementById('feedbackSeverity').value,
+                description: document.getElementById('feedbackDescription').value,
+                suggested_improvements: document.getElementById('feedbackImprovements').value.split(',').map(s => s.trim())
+            };
+
+            try {
+                const response = await fetch('/api/data/feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    // Close modal and reload feedback
+                    bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
+                    loadDatasetFeedback();
+                    
+                    // Clear form
+                    document.getElementById('feedbackForm').reset();
+                } else {
+                    alert('Error submitting feedback');
+                }
+            } catch (error) {
+                console.error('Error submitting feedback:', error);
+                alert('Error submitting feedback');
+            }
+        }
+    </script>
+</body>
+</html>

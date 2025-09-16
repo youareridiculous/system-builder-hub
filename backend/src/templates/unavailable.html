@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature Unavailable - System Builder Hub</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(180deg, #5a66ff 0%, #6a4cd9 50%, #7a3cc4 100%);
+            --surface: rgba(255, 255, 255, 0.06);
+            --text: #e9ecf1;
+            --text-muted: #b8bfd1;
+            --accent: #8b5cf6;
+            --focus: 2px solid #a78bfa;
+            --radius: 16px;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            color: var(--text);
+            line-height: 1.6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .unavailable-card {
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            padding: 48px 32px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .unavailable-icon {
+            font-size: 4rem;
+            margin-bottom: 24px;
+            opacity: 0.7;
+        }
+
+        .unavailable-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .unavailable-reason {
+            font-size: 1.125rem;
+            color: var(--text-muted);
+            margin-bottom: 32px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 4px solid var(--warning);
+        }
+
+        .feature-slug {
+            font-family: monospace;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+
+        .back-button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+        .back-button:hover {
+            background: #a78bfa;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .help-text {
+            margin-top: 24px;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="unavailable-card">
+            <div class="unavailable-icon">🚫</div>
+            <h1 class="unavailable-title">Feature Unavailable</h1>
+            <div class="unavailable-reason">
+                {{ reason }}
+                {% if feature_slug %}
+                <br><br>
+                <span class="feature-slug">{{ feature_slug }}</span>
+                {% endif %}
+            </div>
+            <a href="/" class="back-button">← Back to Dashboard</a>
+            <div class="help-text">
+                If you believe this is an error, please contact your administrator.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

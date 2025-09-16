@@ -1,0 +1,10 @@
+{
+  "name": "CRM Flagship",
+  "template": "crm_flagship",
+  "created_at": "2025-08-28T08:21:23.103455",
+  "build_id": "da840b16-8485-4942-ade3-cc2f8d139743",
+  "ports": {
+    "backend": 8000,
+    "frontend": 3000
+  }
+}

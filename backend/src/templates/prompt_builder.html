@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🚀 Prompt Builder - System Build Hub OS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            height: calc(100vh - 200px);
+        }
+
+        .chat-section {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h2 {
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.assistant .message-avatar {
+            background: #28a745;
+            color: white;
+        }
+
+        .message.system .message-avatar {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .message-content {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.assistant .message-content {
+            background: #e8f5e8;
+            border-left: 4px solid #28a745;
+        }
+
+        .message.system .message-content {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-input button {
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.2s;
+        }
+
+        .chat-input button:hover {
+            transform: translateY(-2px);
+        }
+
+        .chat-input button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .quick-commands {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quick-command {
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .quick-command:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .build-status {
+            text-align: center;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-idle { background: #6c757d; }
+        .status-building { background: #ffc107; animation: pulse 2s infinite; }
+        .status-success { background: #28a745; }
+        .status-error { background: #dc3545; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .spec-preview {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .spec-section {
+            margin-bottom: 15px;
+        }
+
+        .spec-section h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .spec-content {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .tech-tag {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin: 2px;
+        }
+
+        .feature-tag {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin: 2px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid #c3e6cb;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Prompt Builder</h1>
+            <p>Build systems with natural language commands</p>
+        </div>
+
+        <div class="main-content">
+            <div class="chat-section">
+                <div class="chat-header">
+                    <h2>💬 Build Chat</h2>
+                    <p>Describe what you want to build</p>
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message system">
+                        <div class="message-avatar">🤖</div>
+                        <div class="message-content">
+                            <strong>System Build Hub OS</strong><br>
+                            Welcome! I can help you build systems using natural language. Try commands like:<br><br>
+                            • <code>/build authentication system with GitHub + Email support</code><br>
+                            • <code>/generate LLM-powered document parser</code><br>
+                            • <code>/create frontend UI for memory browser in Tailwind</code><br><br>
+                            What would you like to build today?
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-input">
+                    <div class="input-group">
+                        <input type="text" id="promptInput" placeholder="Describe what you want to build..." autocomplete="off">
+                        <button id="sendButton" onclick="sendPrompt()">🚀 Build</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="card">
+                    <h3>⚡ Quick Commands</h3>
+                    <div class="quick-commands">
+                        <div class="quick-command" onclick="useQuickCommand('/build authentication system with GitHub + Email support')">
+                            🔐 Auth System
+                        </div>
+                        <div class="quick-command" onclick="useQuickCommand('/generate LLM-powered document parser')">
+                            📄 Document Parser
+                        </div>
+                        <div class="quick-command" onclick="useQuickCommand('/create frontend UI for memory browser in Tailwind')">
+                            🎨 Memory Browser UI
+                        </div>
+                        <div class="quick-command" onclick="useQuickCommand('/setup API backend with Flask and PostgreSQL')">
+                            🔧 API Backend
+                        </div>
+                        <div class="quick-command" onclick="useQuickCommand('/build dashboard with React and real-time updates')">
+                            📊 Dashboard
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>🏗️ Build Status</h3>
+                    <div class="build-status">
+                        <div id="statusIndicator">
+                            <span class="status-indicator status-idle"></span>
+                            <span id="statusText">Idle</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📋 Build Specification</h3>
+                    <div class="spec-preview" id="specPreview">
+                        <div class="spec-content">
+                            No build specification yet. Send a prompt to see the generated specification.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentBuildId = null;
+        let isBuilding = false;
+
+        // Handle Enter key in input
+        document.getElementById('promptInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendPrompt();
+            }
+        });
+
+        function useQuickCommand(command) {
+            document.getElementById('promptInput').value = command;
+            sendPrompt();
+        }
+
+        async function sendPrompt() {
+            const input = document.getElementById('promptInput');
+            const button = document.getElementById('sendButton');
+            const prompt = input.value.trim();
+            
+            if (!prompt || isBuilding) return;
+            
+            // Add user message
+            addMessage('user', prompt);
+            input.value = '';
+            button.disabled = true;
+            
+            // Show building status
+            updateStatus('building', 'Parsing prompt...');
+            
+            try {
+                // Send prompt to backend
+                const response = await fetch('/api/prompt/build', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        context: 'new_project'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Show parsed command
+                    addMessage('assistant', formatParsedCommand(result.parsed_command));
+                    
+                    // Show build specification
+                    updateSpecPreview(result.build_spec);
+                    
+                    // Execute build
+                    updateStatus('building', 'Executing build...');
+                    const buildResult = await executeBuild(result.build_spec);
+                    
+                    if (buildResult.success) {
+                        updateStatus('success', 'Build initiated successfully!');
+                        addMessage('system', `✅ Build initiated! System ID: ${buildResult.system_id}<br>Estimated completion: ${buildResult.estimated_completion}`);
+                    } else {
+                        updateStatus('error', 'Build failed');
+                        addMessage('system', `❌ Build failed: ${buildResult.error}`);
+                    }
+                } else {
+                    updateStatus('error', 'Failed to parse prompt');
+                    addMessage('system', `❌ Error: ${result.error}`);
+                }
+            } catch (error) {
+                updateStatus('error', 'Network error');
+                addMessage('system', `❌ Network error: ${error.message}`);
+            }
+            
+            button.disabled = false;
+            isBuilding = false;
+        }
+
+        async function executeBuild(buildSpec) {
+            try {
+                const response = await fetch('/api/prompt/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        build_spec: buildSpec
+                    })
+                });
+                
+                return await response.json();
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        function addMessage(type, content) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            let avatar = '🤖';
+            if (type === 'user') avatar = '👤';
+            else if (type === 'system') avatar = '⚙️';
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${avatar}</div>
+                <div class="message-content">${content}</div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function formatParsedCommand(command) {
+            return `
+                <strong>📋 Parsed Command</strong><br><br>
+                <strong>System:</strong> ${command.system_name}<br>
+                <strong>Type:</strong> ${command.command_type}<br>
+                <strong>Complexity:</strong> ${command.estimated_complexity}/10<br>
+                <strong>Priority:</strong> ${command.priority}/10<br><br>
+                <strong>Technologies:</strong><br>
+                ${command.technologies.map(tech => `<span class="tech-tag">${tech}</span>`).join('')}<br><br>
+                <strong>Features:</strong><br>
+                ${command.features.map(feature => `<span class="feature-tag">${feature}</span>`).join('')}<br><br>
+                <strong>Confidence:</strong> ${Math.round(command.metadata.confidence_score * 100)}%
+            `;
+        }
+
+        function updateSpecPreview(buildSpec) {
+            const preview = document.getElementById('specPreview');
+            
+            if (!buildSpec) {
+                preview.innerHTML = '<div class="spec-content">No specification available</div>';
+                return;
+            }
+            
+            preview.innerHTML = `
+                <div class="spec-section">
+                    <h4>🏗️ Architecture</h4>
+                    <div class="spec-content">
+                        ${buildSpec.architecture_plan.layers.map(layer => 
+                            `<strong>${layer.name}:</strong> ${layer.technologies.join(', ')}<br>`
+                        ).join('')}
+                    </div>
+                </div>
+                
+                <div class="spec-section">
+                    <h4>📁 File Structure</h4>
+                    <div class="spec-content">
+                        ${buildSpec.file_structure.slice(0, 10).map(file => `• ${file}`).join('<br>')}
+                        ${buildSpec.file_structure.length > 10 ? '<br>... and more' : ''}
+                    </div>
+                </div>
+                
+                <div class="spec-section">
+                    <h4>🔌 API Endpoints</h4>
+                    <div class="spec-content">
+                        ${buildSpec.api_endpoints.slice(0, 5).map(endpoint => 
+                            `<strong>${endpoint.method} ${endpoint.path}</strong><br>${endpoint.description}<br>`
+                        ).join('<br>')}
+                        ${buildSpec.api_endpoints.length > 5 ? '<br>... and more' : ''}
+                    </div>
+                </div>
+                
+                <div class="spec-section">
+                    <h4>📋 Tasks</h4>
+                    <div class="spec-content">
+                        ${buildSpec.task_breakdown.map(task => 
+                            `• ${task.title} (${task.estimated_duration})<br>`
+                        ).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateStatus(status, text) {
+            const indicator = document.querySelector('.status-indicator');
+            const statusText = document.getElementById('statusText');
+            
+            indicator.className = `status-indicator status-${status}`;
+            statusText.textContent = text;
+        }
+    </script>
+</body>
+</html>

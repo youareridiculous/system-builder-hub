@@ -1,0 +1,504 @@
+{% extends "ui/base.html" %}
+
+{% block title %}Visual Builder{% endblock %}
+
+{% block content %}
+<div class="visual-builder">
+    <div class="builder-header">
+        <h1>Visual Builder</h1>
+        <div class="builder-controls">
+            <button id="save-btn" class="btn btn-primary">Save</button>
+            <button id="generate-btn" class="btn btn-success">Generate Build</button>
+            <button id="preview-btn" class="btn btn-secondary">Open Preview</button>
+            <span id="version-chip" class="version-chip">v1</span>
+        </div>
+    </div>
+
+    <div class="builder-layout">
+        <!-- Left Palette -->
+        <div class="builder-palette">
+            <h3>Blocks</h3>
+            <div class="block-list">
+                <div class="block-item" draggable="true" data-block="rest-api">
+                    <div class="block-icon">🌐</div>
+                    <div class="block-name">REST API</div>
+                </div>
+                <div class="block-item" draggable="true" data-block="db-table">
+                    <div class="block-icon">🗄️</div>
+                    <div class="block-name">DB Table</div>
+                </div>
+                <div class="block-item" draggable="true" data-block="auth">
+                    <div class="block-icon">🔐</div>
+                    <div class="block-name">Auth</div>
+                </div>
+                <div class="block-item" draggable="true" data-block="ui-page">
+                    <div class="block-icon">📄</div>
+                    <div class="block-name">UI Page</div>
+                </div>
+                <div class="block-item" draggable="true" data-block="agent-tool">
+                    <div class="block-icon">🤖</div>
+                    <div class="block-name">Agent Tool</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="builder-canvas" id="canvas">
+            <div class="canvas-placeholder">
+                <p>Drag blocks here to build your system</p>
+            </div>
+        </div>
+
+        <!-- Properties Panel -->
+        <div class="builder-properties">
+            <h3>Properties</h3>
+            <div id="properties-content">
+                <p>Select a block to edit its properties</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.visual-builder {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.builder-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.builder-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.version-chip {
+    background: var(--accent);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.builder-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.builder-palette {
+    width: 250px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    padding: 1rem;
+}
+
+.block-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.block-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.block-item:hover {
+    background: var(--bg-hover);
+    transform: translateY(-1px);
+}
+
+.block-item:active {
+    cursor: grabbing;
+}
+
+.block-icon {
+    font-size: 1.5rem;
+}
+
+.block-name {
+    font-weight: 500;
+}
+
+.builder-canvas {
+    flex: 1;
+    background: var(--bg-primary);
+    position: relative;
+    overflow: auto;
+}
+
+.canvas-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+}
+
+.builder-properties {
+    width: 300px;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-color);
+    padding: 1rem;
+}
+
+.canvas-node {
+    position: absolute;
+    background: white;
+    border: 2px solid var(--accent);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    min-width: 150px;
+    cursor: move;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.canvas-node.selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-success:hover {
+    background: var(--success-dark);
+}
+
+.btn-secondary {
+    background: var(--secondary);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: var(--secondary-dark);
+}
+</style>
+
+<script>
+let currentProjectId = '{{ project_id }}';
+let canvasNodes = [];
+let selectedNode = null;
+let autoSaveTimer = null;
+
+// Initialize builder
+document.addEventListener('DOMContentLoaded', function() {
+    if (currentProjectId) {
+        loadBuilderState();
+    } else {
+        showProjectSelector();
+    }
+    
+    setupEventListeners();
+    setupAutoSave();
+});
+
+function setupEventListeners() {
+    // Save button
+    document.getElementById('save-btn').addEventListener('click', saveState);
+    
+    // Generate build button
+    document.getElementById('generate-btn').addEventListener('click', generateBuild);
+    
+    // Preview button
+    document.getElementById('preview-btn').addEventListener('click', openPreview);
+    
+    // Drag and drop
+    setupDragAndDrop();
+}
+
+function setupDragAndDrop() {
+    const canvas = document.getElementById('canvas');
+    const blocks = document.querySelectorAll('.block-item');
+    
+    blocks.forEach(block => {
+        block.addEventListener('dragstart', handleDragStart);
+    });
+    
+    canvas.addEventListener('dragover', handleDragOver);
+    canvas.addEventListener('drop', handleDrop);
+    canvas.addEventListener('click', handleCanvasClick);
+}
+
+function handleDragStart(e) {
+    e.dataTransfer.setData('text/plain', e.target.dataset.block);
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    const blockType = e.dataTransfer.getData('text/plain');
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    addNode(blockType, x, y);
+}
+
+function addNode(blockType, x, y) {
+    const node = {
+        id: Date.now(),
+        type: blockType,
+        x: x,
+        y: y,
+        properties: getDefaultProperties(blockType)
+    };
+    
+    canvasNodes.push(node);
+    renderCanvas();
+    triggerAutoSave();
+}
+
+function getDefaultProperties(blockType) {
+    const defaults = {
+        'rest-api': { name: 'API', method: 'GET', path: '/api/endpoint' },
+        'db-table': { name: 'Table', columns: [] },
+        'auth': { name: 'Auth', type: 'jwt' },
+        'ui-page': { name: 'Page', route: '/page' },
+        'agent-tool': { name: 'Tool', function: 'process' }
+    };
+    return defaults[blockType] || {};
+}
+
+function renderCanvas() {
+    const canvas = document.getElementById('canvas');
+    const placeholder = canvas.querySelector('.canvas-placeholder');
+    
+    if (canvasNodes.length === 0) {
+        placeholder.style.display = 'flex';
+        return;
+    }
+    
+    placeholder.style.display = 'none';
+    
+    // Clear existing nodes
+    canvas.querySelectorAll('.canvas-node').forEach(node => node.remove());
+    
+    // Render nodes
+    canvasNodes.forEach(node => {
+        const nodeEl = createNodeElement(node);
+        canvas.appendChild(nodeEl);
+    });
+}
+
+function createNodeElement(node) {
+    const nodeEl = document.createElement('div');
+    nodeEl.className = 'canvas-node';
+    nodeEl.style.left = node.x + 'px';
+    nodeEl.style.top = node.y + 'px';
+    nodeEl.dataset.nodeId = node.id;
+    
+    const blockNames = {
+        'rest-api': 'REST API',
+        'db-table': 'DB Table',
+        'auth': 'Auth',
+        'ui-page': 'UI Page',
+        'agent-tool': 'Agent Tool'
+    };
+    
+    nodeEl.innerHTML = `
+        <div class="node-header">
+            <strong>${blockNames[node.type]}</strong>
+        </div>
+        <div class="node-content">
+            ${node.properties.name || 'Unnamed'}
+        </div>
+    `;
+    
+    nodeEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectNode(node);
+    });
+    
+    return nodeEl;
+}
+
+function selectNode(node) {
+    selectedNode = node;
+    document.querySelectorAll('.canvas-node').forEach(el => el.classList.remove('selected'));
+    document.querySelector(`[data-node-id="${node.id}"]`).classList.add('selected');
+    showProperties(node);
+}
+
+function showProperties(node) {
+    const propertiesEl = document.getElementById('properties-content');
+    propertiesEl.innerHTML = `
+        <h4>${node.properties.name || 'Unnamed'}</h4>
+        <div class="property-group">
+            <label>Name:</label>
+            <input type="text" value="${node.properties.name || ''}" 
+                   onchange="updateNodeProperty(${node.id}, 'name', this.value)">
+        </div>
+        ${getPropertyFields(node)}
+    `;
+}
+
+function getPropertyFields(node) {
+    switch (node.type) {
+        case 'rest-api':
+            return `
+                <div class="property-group">
+                    <label>Method:</label>
+                    <select onchange="updateNodeProperty(${node.id}, 'method', this.value)">
+                        <option value="GET" ${node.properties.method === 'GET' ? 'selected' : ''}>GET</option>
+                        <option value="POST" ${node.properties.method === 'POST' ? 'selected' : ''}>POST</option>
+                        <option value="PUT" ${node.properties.method === 'PUT' ? 'selected' : ''}>PUT</option>
+                        <option value="DELETE" ${node.properties.method === 'DELETE' ? 'selected' : ''}>DELETE</option>
+                    </select>
+                </div>
+                <div class="property-group">
+                    <label>Path:</label>
+                    <input type="text" value="${node.properties.path || ''}" 
+                           onchange="updateNodeProperty(${node.id}, 'path', this.value)">
+                </div>
+            `;
+        default:
+            return '';
+    }
+}
+
+function updateNodeProperty(nodeId, property, value) {
+    const node = canvasNodes.find(n => n.id === nodeId);
+    if (node) {
+        node.properties[property] = value;
+        triggerAutoSave();
+    }
+}
+
+function handleCanvasClick(e) {
+    if (e.target === document.getElementById('canvas')) {
+        selectedNode = null;
+        document.querySelectorAll('.canvas-node').forEach(el => el.classList.remove('selected'));
+        document.getElementById('properties-content').innerHTML = '<p>Select a block to edit its properties</p>';
+    }
+}
+
+function setupAutoSave() {
+    // Auto-save every 20 seconds
+    setInterval(() => {
+        if (canvasNodes.length > 0) {
+            saveState();
+        }
+    }, 20000);
+}
+
+function triggerAutoSave() {
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(saveState, 2000); // Debounced save
+}
+
+async function loadBuilderState() {
+    try {
+        const response = await fetch(`/api/builder/state?project_id=${currentProjectId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            canvasNodes = data.state.canvas || [];
+            renderCanvas();
+            updateVersionChip(data.state.version || 1);
+        }
+    } catch (error) {
+        console.error('Failed to load builder state:', error);
+    }
+}
+
+async function saveState() {
+    try {
+        const response = await fetch('/api/builder/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                project_id: currentProjectId,
+                blueprint: {}, // TODO: Generate from canvas
+                canvas: canvasNodes,
+                modules: [] // TODO: Extract modules from canvas
+            })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            updateVersionChip(data.version);
+        }
+    } catch (error) {
+        console.error('Failed to save state:', error);
+    }
+}
+
+async function generateBuild() {
+    try {
+        const response = await fetch('/api/builder/generate-build', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                project_id: currentProjectId
+            })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert(`Build started! Build ID: ${data.build_id}`);
+            // TODO: Show build progress
+        }
+    } catch (error) {
+        console.error('Failed to generate build:', error);
+    }
+}
+
+function openPreview() {
+    if (currentProjectId) {
+        window.open(`/ui/preview?project=${currentProjectId}`, '_blank');
+    }
+}
+
+function updateVersionChip(version) {
+    document.getElementById('version-chip').textContent = `v${version}`;
+}
+
+function showProjectSelector() {
+    // TODO: Show modal to select project
+    alert('Please select a project to continue');
+}
+</script>
+{% endblock %}

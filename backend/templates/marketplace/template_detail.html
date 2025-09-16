@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template Detail - SBH Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        function TemplateDetail() {
+            const [template, setTemplate] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [selectedScreenshot, setSelectedScreenshot] = useState(0);
+            
+            // Launch dialog
+            const [launchDialogOpen, setLaunchDialogOpen] = useState(false);
+            const [launchData, setLaunchData] = useState({
+                tenant_name: '',
+                domain: '',
+                plan: 'starter',
+                seed_demo_data: true
+            });
+            const [launching, setLaunching] = useState(false);
+
+            useEffect(() => {
+                // Get slug from URL
+                const pathParts = window.location.pathname.split('/');
+                const slug = pathParts[pathParts.length - 1];
+                if (slug) {
+                    loadTemplate(slug);
+                }
+            }, []);
+
+            const loadTemplate = async (templateSlug) => {
+                try {
+                    setLoading(true);
+                    const response = await fetch(`/api/marketplace/templates/${templateSlug}`);
+                    
+                    if (!response.ok) {
+                        throw new Error('Template not found');
+                    }
+                    
+                    const data = await response.json();
+                    setTemplate(data.data);
+                    
+                    // Set default plan
+                    if (data.data.attributes.plans) {
+                        const planKeys = Object.keys(data.data.attributes.plans);
+                        if (planKeys.length > 0) {
+                            setLaunchData(prev => ({ ...prev, plan: planKeys[0] }));
+                        }
+                    }
+                    
+                } catch (err) {
+                    setError(err.message || 'Failed to load template');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleLaunchTemplate = async () => {
+                if (!template || !launchData.tenant_name) return;
+
+                try {
+                    setLaunching(true);
+                    const response = await fetch(`/api/marketplace/templates/${template.attributes.slug}/launch`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(launchData)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.errors?.[0]?.detail || 'Launch failed');
+                    }
+
+                    const result = await response.json();
+                    
+                    // Redirect to onboarding or show success message
+                    if (result.data.attributes.onboarding_url) {
+                        window.location.href = result.data.attributes.onboarding_url;
+                    } else {
+                        setLaunchDialogOpen(false);
+                        // Show success toast
+                    }
+                } catch (err) {
+                    setError(err.message || 'Launch failed');
+                } finally {
+                    setLaunching(false);
+                }
+            };
+
+            const getBadgeIcon = (badge) => {
+                const iconMap = {
+                    'Multi-tenant': '👥',
+                    'Stripe': '⚡',
+                    'S3': '🌐',
+                    'RBAC': '🛡️',
+                    'AI': '✨',
+                    'Automations': '⚙️',
+                    'Assessments': '✅',
+                    'Scheduling': '📅',
+                    'SLA': '⏰',
+                    'Portal': '🔗',
+                    'Real-time': '⚡',
+                    'Customizable': '🎨'
+                };
+                return iconMap[badge] || 'ℹ️';
+            };
+
+            if (loading) {
+                return (
+                    <div className="flex items-center justify-center min-h-screen">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p className="text-gray-600">Loading template...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (error || !template) {
+                return (
+                    <div className="max-w-4xl mx-auto p-6">
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                            {error || 'Template not found'}
+                        </div>
+                        <button 
+                            onClick={() => window.location.href = '/ui/marketplace'}
+                            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        >
+                            ← Back to Marketplace
+                        </button>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    <div className="max-w-6xl mx-auto p-6">
+                        {/* Header */}
+                        <div className="mb-8">
+                            <button 
+                                onClick={() => window.location.href = '/ui/marketplace'}
+                                className="mb-4 px-4 py-2 text-gray-600 hover:text-gray-800 flex items-center"
+                            >
+                                ← Back to Marketplace
+                            </button>
+                            
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                                        {template.attributes.name}
+                                    </h1>
+                                    <p className="text-lg text-gray-600 mb-4">
+                                        {template.attributes.description}
+                                    </p>
+                                    <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
+                                        <span>By {template.attributes.author}</span>
+                                        <span>v{template.attributes.version}</span>
+                                        <span>{template.attributes.category}</span>
+                                        <div className="flex items-center space-x-1">
+                                            <span>⭐</span>
+                                            <span>4.8</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {template.attributes.badges.map(badge => (
+                                            <span key={badge} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                                <span className="mr-1">{getBadgeIcon(badge)}</span>
+                                                {badge}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={() => setLaunchDialogOpen(true)}
+                                        className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center"
+                                    >
+                                        <span className="mr-2">🚀</span>
+                                        Launch Template
+                                    </button>
+                                    {template.attributes.documentation && (
+                                        <button
+                                            onClick={() => window.open(template.attributes.documentation, '_blank')}
+                                            className="px-4 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors flex items-center"
+                                        >
+                                            <span className="mr-2">📖</span>
+                                            Docs
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Main Content */}
+                        <div className="space-y-6">
+                            {/* Screenshots */}
+                            {template.attributes.screenshots.length > 0 && (
+                                <div className="bg-white rounded-lg shadow p-6">
+                                    <h2 className="text-xl font-semibold mb-4">Screenshots</h2>
+                                    <div className="space-y-4">
+                                        <div className="relative">
+                                            <img
+                                                src={template.attributes.screenshots[selectedScreenshot]}
+                                                alt={`${template.attributes.name} screenshot`}
+                                                className="w-full h-64 object-cover rounded-lg"
+                                            />
+                                        </div>
+                                        {template.attributes.screenshots.length > 1 && (
+                                            <div className="flex space-x-2 overflow-x-auto">
+                                                {template.attributes.screenshots.map((screenshot, index) => (
+                                                    <button
+                                                        key={index}
+                                                        onClick={() => setSelectedScreenshot(index)}
+                                                        className={`flex-shrink-0 w-20 h-20 rounded border-2 ${
+                                                            index === selectedScreenshot 
+                                                                ? 'border-blue-500' 
+                                                                : 'border-gray-200'
+                                                        }`}
+                                                    >
+                                                        <img
+                                                            src={screenshot}
+                                                            alt={`Screenshot ${index + 1}`}
+                                                            className="w-full h-full object-cover rounded"
+                                                        />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Demo Video */}
+                            {template.attributes.demo_video_url && (
+                                <div className="bg-white rounded-lg shadow p-6">
+                                    <h2 className="text-xl font-semibold mb-4">Demo Video</h2>
+                                    <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                                        <button
+                                            onClick={() => window.open(template.attributes.demo_video_url, '_blank')}
+                                            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors flex items-center"
+                                        >
+                                            <span className="mr-2">▶️</span>
+                                            Watch Demo
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Features */}
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <h2 className="text-xl font-semibold mb-4">Features</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {template.attributes.features.map((feature, index) => (
+                                        <div key={index} className="flex items-center space-x-2">
+                                            <span className="text-green-500">✅</span>
+                                            <span>{feature}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Pricing */}
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <h2 className="text-xl font-semibold mb-4">Pricing</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {Object.entries(template.attributes.plans).map(([key, plan]) => (
+                                        <div key={key} className="border rounded-lg p-6 relative">
+                                            {key === 'pro' && (
+                                                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                                                    <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
+                                                        Most Popular
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <h3 className="text-lg font-semibold text-center mb-2">{plan.name}</h3>
+                                            <div className="text-center mb-4">
+                                                <span className="text-3xl font-bold">${plan.price}</span>
+                                                <span className="text-gray-600">/month</span>
+                                            </div>
+                                            <ul className="space-y-2 mb-4">
+                                                {plan.features.map((feature, index) => (
+                                                    <li key={index} className="flex items-center space-x-2">
+                                                        <span className="text-green-500">✅</span>
+                                                        <span className="text-sm">{feature}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            <button 
+                                                className="w-full px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                                                onClick={() => {
+                                                    setLaunchData(prev => ({ ...prev, plan: key }));
+                                                    setLaunchDialogOpen(true);
+                                                }}
+                                            >
+                                                Select {plan.name}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Quick Start */}
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <h2 className="text-xl font-semibold mb-4">Quick Start</h2>
+                                <div className="space-y-4">
+                                    {template.attributes.installation?.steps?.map((step, index) => (
+                                        <div key={index} className="flex items-start space-x-3">
+                                            <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
+                                                {index + 1}
+                                            </div>
+                                            <p className="text-gray-700">{step}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Launch Dialog */}
+                        {launchDialogOpen && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                                    <h3 className="text-lg font-semibold mb-4">
+                                        Launch {template.attributes.name}
+                                    </h3>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Tenant Name</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Enter tenant name"
+                                                value={launchData.tenant_name}
+                                                onChange={(e) => setLaunchData(prev => ({ ...prev, tenant_name: e.target.value }))}
+                                                className="w-full p-2 border rounded"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Domain (Optional)</label>
+                                            <input
+                                                type="text"
+                                                placeholder="your-domain.com"
+                                                value={launchData.domain}
+                                                onChange={(e) => setLaunchData(prev => ({ ...prev, domain: e.target.value }))}
+                                                className="w-full p-2 border rounded"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Plan</label>
+                                            <select
+                                                value={launchData.plan}
+                                                onChange={(e) => setLaunchData(prev => ({ ...prev, plan: e.target.value }))}
+                                                className="w-full p-2 border rounded"
+                                            >
+                                                {Object.entries(template.attributes.plans).map(([key, plan]) => (
+                                                    <option key={key} value={key}>
+                                                        {plan.name} - ${plan.price}/month
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                id="seed-demo"
+                                                checked={launchData.seed_demo_data}
+                                                onChange={(e) => setLaunchData(prev => ({ ...prev, seed_demo_data: e.target.checked }))}
+                                                className="rounded"
+                                            />
+                                            <label htmlFor="seed-demo" className="text-sm">
+                                                Seed demo data
+                                            </label>
+                                        </div>
+                                        <div className="flex space-x-2">
+                                            <button
+                                                onClick={handleLaunchTemplate}
+                                                disabled={launching || !launchData.tenant_name}
+                                                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+                                            >
+                                                {launching ? (
+                                                    <>
+                                                        <span className="animate-spin mr-2">🔄</span>
+                                                        Launching...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span className="mr-2">🚀</span>
+                                                        Launch Template
+                                                    </>
+                                                )}
+                                            </button>
+                                            <button
+                                                onClick={() => setLaunchDialogOpen(false)}
+                                                disabled={launching}
+                                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded disabled:opacity-50"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                                {error}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<TemplateDetail />, document.getElementById('root'));
+    </script>
+</body>
+</html>

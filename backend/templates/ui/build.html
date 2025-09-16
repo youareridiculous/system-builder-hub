@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Builder Hub - Builder</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style>
+        .builder-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .builder-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .builder-title {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .builder-subtitle {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        .builder-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .builder-card {
+            background: #fff;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .builder-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        .builder-card p {
+            color: #5a6c7d;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .cta-button {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+        .cta-button:hover {
+            background: #2980b9;
+        }
+        .status-pill {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .dev-hint {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+            color: #856404;
+        }
+        .dev-hint code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        
+        /* Dev Auth Panel Styles */
+        .dev-auth-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #fff;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            max-width: 300px;
+            display: none;
+        }
+        .dev-auth-panel h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 1rem;
+        }
+        .dev-auth-panel button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin: 5px 5px 5px 0;
+        }
+        .dev-auth-panel button:hover {
+            background: #2980b9;
+        }
+        .dev-auth-panel input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+        .dev-auth-panel .status {
+            font-size: 0.85rem;
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .dev-auth-panel .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .dev-auth-panel .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        /* Build Wizard Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 0;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        .modal-body {
+            padding: 30px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .modal-footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .wizard-step {
+            display: none;
+        }
+        
+        .wizard-step.active {
+            display: block;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .step-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e9ecef;
+            margin: 0 8px;
+            transition: background 0.3s ease;
+        }
+        
+        .step-dot.active {
+            background: #3498db;
+        }
+        
+        .step-dot.completed {
+            background: #27ae60;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .form-checkbox {
+            margin-right: 8px;
+        }
+        
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .template-card {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fff;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .template-card:hover {
+            border-color: #3498db;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .template-card.selected {
+            border-color: #3498db;
+            background: #f8f9ff;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+        }
+        
+        .template-card h4 {
+            margin: 0 0 8px 0;
+            color: #2c3e50;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .template-card p {
+            margin: 0 0 12px 0;
+            color: #6c757d;
+            font-size: 14px;
+            line-height: 1.4;
+            flex-grow: 1;
+        }
+        
+        .template-meta {
+            display: flex;
+            gap: 8px;
+            margin-top: auto;
+        }
+        
+        .template-type, .template-complexity {
+            background: #e9ecef;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .template-type {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .template-complexity {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .llm-offline-message {
+            text-align: center;
+            padding: 30px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .offline-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .llm-offline-message h4 {
+            color: #6c757d;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .llm-offline-message p {
+            color: #6c757d;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .offline-features {
+            text-align: left;
+            background: #fff;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            margin: 20px 0;
+        }
+        
+        .offline-features h5 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .offline-features ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #6c757d;
+        }
+        
+        .offline-features li {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        .offline-note {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            color: #0056b3;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #229954;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .build-progress {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #3498db;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            font-size: 0.9rem;
+            color: #6c757d;
+            text-align: center;
+        }
+        
+        .log-panel {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            margin-top: 15px;
+            user-select: text; /* Make text selectable */
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+        }
+        
+        .log-panel:focus {
+            outline: none; /* Remove focus outline */
+        }
+        
+        /* Prevent modal from closing when clicking inside */
+        .modal-content {
+            pointer-events: auto;
+        }
+        
+        .modal-content * {
+            pointer-events: auto;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        
+        .log-entry.info {
+            color: #3498db;
+        }
+        
+        .log-entry.success {
+            color: #27ae60;
+        }
+        
+        .log-entry.error {
+            color: #e74c3c;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .builder-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 10px;
+            }
+            
+            .template-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="builder-container">
+        <div class="builder-header">
+            <h1 class="builder-title">System Builder Hub</h1>
+            <p class="builder-subtitle">Build, deploy, and manage your systems</p>
+            <div>
+                <span>LLM Status:</span>
+                <span class="status-pill status-connected" id="llm-status">Connected</span>
+            </div>
+        </div>
+
+        <div class="builder-content">
+            <div class="builder-card">
+                <h3>🚀 Start a New Build</h3>
+                <p>Create a new system from scratch using our guided builder. Choose from templates or start with a blank canvas.</p>
+                <a href="#" class="cta-button" data-action="start-build">Start Building</a>
+            </div>
+
+            <div class="builder-card">
+                <h3>📋 Manage Projects</h3>
+                <p>View and manage your existing projects. Deploy updates, monitor performance, and collaborate with your team.</p>
+                <a href="/dashboard" class="cta-button">View Projects</a>
+            </div>
+
+            <div class="builder-card">
+                <h3>🔧 System Settings</h3>
+                <p>Configure your LLM providers, manage API keys, and customize your builder environment.</p>
+                <a href="/settings" class="cta-button">Open Settings</a>
+            </div>
+
+            <div class="builder-card">
+                <h3>📊 Analytics & Monitoring</h3>
+                <p>Monitor system performance, track usage metrics, and analyze user behavior across your deployments.</p>
+                <a href="/analytics" class="cta-button">View Analytics</a>
+            </div>
+        </div>
+
+        <!-- Development hint (shown only in dev mode) -->
+        {% if config.DEBUG %}
+        <div class="dev-hint">
+            <strong>Development Mode:</strong> 
+            If you're building a modern frontend with React/Vue/etc., run:
+            <br><code>cd frontend && npm install && npm run dev</code>
+            <br>Then this page will proxy to your dev server.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Dev Auth Panel -->
+    <div id="devAuthPanel" class="dev-auth-panel">
+        <h4>Dev Authentication</h4>
+        <div class="status" id="devAuthStatus">Not Authenticated</div>
+        <button onclick="getDevKey()">Use Demo Key</button>
+        <input type="text" id="devAuthToken" placeholder="Enter API Token">
+        <button onclick="authenticateDev()">Authenticate</button>
+    </div>
+
+    <!-- Build Wizard Modal -->
+    <div id="buildWizardModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Create New Build</h2>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Step Indicator -->
+                <div class="step-indicator">
+                    <div class="step-dot active" data-step="1"></div>
+                    <div class="step-dot" data-step="2"></div>
+                    <div class="step-dot" data-step="3"></div>
+                    <div class="step-dot" data-step="4"></div>
+                </div>
+                
+                <!-- Error Message -->
+                <div id="errorMessage" class="error-message"></div>
+                
+                <!-- Step 1: Project Details -->
+                <div id="step1" class="wizard-step active">
+                    <h3>Project Details</h3>
+                    <div class="form-group">
+                        <label class="form-label" for="projectName">Project Name *</label>
+                        <input type="text" id="projectName" class="form-input" placeholder="Enter project name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="projectDescription">Description</label>
+                        <textarea id="projectDescription" class="form-textarea" placeholder="Describe your project (optional)"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="useLLM" class="form-checkbox" checked>
+                            Use LLM for enhanced features
+                        </label>
+                        <small style="display: block; margin-top: 5px; color: #6c757d;">
+                            Uncheck to build without AI assistance
+                        </small>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Template Selection -->
+                <div id="step2" class="wizard-step">
+                    <h3>Choose Template</h3>
+                    <p>Select a template to get started, or choose "Blank Canvas" to start from scratch.</p>
+                    <div id="templateGrid" class="template-grid">
+                        <!-- Templates will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Step 3: LLM Configuration -->
+                <div id="step3" class="wizard-step">
+                    <h3>LLM Configuration</h3>
+                    <div id="llmConfigContent">
+                        <p>Configure your LLM provider for enhanced features.</p>
+                        <div class="form-group">
+                            <label class="form-label" for="llmProvider">Provider</label>
+                            <select id="llmProvider" class="form-input">
+                                <option value="openai">OpenAI</option>
+                                <option value="anthropic">Anthropic</option>
+                                <option value="google">Google</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="llmModel">Model</label>
+                            <select id="llmModel" class="form-input">
+                                <option value="gpt-4">GPT-4</option>
+                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                <option value="claude-3">Claude 3</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="dryRunPrompt">Test Prompt</label>
+                            <textarea id="dryRunPrompt" class="form-textarea" placeholder="Enter a test prompt to verify LLM configuration">Hello, can you help me build a simple web application?</textarea>
+                        </div>
+                        <button type="button" id="testLLM" class="btn btn-secondary">Test LLM Connection</button>
+                        <div id="llmTestResult" style="margin-top: 10px;"></div>
+                    </div>
+                    
+                    <div id="llmOfflineContent" style="display: none;">
+                        <div class="llm-offline-message">
+                            <div class="offline-icon">🤖</div>
+                            <h4>LLM Disabled</h4>
+                            <p>You've chosen to build without AI assistance. Your project will be created using traditional development methods.</p>
+                            <div class="offline-features">
+                                <h5>What this means:</h5>
+                                <ul>
+                                    <li>No AI-powered code generation</li>
+                                    <li>Manual template customization</li>
+                                    <li>Standard development workflow</li>
+                                    <li>Full control over all aspects</li>
+                                </ul>
+                            </div>
+                            <p class="offline-note">
+                                <strong>Note:</strong> You can always enable LLM features later in your project settings.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 4: Review & Start -->
+                <div id="step4" class="wizard-step">
+                    <h3>Review & Start Build</h3>
+                    <div id="reviewContent">
+                        <div class="form-group">
+                            <strong>Project Name:</strong> <span id="reviewProjectName"></span>
+                        </div>
+                        <div class="form-group">
+                            <strong>Description:</strong> <span id="reviewDescription"></span>
+                        </div>
+                        <div class="form-group">
+                            <strong>Template:</strong> <span id="reviewTemplate"></span>
+                        </div>
+                        <div class="form-group">
+                            <strong>LLM Mode:</strong> <span id="reviewLLMMode"></span>
+                        </div>
+                        <div id="reviewLLMConfig" style="display: none;">
+                            <div class="form-group">
+                                <strong>Provider:</strong> <span id="reviewLLMProvider"></span>
+                            </div>
+                            <div class="form-group">
+                                <strong>Model:</strong> <span id="reviewLLMModel"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Build Progress -->
+                    <div id="buildProgress" class="build-progress">
+                        <h4>Building Your Project...</h4>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-text" id="progressText">Initializing...</div>
+                        <div class="log-panel" id="buildLogs">
+                            <div class="log-entry info">Starting build process...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" id="prevBtn" class="btn btn-secondary" style="display: none;">Previous</button>
+                <button type="button" id="nextBtn" class="btn btn-primary">Next</button>
+                <button type="button" id="startBtn" class="btn btn-success" style="display: none;">Start Build</button>
+                <button type="button" id="closeBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SBH namespace for global API
+        window.SBH = window.SBH || {};
+        
+        // Global variables
+        let currentStep = 1;
+        let wizardData = {
+            projectName: '',
+            description: '',
+            useLLM: true,
+            selectedTemplate: null,
+            llmProvider: 'openai',
+            llmModel: 'gpt-4',
+            dryRunPrompt: 'Hello, this is a test prompt.'
+        };
+        let templates = [];
+        let currentBuildId = null;
+        let buildPollInterval = null;
+        let buildInProgress = false; // Flag to prevent multiple builds
+
+        // --- URL helpers ---
+        function getParam(name) {
+            const url = new URL(window.location.href);
+            return url.searchParams.get(name);
+        }
+        
+        function hasPrefill() {
+            return getParam('prefill') === '1';
+        }
+
+        // ---------- small helpers ----------
+        function onReady(cb){ 
+            if(document.readyState!=='loading') cb(); 
+            else document.addEventListener('DOMContentLoaded', cb); 
+        }
+
+        function waitForEl(selector, cb){
+            const el = document.querySelector(selector);
+            if (el) return cb(el);
+            const obs = new MutationObserver(() => {
+                const el2 = document.querySelector(selector);
+                if (el2){ obs.disconnect(); cb(el2); }
+            });
+            obs.observe(document.body, { childList:true, subtree:true });
+        }
+
+        // --- DOM + data sync helpers ---
+        function setInputValue(el, val) {
+            if (!el) return;
+            el.value = val;
+            el.dispatchEvent(new Event('input', { bubbles: true })); // keep any bindings in sync
+        }
+
+        // Safe setter: set only if the input is currently empty (don't overwrite user edits)
+        function setIfEmpty(el, val) {
+            if (!el) return;
+            if (!el.value || el.value.trim() === '') setInputValue(el, val);
+        }
+
+        // Update checkbox and fire 'change' to sync bindings
+        function setCheckbox(el, checked) {
+            if (!el) return;
+            el.checked = !!checked;
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        // Prefer cached templates if the page already loaded them; fallback to fetch
+        async function getTemplates() {
+            if (window.__TEMPLATES_CACHE && Array.isArray(window.__TEMPLATES_CACHE)) {
+                return window.__TEMPLATES_CACHE;
+            }
+            const res = await window.sbhFetch('/api/templates');
+            const data = await res.json();
+            const arr = Array.isArray(data) ? data : (Array.isArray(data.templates) ? data.templates : []);
+            window.__TEMPLATES_CACHE = arr;
+            return arr;
+        }
+
+        // Ensure this stays available (already added earlier)
+        window.selectTemplateById = window.selectTemplateById || function(id){
+            if (!Array.isArray(window.templates)) return false;
+            const tpl = window.templates.find(t => t.id === id);
+            if (!tpl) return false;
+            if (typeof window.selectTemplate === 'function') window.selectTemplate(tpl);
+            // Also mirror into wizardData if available
+            if (window.wizardData) window.wizardData.selectedTemplate = tpl;
+            return true;
+        };
+
+        // Apply prefill for a given template record and sync to wizardData + visible inputs
+        async function applyPrefillFromTemplate(tpl) {
+            if (!tpl) return;
+
+            console.log('Applying prefill for template:', tpl.name);
+
+            // Defaults
+            const defaultName = tpl.name || 'New Project';
+            const defaultDesc = tpl.description || '';
+            const defaultPrompt = (tpl.llm_recommendations && tpl.llm_recommendations.default_prompt) || '';
+
+            // Sync wizardData (do not clobber if already set by user before prefill)
+            if (!wizardData.projectName) wizardData.projectName = defaultName;
+            if (!wizardData.description) wizardData.description = defaultDesc;
+            wizardData.useLLM = true;
+            if (defaultPrompt) wizardData.dryRunPrompt = defaultPrompt;
+
+            console.log('Updated wizardData:', wizardData);
+
+            // Sync visible inputs on Step 1
+            setIfEmpty(document.getElementById('projectName'), wizardData.projectName);
+            setIfEmpty(document.getElementById('projectDescription'), wizardData.description);
+            setCheckbox(document.getElementById('useLLM'), true);
+
+            // Preselect the template in Step 2 (UI highlight + data)
+            wizardData.selectedTemplate = tpl;
+            
+            // If the template grid has selection handlers, simulate a click on the card
+            if (window.selectTemplateById) {
+                window.selectTemplateById(tpl.id);
+            } else {
+                const card = document.querySelector(`[data-template-id="${tpl.id}"]`);
+                if (card && card.click) card.click();
+            }
+
+            // Step 3 (LLM): prefill provider/model/prompt if those fields exist in DOM
+            setIfEmpty(document.getElementById('dryRunPrompt'), wizardData.dryRunPrompt);
+
+            console.log('Applied prefill for template:', tpl.name, wizardData);
+        }
+
+
+
+        // Expose wizard API globally
+        window.SBH.openWizard = function() {
+            const modal = document.getElementById('buildWizardModal');
+            if (!modal) {
+                console.error('Wizard modal element not found');
+                return;
+            }
+            showModal();
+        };
+
+        // Legacy shim for existing onclick="startNewBuild()"
+        window.startNewBuild = window.SBH.openWizard;
+
+        // Authentication wrapper
+        window.sbhFetch = async function(url, options = {}) {
+            // Get auth token from localStorage
+            const bearerToken = localStorage.getItem('sbh.auth.bearer');
+            const apiKey = localStorage.getItem('sbh.auth.apiKey');
+            
+            // Add auth headers if available
+            if (bearerToken) {
+                options.headers = options.headers || {};
+                options.headers['Authorization'] = `Bearer ${bearerToken}`;
+            } else if (apiKey) {
+                options.headers = options.headers || {};
+                options.headers['X-API-Key'] = apiKey;
+            }
+            
+            return fetch(url, options);
+        };
+
+        // Check auth status on page load
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/auth/auth-status');
+                const status = await response.json();
+                
+                if (status.dev_anon_allowed) {
+                    console.log('Dev anonymous access enabled');
+                    return;
+                }
+                
+                // Show dev auth panel if not authenticated
+                const panel = document.getElementById('devAuthPanel');
+                panel.style.display = 'block';
+                
+                // Check if we have stored auth
+                const bearerToken = localStorage.getItem('sbh.auth.bearer');
+                const apiKey = localStorage.getItem('sbh.auth.apiKey');
+                
+                if (bearerToken || apiKey) {
+                    document.getElementById('devAuthStatus').textContent = 'Using stored auth';
+                    document.getElementById('devAuthStatus').className = 'status success';
+                }
+                
+            } catch (error) {
+                console.error('Failed to check auth status:', error);
+            }
+        }
+
+        // Dev auth functions
+        async function getDevKey() {
+            try {
+                const response = await fetch('/api/auth/dev-key');
+                const result = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('sbh.auth.apiKey', result.api_key);
+                    document.getElementById('devAuthStatus').textContent = 'Demo key loaded';
+                    document.getElementById('devAuthStatus').className = 'status success';
+                    console.log('Demo API key loaded:', result.api_key);
+                    return result.api_key;
+                } else {
+                    throw new Error(result.error || 'Failed to get dev key');
+                }
+            } catch (error) {
+                console.error('Failed to get dev key:', error);
+                document.getElementById('devAuthStatus').textContent = 'Failed to get dev key';
+                document.getElementById('devAuthStatus').className = 'status error';
+                return null;
+            }
+        }
+
+        async function authenticateDev() {
+            const tokenInput = document.getElementById('devAuthToken');
+            const statusDiv = document.getElementById('devAuthStatus');
+            
+            if (!tokenInput.value) {
+                statusDiv.textContent = 'Token is required';
+                statusDiv.className = 'status error';
+                return;
+            }
+            
+            // Store the token
+            localStorage.setItem('sbh.auth.bearer', tokenInput.value);
+            statusDiv.textContent = 'Token stored';
+            statusDiv.className = 'status success';
+            tokenInput.value = '';
+            
+            console.log('Dev token stored');
+        }
+
+        // LLM status check
+        async function checkLLMStatus() {
+            try {
+                const response = await window.sbhFetch('/api/llm/status');
+                const result = await response.json();
+                
+                const statusPill = document.getElementById('llm-status');
+                if (response.ok && result.connected) {
+                    statusPill.textContent = 'LLM Connected';
+                    statusPill.className = 'status-pill status-connected';
+                } else {
+                    statusPill.textContent = 'LLM Offline';
+                    statusPill.className = 'status-pill status-offline';
+                }
+            } catch (error) {
+                console.error('Failed to check LLM status:', error);
+                const statusPill = document.getElementById('llm-status');
+                statusPill.textContent = 'LLM Offline';
+                statusPill.className = 'status-pill status-offline';
+            }
+        }
+
+        // Modal functions
+        function showModal() {
+            console.log('showModal called');
+            const modal = document.getElementById('buildWizardModal');
+            if (!modal) {
+                console.error('Modal element not found!');
+                return;
+            }
+            console.log('Showing modal');
+            modal.style.display = 'flex';
+            resetWizard();
+            
+            // Apply prefill after modal is shown and wizard is reset
+            setTimeout(() => {
+                applyPrefillFromURL();
+            }, 100);
+        }
+        
+        // Apply prefill from URL parameters
+        async function applyPrefillFromURL() {
+            const tplId = getParam('template');
+            const doPrefill = hasPrefill() && tplId;
+            
+            if (!doPrefill) {
+                console.log('No prefill parameters found');
+                return;
+            }
+            
+            console.log('Applying prefill for template:', tplId);
+            
+            try {
+                // Ensure templates are loaded
+                if (!templates || templates.length === 0) {
+                    console.log('Templates not loaded yet, loading...');
+                    await loadTemplates();
+                }
+                
+                // Find the template
+                const tpl = templates.find(t => t.id === tplId);
+                if (tpl) {
+                    console.log('Found template for prefill:', tpl.name);
+                    await applyPrefillFromTemplate(tpl);
+                } else {
+                    console.warn('Template not found for prefill:', tplId);
+                }
+            } catch (e) {
+                console.error('Prefill error:', e);
+            }
+        }
+
+        function hideModal() {
+            document.getElementById('buildWizardModal').style.display = 'none';
+            if (buildPollInterval) {
+                clearInterval(buildPollInterval);
+                buildPollInterval = null;
+            }
+        }
+
+        function resetWizard() {
+            currentStep = 1;
+            wizardData = {
+                projectName: '',
+                description: '',
+                useLLM: true,
+                selectedTemplate: null,
+                llmProvider: 'openai',
+                llmModel: 'gpt-4',
+                dryRunPrompt: 'Hello, this is a test prompt.'
+            };
+            
+            // Reset form fields
+            document.getElementById('projectName').value = '';
+            document.getElementById('projectDescription').value = '';
+            document.getElementById('useLLM').checked = true;
+            document.getElementById('llmProvider').value = 'openai';
+            document.getElementById('llmModel').value = 'gpt-4';
+            document.getElementById('dryRunPrompt').value = 'Hello, this is a test prompt.';
+            
+            // Clear template selection
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Clear error messages
+            clearError();
+            
+            updateStepDisplay();
+            loadTemplates();
+        }
+
+        // Wizard navigation
+        function nextStep() {
+            if (validateCurrentStep()) {
+                if (currentStep < 4) {
+                    currentStep++;
+                    updateStepDisplay();
+                }
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepDisplay();
+            }
+        }
+
+        function updateStepDisplay() {
+            // Hide all steps
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`step${i}`).style.display = 'none';
+            }
+            
+            // Show current step
+            document.getElementById(`step${currentStep}`).style.display = 'block';
+            
+            // Update step indicators
+            const dots = document.querySelectorAll('.step-dot');
+            dots.forEach((dot, index) => {
+                if (index < currentStep) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+            
+            // Update buttons
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const startBtn = document.getElementById('startBtn');
+            
+            prevBtn.style.display = currentStep === 1 ? 'none' : 'inline-block';
+            nextBtn.style.display = currentStep === 4 ? 'none' : 'inline-block';
+            startBtn.style.display = currentStep === 4 ? 'inline-block' : 'none';
+            
+            // Load templates when step 2 is shown
+            if (currentStep === 2) {
+                console.log('Step 2 shown, loading templates...');
+                loadTemplates();
+            }
+            
+            // Update LLM configuration display when step 3 is shown
+            if (currentStep === 3) {
+                updateLLMStepDisplay();
+            }
+            
+            // Update review content on step 4
+            if (currentStep === 4) {
+                updateReviewContent();
+            }
+        }
+
+        // Form data binding - collect values from input fields
+        function collectFormData() {
+            // Step 1: Project Details
+            wizardData.projectName = document.getElementById('projectName').value.trim();
+            wizardData.description = document.getElementById('projectDescription').value.trim();
+            wizardData.useLLM = document.getElementById('useLLM').checked;
+            
+            // Step 2: Template (already set by selectTemplate function)
+            
+            // Step 3: LLM Configuration
+            if (wizardData.useLLM) {
+                wizardData.llmProvider = document.getElementById('llmProvider').value;
+                wizardData.llmModel = document.getElementById('llmModel').value;
+                wizardData.dryRunPrompt = document.getElementById('dryRunPrompt').value.trim();
+            }
+        }
+
+        // Validation
+        function validateCurrentStep() {
+            clearError();
+            
+            // Collect current form data
+            collectFormData();
+            
+            switch (currentStep) {
+                case 1:
+                    if (!wizardData.projectName) {
+                        showError('Project name is required');
+                        return false;
+                    }
+                    break;
+                case 2:
+                    if (!wizardData.selectedTemplate) {
+                        showError('Please select a template');
+                        return false;
+                    }
+                    break;
+                case 3:
+                    if (wizardData.useLLM) {
+                        if (!wizardData.llmProvider || !wizardData.llmModel) {
+                            showError('LLM provider and model are required when LLM is enabled');
+                            return false;
+                        }
+                    }
+                    break;
+            }
+            return true;
+        }
+
+        // Template loading
+        async function loadTemplates() {
+            try {
+                // Try to fetch templates from API
+                const response = await window.sbhFetch('/api/templates');
+                const result = await response.json();
+                
+                console.log('API response:', result);
+                
+                if (response.ok && result && Array.isArray(result) && result.length > 0) {
+                    // API returns array directly
+                    templates = result;
+                    console.log('Loaded templates from API:', templates);
+                } else if (response.ok && result.templates && result.templates.length > 0) {
+                    // API returns {templates: [...]} format
+                    templates = result.templates;
+                    console.log('Loaded templates from API (nested):', templates);
+                } else {
+                    // Fallback to default templates if API fails or returns empty
+                    console.log('Using fallback templates');
+                    templates = getDefaultTemplates();
+                }
+                
+                renderTemplates();
+                
+            } catch (error) {
+                console.error('Failed to load templates from API, using fallback:', error);
+                // Use fallback templates on error
+                templates = getDefaultTemplates();
+                renderTemplates();
+            }
+        }
+
+        function getDefaultTemplates() {
+            return [
+                {
+                    id: 'blank',
+                    name: 'Blank Canvas',
+                    description: 'Start from scratch with a clean slate',
+                    type: 'Basic',
+                    complexity: 'Beginner'
+                },
+                {
+                    id: 'crm',
+                    name: 'CRM System',
+                    description: 'Customer relationship management with contacts, deals, and tasks',
+                    type: 'Business',
+                    complexity: 'Intermediate'
+                },
+                {
+                    id: 'tasks',
+                    name: 'Task Manager',
+                    description: 'Simple task tracking and project management',
+                    type: 'Productivity',
+                    complexity: 'Beginner'
+                },
+                {
+                    id: 'lms',
+                    name: 'Learning Management',
+                    description: 'Course management and student tracking system',
+                    type: 'Education',
+                    complexity: 'Advanced'
+                },
+                {
+                    id: 'helpdesk',
+                    name: 'Help Desk',
+                    description: 'Customer support ticket management system',
+                    type: 'Support',
+                    complexity: 'Intermediate'
+                },
+                {
+                    id: 'analytics',
+                    name: 'Analytics Dashboard',
+                    description: 'Data visualization and reporting dashboard',
+                    type: 'Analytics',
+                    complexity: 'Advanced'
+                }
+            ];
+        }
+
+        function renderTemplates() {
+            const container = document.getElementById('templateGrid');
+            console.log('Rendering templates. Container:', container);
+            console.log('Templates to render:', templates);
+            
+            if (!container) {
+                console.error('Template grid container not found!');
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            if (!templates || templates.length === 0) {
+                console.log('No templates to render');
+                container.innerHTML = '<p>No templates available. Please try again.</p>';
+                return;
+            }
+            
+            templates.forEach((template, index) => {
+                console.log(`Rendering template ${index}:`, template);
+                const templateCard = document.createElement('div');
+                templateCard.className = 'template-card';
+                templateCard.setAttribute('data-template-id', template.id);
+                templateCard.onclick = () => selectTemplateInternal(template);
+                
+                // Handle both API response format and fallback format
+                const templateType = template.type || template.category || 'Unknown';
+                const templateComplexity = template.complexity || 'Medium';
+                
+                templateCard.innerHTML = `
+                    <h4>${template.name}</h4>
+                    <p>${template.description || 'No description available'}</p>
+                    <div class="template-meta">
+                        <span class="template-type">${templateType}</span>
+                        <span class="template-complexity">${templateComplexity}</span>
+                    </div>
+                `;
+                
+                container.appendChild(templateCard);
+            });
+            
+            console.log(`Rendered ${templates.length} templates`);
+        }
+
+        // Expose selectTemplateById globally for prefill functionality
+        window.selectTemplateById = function(id) {
+            const template = templates.find(t => t.id === id);
+            if (template) {
+                selectTemplateInternal(template);
+                return true;
+            }
+            return false;
+        };
+
+        // Expose selectTemplate globally for window functions
+        window.selectTemplate = function(template) {
+            // Call the internal function directly to avoid recursion
+            selectTemplateInternal(template);
+        };
+
+        function selectTemplateInternal(template) {
+            // Remove previous selection
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Select new template
+            if (event && event.target) {
+                event.target.closest('.template-card').classList.add('selected');
+            } else {
+                // For programmatic selection, find the card and select it
+                const card = document.querySelector(`[data-template-id="${template.id}"]`);
+                if (card) {
+                    card.classList.add('selected');
+                }
+            }
+            
+            wizardData.selectedTemplate = template;
+            
+            // Handle LLM prompt prefill from template metadata
+            if (template.llm_recommendations && template.llm_recommendations.default_prompt) {
+                wizardData.dryRunPrompt = template.llm_recommendations.default_prompt;
+                const dryRunField = document.getElementById('dryRunPrompt');
+                if (dryRunField) {
+                    dryRunField.value = wizardData.dryRunPrompt;
+                }
+                console.log('Pre-filled LLM prompt from template:', wizardData.dryRunPrompt);
+            }
+            
+            console.log('Selected template:', template);
+        }
+
+        // LLM testing
+        async function testLLMConnection() {
+            const testBtn = document.getElementById('testLLM');
+            const resultDiv = document.getElementById('llmTestResult');
+            
+            testBtn.disabled = true;
+            testBtn.textContent = 'Testing...';
+            resultDiv.innerHTML = '';
+
+            try {
+                const response = await window.sbhFetch('/api/llm/dry-run', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        provider: wizardData.llmProvider,
+                        model: wizardData.llmModel,
+                        prompt: wizardData.dryRunPrompt
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    resultDiv.innerHTML = '<div style="color: #27ae60;">✅ LLM connection successful!</div>';
+                } else {
+                    resultDiv.innerHTML = `<div style="color: #e74c3c;">❌ LLM test failed: ${result.error || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div style="color: #e74c3c;">❌ LLM test failed: Network error</div>';
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = 'Test LLM Connection';
+            }
+        }
+
+        // Review content
+        function updateReviewContent() {
+            document.getElementById('reviewProjectName').textContent = wizardData.projectName;
+            document.getElementById('reviewDescription').textContent = wizardData.description || 'No description';
+            document.getElementById('reviewTemplate').textContent = wizardData.selectedTemplate ? wizardData.selectedTemplate.name : 'None';
+            document.getElementById('reviewLLMMode').textContent = wizardData.useLLM ? 'Enabled' : 'Disabled';
+
+            const reviewLLMConfig = document.getElementById('reviewLLMConfig');
+            if (wizardData.useLLM) {
+                document.getElementById('reviewLLMProvider').textContent = wizardData.llmProvider;
+                document.getElementById('reviewLLMModel').textContent = wizardData.llmModel;
+                reviewLLMConfig.style.display = 'block';
+            } else {
+                reviewLLMConfig.style.display = 'none';
+            }
+        }
+
+        // Update LLM step display based on LLM setting
+        function updateLLMStepDisplay() {
+            const llmConfigContent = document.getElementById('llmConfigContent');
+            const llmOfflineContent = document.getElementById('llmOfflineContent');
+            
+            if (wizardData.useLLM) {
+                // Show LLM configuration
+                if (llmConfigContent) llmConfigContent.style.display = 'block';
+                if (llmOfflineContent) llmOfflineContent.style.display = 'none';
+            } else {
+                // Show offline message
+                if (llmConfigContent) llmConfigContent.style.display = 'none';
+                if (llmOfflineContent) llmOfflineContent.style.display = 'block';
+            }
+        }
+
+        // Build creation
+        async function startBuild() {
+            const startBtn = document.getElementById('startBtn');
+            const buildProgress = document.getElementById('buildProgress');
+            const reviewContent = document.getElementById('reviewContent');
+
+            // Prevent multiple calls
+            if (buildInProgress) {
+                console.log('Build already in progress, ignoring duplicate call');
+                return;
+            }
+
+            buildInProgress = true;
+            startBtn.disabled = true;
+            startBtn.textContent = 'Starting...';
+            reviewContent.style.display = 'none';
+            buildProgress.style.display = 'block';
+
+            console.log('Starting build creation...');
+            console.log('Build payload:', {
+                name: wizardData.projectName,
+                description: wizardData.description,
+                template: wizardData.selectedTemplate ? wizardData.selectedTemplate.id : 'blank',
+                use_llm: wizardData.useLLM,
+                llm_provider: wizardData.llmProvider,
+                llm_model: wizardData.llmModel
+            });
+
+            try {
+                const response = await window.sbhFetch('/api/builds', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: wizardData.projectName,
+                        description: wizardData.description,
+                        template: wizardData.selectedTemplate ? wizardData.selectedTemplate.id : 'blank',
+                        use_llm: wizardData.useLLM,
+                        llm_provider: wizardData.llmProvider,
+                        llm_model: wizardData.llmModel
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    currentBuildId = result.build_id;
+                    console.log('Build created with ID:', currentBuildId);
+                    addLogEntry('Build created successfully!', 'success');
+                    addLogEntry('Starting build process...', 'info');
+                    
+                    // Auto-progress the build in development mode
+                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        console.log('Development mode: auto-progressing build');
+                        setTimeout(() => {
+                            autoProgressBuild(currentBuildId);
+                        }, 1000);
+                    }
+                    
+                    startBuildPolling();
+                } else {
+                    throw new Error(result.error || 'Failed to create build');
+                }
+            } catch (error) {
+                console.error('Build creation error:', error);
+                addLogEntry(`Build creation failed: ${error.message}`, 'error');
+                startBtn.disabled = false;
+                startBtn.textContent = 'Retry';
+                buildInProgress = false; // Reset flag on error
+            }
+        }
+
+        // Auto-progress build through stages
+        async function autoProgressBuild(buildId) {
+            try {
+                console.log('Auto-progressing build:', buildId);
+                
+                // Progress through stages with delays
+                const stages = [
+                    { status: 'initializing', delay: 1000 },
+                    { status: 'building', delay: 2000 },
+                    { status: 'generating', delay: 2000 },
+                    { status: 'completed', delay: 1000 }
+                ];
+                
+                for (const stage of stages) {
+                    await new Promise(resolve => setTimeout(resolve, stage.delay));
+                    
+                    console.log('Progressing to stage:', stage.status);
+                    const response = await window.sbhFetch(`/api/builds/${buildId}/progress`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ status: stage.status })
+                    });
+                    
+                    if (!response.ok) {
+                        console.error('Failed to progress build to:', stage.status);
+                        break;
+                    }
+                }
+                
+                console.log('Build auto-progression completed');
+                
+            } catch (error) {
+                console.error('Auto-progression error:', error);
+            }
+        }
+
+        // Build polling
+        function startBuildPolling() {
+            // Clear any existing polling interval
+            if (buildPollInterval) {
+                clearInterval(buildPollInterval);
+            }
+            
+            console.log('Starting build polling for build ID:', currentBuildId);
+            
+            // Add a timeout to prevent infinite polling (5 minutes)
+            const maxPollingTime = 5 * 60 * 1000; // 5 minutes
+            const startTime = Date.now();
+            
+            buildPollInterval = setInterval(async () => {
+                // Check if we've been polling too long
+                if (Date.now() - startTime > maxPollingTime) {
+                    clearInterval(buildPollInterval);
+                    buildPollInterval = null;
+                    buildInProgress = false; // Reset flag on timeout
+                    addLogEntry('Build polling timeout - please check build status manually', 'error');
+                    return;
+                }
+                
+                try {
+                    console.log('Polling build status for ID:', currentBuildId);
+                    const response = await window.sbhFetch(`/api/builds/${currentBuildId}`);
+                    const result = await response.json();
+                    
+                    if (response.ok && result.success) {
+                        console.log('Build status:', result.status);
+                        updateBuildProgress(result);
+                        
+                        if (result.status === 'completed' || result.status === 'failed') {
+                            clearInterval(buildPollInterval);
+                            buildPollInterval = null;
+                            buildInProgress = false; // Reset flag when build completes
+                            
+                            if (result.status === 'completed') {
+                                addLogEntry('Build completed successfully!', 'success');
+                                showBuildCompletionOptions(currentBuildId);
+                            } else {
+                                addLogEntry(`Build failed: ${result.error_message || 'Unknown error'}`, 'error');
+                            }
+                        }
+                    } else {
+                        // If we get an error response, stop polling
+                        clearInterval(buildPollInterval);
+                        buildPollInterval = null;
+                        buildInProgress = false; // Reset flag on error
+                        addLogEntry(`Build status check failed: ${result.error || 'Unknown error'}`, 'error');
+                    }
+                } catch (error) {
+                    // If we get a network error, stop polling
+                    clearInterval(buildPollInterval);
+                    buildPollInterval = null;
+                    buildInProgress = false; // Reset flag on error
+                    addLogEntry(`Polling error: ${error.message}`, 'error');
+                }
+            }, 2000);
+        }
+
+        function updateBuildProgress(buildData) {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            // Update progress bar (simple percentage based on status)
+            let progress = 0;
+            switch (buildData.status) {
+                case 'created': progress = 10; break;
+                case 'initializing': progress = 25; break;
+                case 'building': progress = 50; break;
+                case 'generating': progress = 75; break;
+                case 'completed': progress = 100; break;
+                case 'failed': progress = 100; break;
+            }
+            
+            progressFill.style.width = `${progress}%`;
+            progressText.textContent = buildData.status_message || buildData.status;
+            
+            // Add log entries
+            if (buildData.logs && buildData.logs.length > 0) {
+                buildData.logs.forEach(log => {
+                    addLogEntry(log.message, log.level || 'info');
+                });
+            }
+        }
+
+        function addLogEntry(message, level = 'info') {
+            const logsContainer = document.getElementById('buildLogs');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${level}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        function showBuildCompletionOptions(buildId) {
+            const buildProgress = document.getElementById('buildProgress');
+            const progressContent = buildProgress.querySelector('.progress-content');
+            
+            // Create completion options HTML
+            const completionHTML = `
+                <div class="completion-options" style="text-align: center; margin-top: 2rem;">
+                    <h3 style="color: #27ae60; margin-bottom: 1rem;">🎉 Build Completed Successfully!</h3>
+                    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                        <a href="/ui/builds?highlight=${buildId}" class="cta-button" style="background: #3498db; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; transition: background 0.3s ease;">
+                            View Build
+                        </a>
+                        <a href="/ui/tasks" class="cta-button" style="background: #95a5a6; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; transition: background 0.3s ease;">
+                            Go to Tasks
+                        </a>
+                        <button onclick="hideModal()" class="cta-button" style="background: #7f8c8d; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; transition: background 0.3s ease; border: none; cursor: pointer;">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Add completion options to the progress content
+            progressContent.innerHTML += completionHTML;
+        }
+
+        // Error handling
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function clearError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.style.display = 'none';
+        }
+
+
+
+
+
+        // Event listeners
+        let eventListenersAttached = false;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Prevent multiple event listener attachments
+            if (eventListenersAttached) {
+                console.log('Event listeners already attached, skipping');
+                return;
+            }
+            eventListenersAttached = true;
+            
+            console.log('Setting up event listeners...');
+            
+            checkLLMStatus();
+            checkAuthStatus(); // Call checkAuthStatus on page load
+            
+            // Modal event listeners
+            document.getElementById('nextBtn').addEventListener('click', nextStep);
+            document.getElementById('prevBtn').addEventListener('click', prevStep);
+            document.getElementById('startBtn').addEventListener('click', startBuild);
+            document.getElementById('closeBtn').addEventListener('click', hideModal);
+            document.getElementById('testLLM').addEventListener('click', testLLMConnection);
+            
+            // Form data binding - real-time updates with wizardData sync
+            document.getElementById('projectName').addEventListener('input', function() {
+                wizardData.projectName = this.value.trim();
+            });
+            
+            document.getElementById('projectDescription').addEventListener('input', function() {
+                wizardData.description = this.value.trim();
+            });
+            
+            document.getElementById('useLLM').addEventListener('change', function() {
+                wizardData.useLLM = this.checked;
+                // Update LLM step display if we're currently on step 3
+                if (currentStep === 3) {
+                    updateLLMStepDisplay();
+                }
+            });
+            
+            document.getElementById('llmProvider').addEventListener('change', function() {
+                wizardData.llmProvider = this.value;
+            });
+            
+            document.getElementById('llmModel').addEventListener('change', function() {
+                wizardData.llmModel = this.value;
+            });
+            
+            document.getElementById('dryRunPrompt').addEventListener('input', function() {
+                wizardData.dryRunPrompt = this.value.trim();
+            });
+            
+            // Close modal when clicking overlay
+            document.getElementById('buildWizardModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideModal();
+                }
+            });
+
+            // Dev Auth Panel event listeners
+            document.getElementById('devAuthToken').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    authenticateDev();
+                }
+            });
+
+            // New build button listener
+            document.querySelectorAll('.cta-button[data-action="start-build"]').forEach(button => {
+                console.log('Found start-build button:', button);
+                button.addEventListener('click', function(e) {
+                    console.log('Start build button clicked!');
+                    e.preventDefault(); // Prevent default link behavior
+                    showModal();
+                });
+            });
+            
+            // Also add a more general listener for any cta-button that might not have the data-action
+            document.querySelectorAll('.cta-button').forEach(button => {
+                if (button.textContent.includes('Start Building')) {
+                    console.log('Found Start Building button by text:', button);
+                    button.addEventListener('click', function(e) {
+                        console.log('Start Building button clicked (by text)!');
+                        e.preventDefault();
+                        showModal();
+                    });
+                }
+            });
+            
+            console.log('Event listeners attached successfully');
+        });
+    </script>
+</body>
+</html>

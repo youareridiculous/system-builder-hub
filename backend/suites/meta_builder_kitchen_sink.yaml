@@ -1,0 +1,496 @@
+name: "Meta-Builder Kitchen Sink"
+description: "Comprehensive evaluation suite for Meta-Builder v2/v3/v4 functionality including all agents, failure scenarios, and edge cases."
+
+golden_cases:
+  - name: "Basic Scaffold Generation"
+    description: "Generate a basic scaffold with minimal requirements"
+    prompt: "Create a simple todo app with React frontend and Node.js backend"
+    sla_class: "normal"
+    assertions:
+      - name: "scaffold_created"
+        type: "contains"
+        expected: "todo"
+        description: "Should create todo app scaffold"
+      - name: "react_frontend"
+        type: "contains"
+        expected: "React"
+        description: "Should include React frontend"
+      - name: "node_backend"
+        type: "contains"
+        expected: "Node.js"
+        description: "Should include Node.js backend"
+
+  - name: "Complex Multi-Service Architecture"
+    description: "Generate complex multi-service architecture"
+    prompt: "Create a microservices architecture with user service, order service, payment service, and API gateway using Docker and Kubernetes"
+    sla_class: "thorough"
+    assertions:
+      - name: "microservices_created"
+        type: "contains"
+        expected: "microservices"
+        description: "Should create microservices architecture"
+      - name: "docker_support"
+        type: "contains"
+        expected: "Docker"
+        description: "Should include Docker configuration"
+      - name: "kubernetes_support"
+        type: "contains"
+        expected: "Kubernetes"
+        description: "Should include Kubernetes configuration"
+
+  - name: "Security and Compliance"
+    description: "Generate scaffold with security and compliance features"
+    prompt: "Create a healthcare application with HIPAA compliance, encryption, audit logging, and role-based access control"
+    sla_class: "thorough"
+    assertions:
+      - name: "hipaa_compliance"
+        type: "contains"
+        expected: "HIPAA"
+        description: "Should include HIPAA compliance"
+      - name: "encryption"
+        type: "contains"
+        expected: "encryption"
+        description: "Should include encryption features"
+      - name: "audit_logging"
+        type: "contains"
+        expected: "audit"
+        description: "Should include audit logging"
+
+  - name: "Database Integration"
+    description: "Generate scaffold with database integration"
+    prompt: "Create a CRM system with PostgreSQL database, Redis caching, and Elasticsearch for search functionality"
+    sla_class: "normal"
+    assertions:
+      - name: "postgresql"
+        type: "contains"
+        expected: "PostgreSQL"
+        description: "Should include PostgreSQL database"
+      - name: "redis_caching"
+        type: "contains"
+        expected: "Redis"
+        description: "Should include Redis caching"
+      - name: "elasticsearch"
+        type: "contains"
+        expected: "Elasticsearch"
+        description: "Should include Elasticsearch"
+
+  - name: "API Design"
+    description: "Generate scaffold with comprehensive API design"
+    prompt: "Create a REST API with OpenAPI specification, rate limiting, authentication, and comprehensive error handling"
+    sla_class: "normal"
+    assertions:
+      - name: "openapi_spec"
+        type: "contains"
+        expected: "OpenAPI"
+        description: "Should include OpenAPI specification"
+      - name: "rate_limiting"
+        type: "contains"
+        expected: "rate"
+        description: "Should include rate limiting"
+      - name: "authentication"
+        type: "contains"
+        expected: "auth"
+        description: "Should include authentication"
+
+  - name: "Frontend Framework"
+    description: "Generate scaffold with modern frontend framework"
+    prompt: "Create a React application with TypeScript, Redux for state management, and Material-UI components"
+    sla_class: "normal"
+    assertions:
+      - name: "typescript"
+        type: "contains"
+        expected: "TypeScript"
+        description: "Should include TypeScript"
+      - name: "redux"
+        type: "contains"
+        expected: "Redux"
+        description: "Should include Redux"
+      - name: "material_ui"
+        type: "contains"
+        expected: "Material-UI"
+        description: "Should include Material-UI"
+
+  - name: "Testing Strategy"
+    description: "Generate scaffold with comprehensive testing"
+    prompt: "Create a web application with unit tests, integration tests, end-to-end tests, and CI/CD pipeline"
+    sla_class: "normal"
+    assertions:
+      - name: "unit_tests"
+        type: "contains"
+        expected: "unit"
+        description: "Should include unit tests"
+      - name: "integration_tests"
+        type: "contains"
+        expected: "integration"
+        description: "Should include integration tests"
+      - name: "ci_cd"
+        type: "contains"
+        expected: "CI/CD"
+        description: "Should include CI/CD pipeline"
+
+  - name: "Performance Optimization"
+    description: "Generate scaffold with performance optimizations"
+    prompt: "Create a high-performance web application with CDN integration, database optimization, and caching strategies"
+    sla_class: "normal"
+    assertions:
+      - name: "cdn_integration"
+        type: "contains"
+        expected: "CDN"
+        description: "Should include CDN integration"
+      - name: "database_optimization"
+        type: "contains"
+        expected: "optimization"
+        description: "Should include database optimization"
+      - name: "caching"
+        type: "contains"
+        expected: "caching"
+        description: "Should include caching strategies"
+
+  - name: "Mobile Application"
+    description: "Generate scaffold for mobile application"
+    prompt: "Create a React Native mobile app with offline support, push notifications, and native device features"
+    sla_class: "thorough"
+    assertions:
+      - name: "react_native"
+        type: "contains"
+        expected: "React Native"
+        description: "Should include React Native"
+      - name: "offline_support"
+        type: "contains"
+        expected: "offline"
+        description: "Should include offline support"
+      - name: "push_notifications"
+        type: "contains"
+        expected: "push"
+        description: "Should include push notifications"
+
+  - name: "Machine Learning Integration"
+    description: "Generate scaffold with ML integration"
+    prompt: "Create a recommendation system with Python, TensorFlow, and real-time data processing using Apache Kafka"
+    sla_class: "thorough"
+    assertions:
+      - name: "tensorflow"
+        type: "contains"
+        expected: "TensorFlow"
+        description: "Should include TensorFlow"
+      - name: "kafka"
+        type: "contains"
+        expected: "Kafka"
+        description: "Should include Apache Kafka"
+      - name: "recommendation"
+        type: "contains"
+        expected: "recommendation"
+        description: "Should include recommendation system"
+
+  - name: "Edge Case - Minimal Requirements"
+    description: "Handle minimal requirements gracefully"
+    prompt: "Create something"
+    sla_class: "fast"
+    assertions:
+      - name: "handles_minimal"
+        type: "not_empty"
+        description: "Should handle minimal requirements"
+
+  - name: "Edge Case - Very Long Requirements"
+    description: "Handle very long requirements"
+    prompt: "Create a comprehensive enterprise application with hundreds of features including user management, role-based access control, audit logging, compliance reporting, data analytics, business intelligence, workflow automation, document management, collaboration tools, project management, time tracking, expense management, HR management, payroll processing, inventory management, supply chain optimization, customer relationship management, sales automation, marketing automation, email campaigns, social media integration, e-commerce platform, payment processing, order management, shipping integration, warehouse management, quality control, maintenance scheduling, asset management, financial accounting, budgeting, forecasting, reporting, tax management, legal compliance, risk management, insurance, procurement, vendor management, contract management, performance monitoring, alerting, backup and recovery, disaster recovery, security monitoring, threat detection, vulnerability assessment, penetration testing, compliance auditing, data governance, privacy protection, GDPR compliance, CCPA compliance, HIPAA compliance, SOX compliance, ISO 27001, SOC 2, PCI DSS, and many more features that would make this the most comprehensive business application ever created"
+    sla_class: "thorough"
+    assertions:
+      - name: "handles_long_requirements"
+        type: "not_empty"
+        description: "Should handle very long requirements"
+
+  - name: "Edge Case - Special Characters"
+    description: "Handle special characters in requirements"
+    prompt: "Create an app with features: @#$%^&*()_+-=[]{}|;':\",./<>?"
+    sla_class: "fast"
+    assertions:
+      - name: "handles_special_chars"
+        type: "not_empty"
+        description: "Should handle special characters"
+
+  - name: "Edge Case - Non-English"
+    description: "Handle non-English requirements"
+    prompt: "Créer une application de gestion de tâches avec authentification et base de données"
+    sla_class: "normal"
+    assertions:
+      - name: "handles_non_english"
+        type: "not_empty"
+        description: "Should handle non-English requirements"
+
+  - name: "Failure Recovery - Network Error"
+    description: "Test recovery from network errors"
+    prompt: "Create a web application that can handle network failures gracefully"
+    sla_class: "normal"
+    assertions:
+      - name: "network_resilience"
+        type: "contains"
+        expected: "network"
+        description: "Should address network resilience"
+
+  - name: "Failure Recovery - Database Error"
+    description: "Test recovery from database errors"
+    prompt: "Create an application with robust database error handling and connection pooling"
+    sla_class: "normal"
+    assertions:
+      - name: "database_error_handling"
+        type: "contains"
+        expected: "error"
+        description: "Should include error handling"
+
+  - name: "Failure Recovery - Authentication Error"
+    description: "Test recovery from authentication errors"
+    prompt: "Create a secure application with proper authentication error handling and session management"
+    sla_class: "normal"
+    assertions:
+      - name: "auth_error_handling"
+        type: "contains"
+        expected: "auth"
+        description: "Should include authentication error handling"
+
+  - name: "Performance Under Load"
+    description: "Test performance under load"
+    prompt: "Create a scalable application that can handle high concurrent user loads with load balancing and auto-scaling"
+    sla_class: "thorough"
+    assertions:
+      - name: "load_balancing"
+        type: "contains"
+        expected: "load"
+        description: "Should include load balancing"
+      - name: "auto_scaling"
+        type: "contains"
+        expected: "scaling"
+        description: "Should include auto-scaling"
+
+  - name: "Security Vulnerabilities"
+    description: "Test security vulnerability handling"
+    prompt: "Create a secure application that protects against SQL injection, XSS attacks, CSRF, and other common vulnerabilities"
+    sla_class: "thorough"
+    assertions:
+      - name: "sql_injection_protection"
+        type: "contains"
+        expected: "SQL"
+        description: "Should protect against SQL injection"
+      - name: "xss_protection"
+        type: "contains"
+        expected: "XSS"
+        description: "Should protect against XSS attacks"
+
+  - name: "Data Validation"
+    description: "Test data validation handling"
+    prompt: "Create an application with comprehensive input validation, data sanitization, and error reporting"
+    sla_class: "normal"
+    assertions:
+      - name: "input_validation"
+        type: "contains"
+        expected: "validation"
+        description: "Should include input validation"
+      - name: "data_sanitization"
+        type: "contains"
+        expected: "sanitization"
+        description: "Should include data sanitization"
+
+scenario_bundles:
+  - name: "Agent Orchestration Test"
+    description: "Test all agents working together"
+    natural_language: "Create a full-stack e-commerce platform with user authentication, product catalog, shopping cart, order processing, payment integration, and admin dashboard"
+    sla_class: "thorough"
+    steps:
+      - name: "Product Architect"
+        description: "Product architect should analyze requirements"
+        action: "agent_step"
+        inputs:
+          agent: "ProductArchitect"
+        assertions:
+          - name: "product_architect_completed"
+            type: "contains"
+            expected: "architect"
+            description: "Product architect should complete"
+
+      - name: "System Designer"
+        description: "System designer should create architecture"
+        action: "agent_step"
+        inputs:
+          agent: "SystemDesigner"
+        assertions:
+          - name: "system_designer_completed"
+            type: "contains"
+            expected: "design"
+            description: "System designer should complete"
+
+      - name: "Security Agent"
+        description: "Security agent should add security features"
+        action: "agent_step"
+        inputs:
+          agent: "Security/Compliance"
+        assertions:
+          - name: "security_agent_completed"
+            type: "contains"
+            expected: "security"
+            description: "Security agent should complete"
+
+      - name: "Codegen Engineer"
+        description: "Codegen engineer should generate code"
+        action: "agent_step"
+        inputs:
+          agent: "CodegenEngineer"
+        assertions:
+          - name: "codegen_completed"
+            type: "contains"
+            expected: "code"
+            description: "Codegen engineer should complete"
+
+      - name: "QA Evaluator"
+        description: "QA evaluator should run tests"
+        action: "agent_step"
+        inputs:
+          agent: "QA/Evaluator"
+        assertions:
+          - name: "qa_completed"
+            type: "contains"
+            expected: "test"
+            description: "QA evaluator should complete"
+
+  - name: "Auto-Fix Integration Test"
+    description: "Test auto-fix functionality"
+    natural_language: "Create a web application with intentional errors that should be auto-fixed"
+    sla_class: "thorough"
+    steps:
+      - name: "Introduce Error"
+        description: "Introduce a syntax error in the generated code"
+        action: "inject_error"
+        inputs:
+          error_type: "syntax"
+          file: "src/main.js"
+        assertions:
+          - name: "error_injected"
+            type: "contains"
+            expected: "error"
+            description: "Error should be injected"
+
+      - name: "Auto-Fix Attempt"
+        description: "Auto-fix should attempt to repair the error"
+        action: "auto_fix"
+        inputs:
+          max_attempts: 3
+        assertions:
+          - name: "auto_fix_attempted"
+            type: "contains"
+            expected: "fix"
+            description: "Auto-fix should be attempted"
+
+      - name: "Verify Fix"
+        description: "Verify that the error was fixed"
+        action: "verify"
+        inputs:
+          check_syntax: true
+        assertions:
+          - name: "error_fixed"
+            type: "contains"
+            expected: "valid"
+            description: "Error should be fixed"
+
+  - name: "Performance Benchmark Test"
+    description: "Test performance benchmarks"
+    natural_language: "Create a high-performance application and measure generation time"
+    sla_class: "thorough"
+    steps:
+      - name: "Start Timer"
+        description: "Start performance timer"
+        action: "start_timer"
+        assertions:
+          - name: "timer_started"
+            type: "not_empty"
+            description: "Timer should start"
+
+      - name: "Generate Scaffold"
+        description: "Generate the scaffold"
+        action: "generate"
+        inputs:
+          complexity: "high"
+        assertions:
+          - name: "scaffold_generated"
+            type: "not_empty"
+            description: "Scaffold should be generated"
+
+      - name: "Stop Timer"
+        description: "Stop performance timer"
+        action: "stop_timer"
+        assertions:
+          - name: "timer_stopped"
+            type: "not_empty"
+            description: "Timer should stop"
+
+      - name: "Check Performance"
+        description: "Check if performance meets requirements"
+        action: "check_performance"
+        inputs:
+          max_time_ms: 60000
+        assertions:
+          - name: "performance_acceptable"
+            type: "contains"
+            expected: "acceptable"
+            description: "Performance should be acceptable"
+
+kpi_guards:
+  - name: "overall_pass_rate"
+    metric: "pass_rate"
+    threshold: 0.90
+    operator: ">="
+    description: "Minimum 90% pass rate for all tests"
+    severity: "error"
+
+  - name: "golden_case_pass_rate"
+    metric: "golden_case_pass_rate"
+    threshold: 0.85
+    operator: ">="
+    description: "Minimum 85% pass rate for golden cases"
+    severity: "error"
+
+  - name: "scenario_bundle_pass_rate"
+    metric: "scenario_bundle_pass_rate"
+    threshold: 0.80
+    operator: ">="
+    description: "Minimum 80% pass rate for scenario bundles"
+    severity: "error"
+
+  - name: "p95_latency"
+    metric: "p95_latency_ms"
+    threshold: 30000
+    operator: "<="
+    description: "P95 latency should be under 30 seconds"
+    severity: "warning"
+
+  - name: "p99_latency"
+    metric: "p99_latency_ms"
+    threshold: 60000
+    operator: "<="
+    description: "P99 latency should be under 60 seconds"
+    severity: "warning"
+
+  - name: "cost_per_test"
+    metric: "cost_per_test_usd"
+    threshold: 0.50
+    operator: "<="
+    description: "Cost per test should be under $0.50"
+    severity: "warning"
+
+  - name: "auto_fix_success_rate"
+    metric: "auto_fix_success_rate"
+    threshold: 0.70
+    operator: ">="
+    description: "Auto-fix should succeed 70% of the time"
+    severity: "warning"
+
+  - name: "agent_success_rate"
+    metric: "agent_success_rate"
+    threshold: 0.95
+    operator: ">="
+    description: "Individual agents should succeed 95% of the time"
+    severity: "error"
+
+metadata:
+  tags: ["meta-builder", "kitchen-sink", "comprehensive", "v2", "v3", "v4"]
+  priority: "critical"
+  estimated_duration_minutes: 45
+  requires_meta_v4: true

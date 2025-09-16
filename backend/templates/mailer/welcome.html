@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to SBH</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background: #f8f9fa;
+            padding: 30px 20px;
+            border-radius: 0 0 8px 8px;
+        }
+        .button {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Welcome to System Builder Hub!</h1>
+        <p>You're all set to start building amazing applications</p>
+    </div>
+    
+    <div class="content">
+        <h2>Hello {{ user_name or 'there' }}!</h2>
+        
+        <p>Welcome to System Builder Hub (SBH)! We're excited to have you on board.</p>
+        
+        <p>With SBH, you can:</p>
+        <ul>
+            <li>Build applications visually with our drag-and-drop builder</li>
+            <li>Create APIs and databases with ease</li>
+            <li>Deploy your applications instantly</li>
+            <li>Manage multiple projects in one place</li>
+        </ul>
+        
+        <p>Ready to get started?</p>
+        
+        <a href="{{ app_url or 'https://myapp.com' }}" class="button">Start Building</a>
+        
+        <p>If you have any questions, feel free to reach out to our support team.</p>
+        
+        <p>Best regards,<br>The SBH Team</p>
+    </div>
+    
+    <div class="footer">
+        <p>This email was sent to {{ email }}. If you didn't sign up for SBH, you can safely ignore this email.</p>
+        <p>&copy; 2024 System Builder Hub. All rights reserved.</p>
+    </div>
+</body>
+</html>

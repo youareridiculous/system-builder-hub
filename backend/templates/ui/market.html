@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template Marketplace - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .nav-tabs .nav-link {
+            color: #6c757d;
+        }
+        .nav-tabs .nav-link.active {
+            color: #495057;
+            font-weight: 500;
+        }
+        .template-card {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            height: 100%;
+        }
+        .template-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .template-cover {
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+        }
+        .template-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+        }
+        .category-filter {
+            margin-bottom: 20px;
+        }
+        .search-box {
+            margin-bottom: 20px;
+        }
+        .guided-prompt-form {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .preview-section {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/dashboard">
+                                <i class="bi bi-house"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/domains">
+                                <i class="bi bi-globe"></i> Custom Domains
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/integrations">
+                                <i class="bi bi-plug"></i> Integrations
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/analytics">
+                                <i class="bi bi-graph-up"></i> Analytics
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/ui/market">
+                                <i class="bi bi-shop"></i> Marketplace
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/builder">
+                                <i class="bi bi-puzzle"></i> Visual Builder
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Template Marketplace</h1>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="refreshTemplates()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                        <button class="btn btn-primary" id="manageTemplatesBtn" style="display: none;" onclick="showManageTemplates()">
+                            <i class="bi bi-gear"></i> Manage Templates
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="search-box">
+                            <input type="text" class="form-control" id="searchInput" placeholder="Search templates..." onkeyup="filterTemplates()">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="category-filter">
+                            <select class="form-select" id="categoryFilter" onchange="filterTemplates()">
+                                <option value="">All Categories</option>
+                                <option value="Productivity">Productivity</option>
+                                <option value="Content">Content</option>
+                                <option value="Communication">Communication</option>
+                                <option value="E-commerce">E-commerce</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="price-filter">
+                            <select class="form-select" id="priceFilter" onchange="filterTemplates()">
+                                <option value="">All Prices</option>
+                                <option value="free">Free</option>
+                                <option value="paid">Paid</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Templates Grid -->
+                <div class="row" id="templatesGrid">
+                    <!-- Templates will be loaded here -->
+                </div>
+
+                <!-- Loading State -->
+                <div id="templatesLoading" class="loading-spinner text-center py-4">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="templatesEmpty" class="empty-state" style="display: none;">
+                    <i class="bi bi-shop" style="font-size: 3rem;"></i>
+                    <h4 class="mt-3">No Templates Found</h4>
+                    <p>Try adjusting your search or filters.</p>
+                </div>
+
+                <!-- Pagination -->
+                <nav aria-label="Template pagination" id="paginationNav" style="display: none;">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item">
+                            <button class="page-link" onclick="previousPage()">Previous</button>
+                        </li>
+                        <li class="page-item">
+                            <span class="page-link" id="pageInfo">Page 1 of 1</span>
+                        </li>
+                        <li class="page-item">
+                            <button class="page-link" onclick="nextPage()">Next</button>
+                        </li>
+                    </ul>
+                </nav>
+            </main>
+        </div>
+    </div>
+
+    <!-- Template Detail Modal -->
+    <div class="modal fade" id="templateDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="templateDetailTitle">Template Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="templateDetailContent">
+                        <!-- Template details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Use Template Modal -->
+    <div class="modal fade" id="useTemplateModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="useTemplateTitle">Use Template</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="useTemplateContent">
+                        <!-- Guided prompt form will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="useTemplateBtn" onclick="useTemplate()">
+                        <i class="bi bi-rocket"></i> Use Template
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/market.js"></script>
+</body>
+</html>

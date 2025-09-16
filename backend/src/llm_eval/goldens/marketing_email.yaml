@@ -1,0 +1,22 @@
+slug: marketing_email_test
+description: Test marketing email generation
+guided_input:
+  role: Marketing Specialist
+  context: Product launch
+  task: Write an engaging marketing email
+  audience: Email subscribers
+  output: Marketing email
+  custom_fields:
+    product_name: New Feature
+    call_to_action: Try Now
+assertions:
+  - type: contains
+    value: "New Feature"
+  - type: contains
+    value: "Try Now"
+  - type: contains
+    value: "exciting"
+  - type: not_contains
+    value: "spam"
+  - type: not_contains
+    value: "scam"

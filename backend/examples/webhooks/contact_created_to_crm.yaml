@@ -1,0 +1,19 @@
+api_version: v1
+on: ["contact.created"]
+delivery:
+  url: "${SECRET:EXTERNAL_CRM_WEBHOOK_URL}"
+  headers:
+    X-Source: "SBH CRM"
+    X-Event-Type: "contact.created"
+    Content-Type: "application/json"
+    Authorization: "Bearer ${SECRET:EXTERNAL_CRM_API_KEY}"
+  signing:
+    alg: "HMAC-SHA256"
+    secret: "${SECRET:EXTERNAL_CRM_SIGNING_KEY}"
+transform:
+  language: "python"
+  entry: "transforms/contact_created_transform.py#transform"
+retry:
+  max_attempts: 5
+  backoff: "exponential"
+  initial_delay: 2000

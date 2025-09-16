@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent-to-Agent Messaging - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .message-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #007bff;
+            transition: all 0.3s ease;
+        }
+        
+        .message-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .message-card.instruction { border-left-color: #28a745; }
+        .message-card.question { border-left-color: #ffc107; }
+        .message-card.status_update { border-left-color: #17a2b8; }
+        .message-card.alert { border-left-color: #dc3545; }
+        .message-card.handoff { border-left-color: #6f42c1; }
+        .message-card.goal_delegation { border-left-color: #fd7e14; }
+        .message-card.data_blob { border-left-color: #20c997; }
+        .message-card.memory_reference { border-left-color: #6c757d; }
+        
+        .priority-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+        
+        .priority-low { background: #e9ecef; color: #6c757d; }
+        .priority-normal { background: #d1ecf1; color: #0c5460; }
+        .priority-high { background: #fff3cd; color: #856404; }
+        .priority-urgent { background: #f8d7da; color: #721c24; }
+        .priority-critical { background: #dc3545; color: white; }
+        
+        .live-feed {
+            height: 600px;
+            overflow-y: auto;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .message-form {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .thread-explorer {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .thread-item {
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .thread-item:hover {
+            background: rgba(0, 123, 255, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .thread-item.active {
+            background: rgba(0, 123, 255, 0.2);
+            border-left: 4px solid #007bff;
+        }
+        
+        .agent-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .agent-online { background: #28a745; }
+        .agent-offline { background: #dc3545; }
+        .agent-busy { background: #ffc107; }
+        
+        .real-time-indicator {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .message-timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .message-timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #dee2e6;
+        }
+        
+        .message-timeline .message-card {
+            position: relative;
+        }
+        
+        .message-timeline .message-card::before {
+            content: '';
+            position: absolute;
+            left: -25px;
+            top: 20px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #007bff;
+        }
+        
+        .filter-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-cogs"></i> System Builder Hub
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">Main Dashboard</a>
+                <a class="nav-link" href="/developer-dashboard">Developer Dashboard</a>
+                <a class="nav-link" href="/activity-feed">Activity Feed</a>
+                <a class="nav-link" href="/diagnostics">Diagnostics</a>
+                <a class="nav-link" href="/blackbox-inspector">Black Box Inspector</a>
+                <a class="nav-link active" href="/agent-messaging">Agent Messaging</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-comments"></i> Agent-to-Agent Messaging
+                    <span class="badge bg-success real-time-indicator">Live</span>
+                </h1>
+            </div>
+        </div>
+
+        <!-- System Stats -->
+        <div class="stats-cards">
+            <div class="stat-card">
+                <div class="stat-number" id="total-messages">0</div>
+                <div class="stat-label">Total Messages</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="active-agents">0</div>
+                <div class="stat-label">Active Agents</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="active-threads">0</div>
+                <div class="stat-label">Active Threads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="delivery-rate">0%</div>
+                <div class="stat-label">Delivery Rate</div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs mb-4" id="messagingTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="live-feed-tab" data-bs-toggle="tab" data-bs-target="#live-feed" type="button" role="tab">
+                    <i class="fas fa-stream"></i> Live Feed
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="send-message-tab" data-bs-toggle="tab" data-bs-target="#send-message" type="button" role="tab">
+                    <i class="fas fa-paper-plane"></i> Send Message
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="message-logs-tab" data-bs-toggle="tab" data-bs-target="#message-logs" type="button" role="tab">
+                    <i class="fas fa-history"></i> Message Logs
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="thread-explorer-tab" data-bs-toggle="tab" data-bs-target="#thread-explorer" type="button" role="tab">
+                    <i class="fas fa-project-diagram"></i> Thread Explorer
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="messagingTabContent">
+            <!-- Live Feed Tab -->
+            <div class="tab-pane fade show active" id="live-feed" role="tabpanel">
+                <div class="filter-panel">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Agent Filter</label>
+                            <select id="live-agent-filter" class="form-select">
+                                <option value="">All Agents</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Message Type</label>
+                            <select id="live-message-type-filter" class="form-select">
+                                <option value="">All Types</option>
+                                <option value="instruction">Instruction</option>
+                                <option value="question">Question</option>
+                                <option value="status_update">Status Update</option>
+                                <option value="alert">Alert</option>
+                                <option value="handoff">Handoff</option>
+                                <option value="goal_delegation">Goal Delegation</option>
+                                <option value="data_blob">Data Blob</option>
+                                <option value="memory_reference">Memory Reference</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Priority</label>
+                            <select id="live-priority-filter" class="form-select">
+                                <option value="">All Priorities</option>
+                                <option value="low">Low</option>
+                                <option value="normal">Normal</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Actions</label>
+                            <div class="d-grid gap-2">
+                                <button id="refresh-live-feed" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                                <button id="clear-live-feed" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-trash"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="live-feed-container" class="live-feed">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-spinner fa-spin"></i> Loading live feed...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Send Message Tab -->
+            <div class="tab-pane fade" id="send-message" role="tabpanel">
+                <div class="message-form">
+                    <h5><i class="fas fa-paper-plane"></i> Send Agent Message</h5>
+                    <form id="send-message-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Sender Agent ID</label>
+                                <input type="text" id="sender-id" class="form-control" placeholder="Enter sender agent ID" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Receiver Agent ID</label>
+                                <input type="text" id="receiver-id" class="form-control" placeholder="Enter receiver agent ID" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Message Type</label>
+                                <select id="message-type" class="form-select" required>
+                                    <option value="instruction">Instruction</option>
+                                    <option value="question">Question</option>
+                                    <option value="status_update">Status Update</option>
+                                    <option value="alert">Alert</option>
+                                    <option value="handoff">Handoff</option>
+                                    <option value="goal_delegation">Goal Delegation</option>
+                                    <option value="data_blob">Data Blob</option>
+                                    <option value="memory_reference">Memory Reference</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Priority</label>
+                                <select id="message-priority" class="form-select" required>
+                                    <option value="normal">Normal</option>
+                                    <option value="low">Low</option>
+                                    <option value="high">High</option>
+                                    <option value="urgent">Urgent</option>
+                                    <option value="critical">Critical</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">TTL (seconds)</label>
+                                <input type="number" id="message-ttl" class="form-control" value="3600" min="60" max="86400">
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Thread ID (optional)</label>
+                                <input type="text" id="thread-id" class="form-control" placeholder="Enter thread ID for conversation">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Parent Message ID (optional)</label>
+                                <input type="text" id="parent-message-id" class="form-control" placeholder="Enter parent message ID for replies">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <label class="form-label">Message Content</label>
+                            <textarea id="message-content" class="form-control" rows="5" placeholder="Enter your message content..." required></textarea>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <label class="form-label">Metadata (JSON)</label>
+                            <textarea id="message-metadata" class="form-control" rows="3" placeholder='{"key": "value"}'></textarea>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <button type="button" id="validate-message" class="btn btn-warning">
+                                    <i class="fas fa-check"></i> Validate Message
+                                </button>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i> Send Message
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Message Logs Tab -->
+            <div class="tab-pane fade" id="message-logs" role="tabpanel">
+                <div class="filter-panel">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Agent ID</label>
+                            <input type="text" id="logs-agent-id" class="form-control" placeholder="Filter by agent ID">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Message Type</label>
+                            <select id="logs-message-type" class="form-select">
+                                <option value="">All Types</option>
+                                <option value="instruction">Instruction</option>
+                                <option value="question">Question</option>
+                                <option value="status_update">Status Update</option>
+                                <option value="alert">Alert</option>
+                                <option value="handoff">Handoff</option>
+                                <option value="goal_delegation">Goal Delegation</option>
+                                <option value="data_blob">Data Blob</option>
+                                <option value="memory_reference">Memory Reference</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select id="logs-status" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="read">Read</option>
+                                <option value="responded">Responded</option>
+                                <option value="failed">Failed</option>
+                                <option value="expired">Expired</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Actions</label>
+                            <div class="d-grid gap-2">
+                                <button id="load-message-logs" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                                <button id="export-logs" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-download"></i> Export
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="message-logs-container">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-history"></i> Use the filters above to search message logs
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thread Explorer Tab -->
+            <div class="tab-pane fade" id="thread-explorer" role="tabpanel">
+                <div class="filter-panel">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Agent ID</label>
+                            <input type="text" id="thread-agent-id" class="form-control" placeholder="Filter by agent ID">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Thread Status</label>
+                            <select id="thread-status" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="completed">Completed</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Actions</label>
+                            <div class="d-grid gap-2">
+                                <button id="load-threads" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                                <button id="create-thread" class="btn btn-success btn-sm">
+                                    <i class="fas fa-plus"></i> Create Thread
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="thread-explorer">
+                            <h6><i class="fas fa-list"></i> Threads</h6>
+                            <div id="threads-list">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading threads...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="thread-explorer">
+                            <h6><i class="fas fa-comments"></i> Thread Messages</h6>
+                            <div id="thread-messages">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-comments"></i> Select a thread to view messages
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Thread Modal -->
+    <div class="modal fade" id="createThreadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Thread</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="create-thread-form">
+                        <div class="mb-3">
+                            <label class="form-label">Topic</label>
+                            <input type="text" id="thread-topic" class="form-control" placeholder="Enter thread topic" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Participants (comma-separated)</label>
+                            <input type="text" id="thread-participants" class="form-control" placeholder="agent1,agent2,agent3" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Goal ID (optional)</label>
+                            <input type="text" id="thread-goal-id" class="form-control" placeholder="Enter goal ID">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="create-thread-submit" class="btn btn-primary">Create Thread</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentMessages = [];
+        let currentThreads = [];
+        let selectedThreadId = null;
+        let updateInterval;
+
+        // Initialize Agent Messaging
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMessaging();
+            loadSystemStats();
+            startRealTimeUpdates();
+        });
+
+        function initializeMessaging() {
+            // Tab event listeners
+            document.getElementById('live-feed-tab').addEventListener('click', loadLiveFeed);
+            document.getElementById('send-message-tab').addEventListener('click', initializeSendForm);
+            document.getElementById('message-logs-tab').addEventListener('click', initializeLogs);
+            document.getElementById('thread-explorer-tab').addEventListener('click', loadThreads);
+
+            // Form event listeners
+            document.getElementById('send-message-form').addEventListener('submit', sendMessage);
+            document.getElementById('validate-message').addEventListener('click', validateMessage);
+            document.getElementById('create-thread-submit').addEventListener('click', createThread);
+
+            // Filter event listeners
+            document.getElementById('refresh-live-feed').addEventListener('click', loadLiveFeed);
+            document.getElementById('clear-live-feed').addEventListener('click', clearLiveFeed);
+            document.getElementById('load-message-logs').addEventListener('click', loadMessageLogs);
+            document.getElementById('export-logs').addEventListener('click', exportLogs);
+            document.getElementById('load-threads').addEventListener('click', loadThreads);
+            document.getElementById('create-thread').addEventListener('click', showCreateThreadModal);
+
+            // Filter change listeners
+            document.getElementById('live-agent-filter').addEventListener('change', loadLiveFeed);
+            document.getElementById('live-message-type-filter').addEventListener('change', loadLiveFeed);
+            document.getElementById('live-priority-filter').addEventListener('change', loadLiveFeed);
+        }
+
+        function loadSystemStats() {
+            fetch('/api/agent-messaging/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const stats = data.data;
+                        document.getElementById('total-messages').textContent = stats.total_messages || 0;
+                        document.getElementById('active-agents').textContent = stats.active_agents || 0;
+                        document.getElementById('active-threads').textContent = stats.thread_counts?.active || 0;
+                        
+                        const delivered = stats.status_counts?.delivered || 0;
+                        const total = stats.total_messages || 1;
+                        const deliveryRate = Math.round((delivered / total) * 100);
+                        document.getElementById('delivery-rate').textContent = deliveryRate + '%';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading system stats:', error);
+                });
+        }
+
+        function loadLiveFeed() {
+            const agentFilter = document.getElementById('live-agent-filter').value;
+            const messageTypeFilter = document.getElementById('live-message-type-filter').value;
+            const priorityFilter = document.getElementById('live-priority-filter').value;
+
+            // For demo purposes, we'll show some sample messages
+            const sampleMessages = [
+                {
+                    message_id: 'msg-001',
+                    sender_id: 'orchestrator-agent',
+                    receiver_id: 'builder-agent',
+                    message_type: 'instruction',
+                    priority: 'high',
+                    content: 'Please build a new system component for user authentication',
+                    timestamp: new Date().toISOString(),
+                    trust_level: 0.95,
+                    status: 'delivered'
+                },
+                {
+                    message_id: 'msg-002',
+                    sender_id: 'builder-agent',
+                    receiver_id: 'tester-agent',
+                    message_type: 'handoff',
+                    priority: 'normal',
+                    content: 'Component built successfully, ready for testing',
+                    timestamp: new Date(Date.now() - 300000).toISOString(),
+                    trust_level: 0.98,
+                    status: 'delivered'
+                },
+                {
+                    message_id: 'msg-003',
+                    sender_id: 'tester-agent',
+                    receiver_id: 'orchestrator-agent',
+                    message_type: 'status_update',
+                    priority: 'normal',
+                    content: 'Testing completed, all tests passed',
+                    timestamp: new Date(Date.now() - 600000).toISOString(),
+                    trust_level: 0.99,
+                    status: 'delivered'
+                }
+            ];
+
+            displayMessages(sampleMessages, 'live-feed-container');
+        }
+
+        function displayMessages(messages, containerId) {
+            const container = document.getElementById(containerId);
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No messages found</div>';
+                return;
+            }
+
+            container.innerHTML = messages.map(message => `
+                <div class="message-card ${message.message_type}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <strong>${message.sender_id}</strong>
+                            <i class="fas fa-arrow-right mx-2"></i>
+                            <strong>${message.receiver_id}</strong>
+                        </div>
+                        <div>
+                            <span class="badge priority-badge priority-${message.priority}">${message.priority.toUpperCase()}</span>
+                            <span class="badge bg-secondary ms-2">${message.message_type.replace('_', ' ').toUpperCase()}</span>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <p class="mb-1">${message.content}</p>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="fas fa-clock"></i> ${new Date(message.timestamp).toLocaleString()}
+                        </small>
+                        <div>
+                            <span class="badge bg-${getStatusBadgeClass(message.status)}">${message.status}</span>
+                            <span class="badge bg-info ms-1">Trust: ${(message.trust_level * 100).toFixed(0)}%</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusBadgeClass(status) {
+            const classes = {
+                'pending': 'warning',
+                'delivered': 'success',
+                'read': 'info',
+                'responded': 'primary',
+                'failed': 'danger',
+                'expired': 'secondary'
+            };
+            return classes[status] || 'secondary';
+        }
+
+        function sendMessage(event) {
+            event.preventDefault();
+            
+            const formData = {
+                sender_id: document.getElementById('sender-id').value,
+                receiver_id: document.getElementById('receiver-id').value,
+                message_type: document.getElementById('message-type').value,
+                priority: document.getElementById('message-priority').value,
+                content: document.getElementById('message-content').value,
+                ttl: parseInt(document.getElementById('message-ttl').value),
+                thread_id: document.getElementById('thread-id').value || null,
+                parent_message_id: document.getElementById('parent-message-id').value || null,
+                metadata: {}
+            };
+
+            // Parse metadata if provided
+            const metadataText = document.getElementById('message-metadata').value;
+            if (metadataText.trim()) {
+                try {
+                    formData.metadata = JSON.parse(metadataText);
+                } catch (e) {
+                    alert('Invalid JSON in metadata field');
+                    return;
+                }
+            }
+
+            fetch('/api/agent-messaging/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Message sent successfully!');
+                    document.getElementById('send-message-form').reset();
+                } else {
+                    alert('Error sending message: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error sending message:', error);
+                alert('Error sending message');
+            });
+        }
+
+        function validateMessage() {
+            const formData = {
+                sender_id: document.getElementById('sender-id').value,
+                receiver_id: document.getElementById('receiver-id').value,
+                message_type: document.getElementById('message-type').value,
+                content: document.getElementById('message-content').value
+            };
+
+            if (!formData.sender_id || !formData.receiver_id || !formData.content) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            fetch('/api/agent-messaging/validate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const result = data.validation_result;
+                    if (result.valid) {
+                        alert(`✅ Message validation passed!\nTrust Level: ${(result.trust_level * 100).toFixed(1)}%\nIntent: ${result.intent_classification}`);
+                    } else {
+                        alert(`❌ Message validation failed: ${result.reason}`);
+                    }
+                } else {
+                    alert('Error validating message: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error validating message:', error);
+                alert('Error validating message');
+            });
+        }
+
+        function loadMessageLogs() {
+            const agentId = document.getElementById('logs-agent-id').value;
+            const messageType = document.getElementById('logs-message-type').value;
+            const status = document.getElementById('logs-status').value;
+
+            if (!agentId) {
+                alert('Please enter an agent ID to search');
+                return;
+            }
+
+            const queryParams = new URLSearchParams();
+            queryParams.append('agent_id', agentId);
+            queryParams.append('limit', '100');
+            
+            if (messageType) {
+                queryParams.append('message_type', messageType);
+            }
+            
+            if (status) {
+                queryParams.append('status', status);
+            }
+
+            fetch(`/api/agent-messaging/history?${queryParams}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayMessages(data.data, 'message-logs-container');
+                    } else {
+                        alert('Error loading message logs: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading message logs:', error);
+                    alert('Error loading message logs');
+                });
+        }
+
+        function loadThreads() {
+            const agentId = document.getElementById('thread-agent-id').value;
+            const status = document.getElementById('thread-status').value;
+
+            const queryParams = new URLSearchParams();
+            if (agentId) {
+                queryParams.append('agent_id', agentId);
+            }
+            if (status) {
+                queryParams.append('status', status);
+            }
+
+            fetch(`/api/agent-messaging/threads?${queryParams}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        currentThreads = data.data;
+                        displayThreads(currentThreads);
+                    } else {
+                        alert('Error loading threads: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading threads:', error);
+                    alert('Error loading threads');
+                });
+        }
+
+        function displayThreads(threads) {
+            const container = document.getElementById('threads-list');
+            
+            if (threads.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No threads found</div>';
+                return;
+            }
+
+            container.innerHTML = threads.map(thread => `
+                <div class="thread-item" onclick="selectThread('${thread.thread_id}')">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>${thread.topic}</strong>
+                            <div class="text-muted small">
+                                ${thread.participants.join(', ')}
+                            </div>
+                        </div>
+                        <span class="badge bg-${getThreadStatusBadgeClass(thread.status)}">${thread.status}</span>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="fas fa-comments"></i> ${thread.message_count} messages
+                        </small>
+                        <br>
+                        <small class="text-muted">
+                            <i class="fas fa-clock"></i> ${new Date(thread.last_activity).toLocaleString()}
+                        </small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getThreadStatusBadgeClass(status) {
+            const classes = {
+                'active': 'success',
+                'completed': 'primary',
+                'archived': 'secondary'
+            };
+            return classes[status] || 'secondary';
+        }
+
+        function selectThread(threadId) {
+            selectedThreadId = threadId;
+            
+            // Update active thread
+            document.querySelectorAll('.thread-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.thread-item').classList.add('active');
+            
+            // Load thread messages
+            loadThreadMessages(threadId);
+        }
+
+        function loadThreadMessages(threadId) {
+            // For demo purposes, show sample messages
+            const sampleMessages = [
+                {
+                    message_id: 'msg-thread-001',
+                    sender_id: 'orchestrator-agent',
+                    receiver_id: 'builder-agent',
+                    message_type: 'instruction',
+                    priority: 'high',
+                    content: 'Let\'s start building the authentication system',
+                    timestamp: new Date(Date.now() - 3600000).toISOString(),
+                    trust_level: 0.95,
+                    status: 'delivered'
+                },
+                {
+                    message_id: 'msg-thread-002',
+                    sender_id: 'builder-agent',
+                    receiver_id: 'orchestrator-agent',
+                    message_type: 'status_update',
+                    priority: 'normal',
+                    content: 'Working on the authentication component',
+                    timestamp: new Date(Date.now() - 1800000).toISOString(),
+                    trust_level: 0.98,
+                    status: 'delivered'
+                },
+                {
+                    message_id: 'msg-thread-003',
+                    sender_id: 'orchestrator-agent',
+                    receiver_id: 'builder-agent',
+                    message_type: 'question',
+                    priority: 'normal',
+                    content: 'How is the progress going?',
+                    timestamp: new Date(Date.now() - 900000).toISOString(),
+                    trust_level: 0.97,
+                    status: 'delivered'
+                }
+            ];
+
+            displayMessages(sampleMessages, 'thread-messages');
+        }
+
+        function showCreateThreadModal() {
+            const modal = new bootstrap.Modal(document.getElementById('createThreadModal'));
+            modal.show();
+        }
+
+        function createThread() {
+            const topic = document.getElementById('thread-topic').value;
+            const participants = document.getElementById('thread-participants').value.split(',').map(p => p.trim());
+            const goalId = document.getElementById('thread-goal-id').value || null;
+
+            if (!topic || participants.length === 0) {
+                alert('Please fill in topic and participants');
+                return;
+            }
+
+            fetch('/api/agent-messaging/threads/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    topic: topic,
+                    participants: participants,
+                    goal_id: goalId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Thread created successfully!');
+                    bootstrap.Modal.getInstance(document.getElementById('createThreadModal')).hide();
+                    document.getElementById('create-thread-form').reset();
+                    loadThreads();
+                } else {
+                    alert('Error creating thread: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error creating thread:', error);
+                alert('Error creating thread');
+            });
+        }
+
+        function clearLiveFeed() {
+            document.getElementById('live-feed-container').innerHTML = 
+                '<div class="text-center text-muted"><i class="fas fa-stream"></i> Live feed cleared</div>';
+        }
+
+        function exportLogs() {
+            // Implementation for exporting logs
+            alert('Export functionality coming soon!');
+        }
+
+        function initializeSendForm() {
+            // Initialize send message form
+            console.log('Send message form initialized');
+        }
+
+        function initializeLogs() {
+            // Initialize message logs
+            console.log('Message logs initialized');
+        }
+
+        function startRealTimeUpdates() {
+            updateInterval = setInterval(() => {
+                // Refresh current tab
+                const activeTab = document.querySelector('.nav-link.active');
+                if (activeTab.id === 'live-feed-tab') {
+                    loadLiveFeed();
+                }
+                
+                // Update system stats
+                loadSystemStats();
+            }, 30000); // Update every 30 seconds
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        });
+    </script>
+</body>
+</html>

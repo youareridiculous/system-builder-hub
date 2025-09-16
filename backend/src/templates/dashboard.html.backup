@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🧠 System Builder Hub - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .nav-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: #495057;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .nav-link.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .hero-section {
+            text-align: center;
+            color: white;
+            margin-bottom: 3rem;
+        }
+        
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .feature-description {
+            color: #6c757d;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+        
+        .feature-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .quick-actions {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .quick-actions h2 {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            color: #495057;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .file-types {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .file-types h2 {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        
+        .file-type-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .file-type-tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="/" class="nav-brand">🧠 System Builder Hub</a>
+                                <div class="nav-links">
+        <a href="/" class="nav-link active">Dashboard</a>
+        <a href="/prompt-builder" class="nav-link">🚀 Prompt Builder</a>
+        <a href="/compliance" class="nav-link">🛡 Compliance</a>
+                    <a href="/project-loader" class="nav-link">📂 Project Loader</a>
+            <a href="/autonomous-builder" class="nav-link">🔄 Autonomous Builder</a>
+                            <a href="/fastpath-agent" class="nav-link">🚀 FastPath Agent</a>
+                <a href="/sales-pipeline" class="nav-link">💼 Sales Pipeline</a>
+                <a href="/test-engine" class="nav-link">🧪 Test Engine</a>
+                <a href="/company-builder" class="nav-link">🏢 Company Builder</a>
+                <a href="/llm-factory" class="nav-link">🧠 LLM Factory</a>
+                <a href="/system-delivery" class="nav-link">🚀 System Delivery</a>
+                <a href="/visual-context" class="nav-link">🎨 Visual Context</a>
+                <a href="/legacy-optimizer" class="nav-link">🔄 Legacy Optimizer</a>
+                <a href="/access-control" class="nav-link">🔐 Access Control</a>
+                <a href="/prediction-dashboard" class="nav-link">🧠 Predictive Intelligence</a>
+                <a href="/ownership-transfer" class="nav-link">🔄 Ownership Transfer</a>
+                <a href="/agent-ecosystem" class="nav-link">🧠 Agent Ecosystem</a>
+                <a href="/partner-portal" class="nav-link">🤝 Partner Portal</a>
+                <a href="/system-licensing" class="nav-link">📜 System Licensing</a>
+                <a href="/storefront" class="nav-link">🛒 Storefront</a>
+                <a href="/asset-store" class="nav-link">🎨 Asset Store</a>
+                <a href="/self-healing" class="nav-link">🔧 Self-Healing</a>
+                <a href="/predictive-dashboard" class="nav-link">🧠 Predictive Intelligence</a>
+                <a href="/support-agent" class="nav-link">💬 Support Agent</a>
+                <a href="/client-success" class="nav-link">🎯 Client Success</a>
+                <a href="/coaching" class="nav-link">🎓 Coaching</a>
+                <a href="/referral-engine" class="nav-link">🔗 Referral Engine</a>
+                <a href="/affiliate-tools" class="nav-link">🤝 Affiliate Tools</a>
+                <a href="/demo-generator" class="nav-link">🎬 Demo Generator</a>
+                <a href="/seo-optimizer" class="nav-link">🔍 SEO Optimizer</a>
+                                      <a href="/collaboration" class="nav-link">👥 Collaboration</a>
+                      <a href="/organization" class="nav-link">🏢 Organization</a>
+                      <a href="/comments" class="nav-link">💬 Comments</a>
+                      <a href="/approvals" class="nav-link">✅ Approvals</a>
+                      <a href="/llmops-dashboard" class="nav-link">🧠 LLMOps</a>
+                      <a href="/go-to-market" class="nav-link">🚀 Go-To-Market</a>
+                                              <a href="/rebuild" class="nav-link">🔄 Auto-Rebuilder</a>
+                        <a href="/agent-training" class="nav-link">🧠 Agent Training</a>
+                        <a href="/marketplace" class="nav-link">🛒 Marketplace</a>
+                        <a href="/memory-upload" class="nav-link">Upload</a>
+                        <a href="/memory-browser" class="nav-link">Memory Browser</a>
+        <a href="/template-launcher" class="nav-link">Template Launcher</a>
+        <a href="/knowledge" class="nav-link">Knowledge</a>
+        <a href="/trackers" class="nav-link">Trackers</a>
+        <!-- Priority 21: Long-Term Foresight Scaffolding -->
+        <a href="/privacy-controls" class="nav-link">🔒 Privacy Controls</a>
+        <a href="/ethics-guardrails" class="nav-link">🛡️ Ethics Guardrails</a>
+        <a href="/multimodal-interfaces" class="nav-link">🎨 Multimodal Interfaces</a>
+        <a href="/digital-rights" class="nav-link">📜 Digital Rights</a>
+        <a href="/self-integrity" class="nav-link">🔍 Self Integrity</a>
+        <a href="/deployment-options" class="nav-link">🚀 Deployment Options</a>
+        <a href="/compliance-metadata" class="nav-link">📋 Compliance Metadata</a>
+        <a href="/global-ux" class="nav-link">🌍 Global UX</a>
+        <a href="/future-interactions" class="nav-link">🔮 Future Interactions</a>
+        <a href="/predictive-adaptation" class="nav-link">🧠 Predictive Adaptation</a>
+    </div>
+        </div>
+    </nav>
+    
+    <div class="main-content">
+        <div class="hero-section">
+            <h1 class="hero-title">Welcome to System Builder Hub</h1>
+            <p class="hero-subtitle">Transform your development workflow with AI-powered memory management and template generation</p>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📁</div>
+                <div class="stat-number">{{ stats.total_sessions if stats else 0 }}</div>
+                <div class="stat-label">Memory Sessions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🧠</div>
+                <div class="stat-number">{{ stats.total_items_extracted if stats else 0 }}</div>
+                <div class="stat-label">Items Extracted</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🚀</div>
+                <div class="stat-number">{{ stats.file_types_processed|length if stats and stats.file_types_processed else 0 }}</div>
+                <div class="stat-label">File Types Processed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-number">{{ stats.supported_extensions|length if stats and stats.supported_extensions else 0 }}</div>
+                <div class="stat-label">Supported Formats</div>
+            </div>
+        </div>
+        
+        <div class="features-grid">
+                    <a href="/prompt-builder" class="feature-card">
+            <div class="feature-icon">🚀</div>
+            <h3 class="feature-title">Prompt Builder</h3>
+            <p class="feature-description">Build complete systems with natural language commands using AI-powered orchestration.</p>
+            <span class="feature-btn">Start Building →</span>
+        </a>
+        
+        <a href="/project-loader" class="feature-card">
+            <div class="feature-icon">📂</div>
+            <h3 class="feature-title">Project Loader</h3>
+            <p class="feature-description">Load existing projects, analyze structure, and generate completion plans with context injection.</p>
+            <span class="feature-btn">Load Project →</span>
+        </a>
+        
+        <a href="/autonomous-builder" class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <h3 class="feature-title">Autonomous Builder</h3>
+            <p class="feature-description">Continuous build loops with goal-driven development, checkpoints, and rollback capabilities.</p>
+            <span class="feature-btn">Start Loop →</span>
+        </a>
+        <a href="/fastpath-agent" class="feature-card">
+            <div class="feature-icon">🚀</div>
+            <h3 class="feature-title">FastPath Agent</h3>
+            <p class="feature-description">Intelligent build optimization with bottleneck analysis and parallel execution.</p>
+            <span class="feature-btn">Optimize Build →</span>
+        </a>
+        <a href="/sales-pipeline" class="feature-card">
+            <div class="feature-icon">💼</div>
+            <h3 class="feature-title">Sales Pipeline</h3>
+            <p class="feature-description">Automated sales pipeline with PoC generation, live call refinement, and demo creation.</p>
+            <span class="feature-btn">Start Pipeline →</span>
+        </a>
+        <a href="/test-engine" class="feature-card">
+            <div class="feature-icon">🧪</div>
+            <h3 class="feature-title">Test Engine</h3>
+            <p class="feature-description">Autonomous testing with bug scanning, security compliance, and automated fixes.</p>
+            <span class="feature-btn">Run Tests →</span>
+        </a>
+        <a href="/company-builder" class="feature-card">
+            <div class="feature-icon">🏢</div>
+            <h3 class="feature-title">Company Builder</h3>
+            <p class="feature-description">Build complete SaaS companies with pre-built templates and architectures.</p>
+            <span class="feature-btn">Build Company →</span>
+        </a>
+        <a href="/llm-factory" class="feature-card">
+            <div class="feature-icon">🧠</div>
+            <h3 class="feature-title">LLM Factory</h3>
+            <p class="feature-description">Train custom AI models with domain-specific presets and hallucination mitigation.</p>
+            <span class="feature-btn">Train Model →</span>
+        </a>
+        <a href="/system-delivery" class="feature-card">
+            <div class="feature-icon">🚀</div>
+            <h3 class="feature-title">System Delivery</h3>
+            <p class="feature-description">Export, package, and deploy systems with professional delivery pipeline.</p>
+            <span class="feature-btn">Deliver System →</span>
+        </a>
+        <a href="/visual-context" class="feature-card">
+            <div class="feature-icon">🎨</div>
+            <h3 class="feature-title">Visual Context</h3>
+            <p class="feature-description">Upload images and documents for context-aware system building.</p>
+            <span class="feature-btn">Upload Visual →</span>
+        </a>
+        <a href="/legacy-optimizer" class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <h3 class="feature-title">Legacy Optimizer</h3>
+            <p class="feature-description">Upgrade legacy systems with latest agents and optimizations.</p>
+            <span class="feature-btn">Optimize Legacy →</span>
+        </a>
+        <a href="/access-control" class="feature-card">
+            <div class="feature-icon">🔐</div>
+            <h3 class="feature-title">Advanced Access Control</h3>
+            <p class="feature-description">Fine-grained access control with system-level settings, role management, dynamic rules, and comprehensive logging.</p>
+            <span class="feature-btn">Manage Access →</span>
+        </a>
+        <a href="/agent-ecosystem" class="feature-card">
+            <div class="feature-icon">🧠</div>
+            <h3 class="feature-title">Agent Ecosystem</h3>
+            <p class="feature-description">Create, compose, and manage reusable AI agents.</p>
+            <span class="feature-btn">Manage Agents →</span>
+        </a>
+        <a href="/partner-portal" class="feature-card">
+            <div class="feature-icon">🤝</div>
+            <h3 class="feature-title">Partner Portal</h3>
+            <p class="feature-description">White-labeled SaaS for agencies and resellers.</p>
+            <span class="feature-btn">Manage Partners →</span>
+        </a>
+        <a href="/system-licensing" class="feature-card">
+            <div class="feature-icon">📜</div>
+            <h3 class="feature-title">System Licensing</h3>
+            <p class="feature-description">Define and enforce licensing for generated systems.</p>
+            <span class="feature-btn">Manage Licenses →</span>
+        </a>
+        <a href="/storefront" class="feature-card">
+            <div class="feature-icon">🛒</div>
+            <h3 class="feature-title">Storefront</h3>
+            <p class="feature-description">Discover, publish, and install agents and templates.</p>
+            <span class="feature-btn">Explore Store →</span>
+        </a>
+        <a href="/asset-store" class="feature-card">
+            <div class="feature-icon">🎨</div>
+            <h3 class="feature-title">Asset Store</h3>
+            <p class="feature-description">Manage and utilize AI-generated visual assets.</p>
+            <span class="feature-btn">Browse Assets →</span>
+        </a>
+        <a href="/self-healing" class="feature-card">
+            <div class="feature-icon">🔧</div>
+            <h3 class="feature-title">Self-Healing System</h3>
+            <p class="feature-description">Autonomous error detection and automated fix suggestions.</p>
+            <span class="feature-btn">Monitor Health →</span>
+        </a>
+        <a href="/prediction-dashboard" class="feature-card">
+            <div class="feature-icon">🧠</div>
+            <h3 class="feature-title">Predictive Intelligence Engine</h3>
+            <p class="feature-description">Advanced forecasting, simulation, and decision optimization for system building with outcome-based recommendations.</p>
+            <span class="feature-btn">View Predictions →</span>
+        </a>
+        
+        <a href="/ownership-transfer" class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <h3 class="feature-title">Ownership Transfer</h3>
+            <p class="feature-description">Secure, seamless, and auditable system handoffs to external parties with full export capabilities.</p>
+            <span class="feature-btn">Manage Transfers →</span>
+        </a>
+        
+        <a href="/support-agent" class="feature-card">
+            <div class="feature-icon">💬</div>
+            <h3 class="feature-title">Support Agent</h3>
+            <p class="feature-description">AI-powered chatbot with system-aware context and automated issue resolution.</p>
+            <span class="feature-btn">Get Support →</span>
+        </a>
+        
+        <a href="/client-success" class="feature-card">
+            <div class="feature-icon">🎯</div>
+            <h3 class="feature-title">Client Success</h3>
+            <p class="feature-description">Track client usage, predict churn, and automate engagement campaigns.</p>
+            <span class="feature-btn">Manage Clients →</span>
+        </a>
+        
+        <a href="/coaching" class="feature-card">
+            <div class="feature-icon">🎓</div>
+            <h3 class="feature-title">Proactive Coaching</h3>
+            <p class="feature-description">In-app tips, smart UI nudges, and system evaluation for better user success.</p>
+            <span class="feature-btn">Get Coaching →</span>
+        </a>
+        
+        <a href="/referral-engine" class="feature-card">
+            <div class="feature-icon">🔗</div>
+            <h3 class="feature-title">Referral Engine</h3>
+            <p class="feature-description">Viral loops with unique referral codes, incentives, and leaderboards.</p>
+            <span class="feature-btn">Start Referring →</span>
+        </a>
+        
+        <a href="/affiliate-tools" class="feature-card">
+            <div class="feature-icon">🤝</div>
+            <h3 class="feature-title">Affiliate Tools</h3>
+            <p class="feature-description">Create bundles, branded landing pages, and manage revenue sharing.</p>
+            <span class="feature-btn">Create Bundles →</span>
+        </a>
+        
+        <a href="/demo-generator" class="feature-card">
+            <div class="feature-icon">🎬</div>
+            <h3 class="feature-title">Demo Generator</h3>
+            <p class="feature-description">Auto-generate embeddable demos, microsites, and track conversion analytics.</p>
+            <span class="feature-btn">Generate Demo →</span>
+        </a>
+        
+        <a href="/seo-optimizer" class="feature-card">
+            <div class="feature-icon">🔍</div>
+            <h3 class="feature-title">SEO Optimizer</h3>
+            <p class="feature-description">Generate SEO metadata, manage public listings, and optimize for search engines.</p>
+            <span class="feature-btn">Optimize SEO →</span>
+        </a>
+        
+        <a href="/collaboration" class="feature-card">
+            <div class="feature-icon">👥</div>
+            <h3 class="feature-title">Team Collaboration</h3>
+            <p class="feature-description">Real-time shared editing, live presence indicators, and conflict resolution.</p>
+            <span class="feature-btn">Start Collaborating →</span>
+        </a>
+        
+        <a href="/organization" class="feature-card">
+            <div class="feature-icon">🏢</div>
+            <h3 class="feature-title">Organization Management</h3>
+            <p class="feature-description">Manage teams, projects, member roles, and organization-wide workflows.</p>
+            <span class="feature-btn">Manage Org →</span>
+        </a>
+        
+        <a href="/comments" class="feature-card">
+            <div class="feature-icon">💬</div>
+            <h3 class="feature-title">Comments & Workflow</h3>
+            <p class="feature-description">Inline comments, threaded discussions, mentions, and resolution tracking.</p>
+            <span class="feature-btn">View Comments →</span>
+        </a>
+        
+                  <a href="/approvals" class="feature-card">
+              <div class="feature-icon">✅</div>
+              <h3 class="feature-title">Approval Pipeline</h3>
+              <p class="feature-description">Draft to published workflow with role-based approvals and audit trails.</p>
+              <span class="feature-btn">Manage Approvals →</span>
+          </a>
+          
+          <a href="/llmops-dashboard" class="feature-card">
+              <div class="feature-icon">🧠</div>
+              <h3 class="feature-title">LLMOps Dashboard</h3>
+              <p class="feature-description">Federated fine-tuning, model management, and training orchestration.</p>
+              <span class="feature-btn">Manage Models →</span>
+          </a>
+          
+          <a href="/go-to-market" class="feature-card">
+              <div class="feature-icon">🚀</div>
+              <h3 class="feature-title">Go-To-Market Engine</h3>
+              <p class="feature-description">Automated marketing, legal & commercialization assets for every system.</p>
+              <span class="feature-btn">Launch System →</span>
+          </a>
+          
+                      <a href="/rebuild" class="feature-card">
+                <div class="feature-icon">🔄</div>
+                <h3 class="feature-title">Auto-Rebuilder Agent</h3>
+                <p class="feature-description">Recursive auto-upgrade intelligence & meta-system bootstrap capabilities.</p>
+                <span class="feature-btn">Manage Rebuilds →</span>
+            </a>
+            
+            <a href="/agent-training" class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3 class="feature-title">Custom Agent Training</h3>
+                <p class="feature-description">Domain-aware agent specialization & training framework with privacy protection.</p>
+                <span class="feature-btn">Train Agents →</span>
+            </a>
+            
+            <a href="/marketplace" class="feature-card">
+                <div class="feature-icon">🛒</div>
+                <h3 class="feature-title">Marketplace</h3>
+                <p class="feature-description">Discover, purchase, and monetize agents, systems, and templates with affiliate support.</p>
+                <span class="feature-btn">Browse Marketplace →</span>
+            </a>
+            
+            <a href="/memory-upload" class="feature-card">
+                <div class="feature-icon">📤</div>
+                <h3 class="feature-title">Memory Upload</h3>
+                <p class="feature-description">Upload files to automatically extract and organize reusable knowledge, patterns, and insights.</p>
+                <span class="feature-btn">Start Uploading →</span>
+            </a>
+            
+            <a href="/memory-browser" class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3 class="feature-title">Memory Browser</h3>
+                <p class="feature-description">Browse and search through your processed memory sessions with advanced filtering and organization.</p>
+                <span class="feature-btn">Browse Memories →</span>
+            </a>
+            
+            <a href="/template-launcher" class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3 class="feature-title">Template Launcher</h3>
+                <p class="feature-description">Access and manage reusable code templates with favorites, tags, and instant downloads.</p>
+                <span class="feature-btn">Launch Templates →</span>
+            </a>
+            
+            <!-- Priority 21: Long-Term Foresight Scaffolding -->
+            <a href="/privacy-controls" class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3 class="feature-title">Privacy Controls</h3>
+                <p class="feature-description">Advanced privacy and retention controls with local-only inference and zero-retention previews.</p>
+                <span class="feature-btn">Manage Privacy →</span>
+            </a>
+            
+            <a href="/ethics-guardrails" class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3 class="feature-title">Ethics Guardrails</h3>
+                <p class="feature-description">Agent ethics and guardrails with explainability logs, sandbox enforcement, and red-flag triggers.</p>
+                <span class="feature-btn">Configure Ethics →</span>
+            </a>
+            
+            <a href="/multimodal-interfaces" class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3 class="feature-title">Multimodal Interfaces</h3>
+                <p class="feature-description">Future modal interfaces with image-based inputs, voice I/O, video inputs, and fusion capabilities.</p>
+                <span class="feature-btn">Enable Multimodal →</span>
+            </a>
+            
+            <a href="/digital-rights" class="feature-card">
+                <div class="feature-icon">📜</div>
+                <h3 class="feature-title">Digital Rights</h3>
+                <p class="feature-description">Licensing and digital rights management with MIT, AGPL, proprietary, and custom license support.</p>
+                <span class="feature-btn">Manage Rights →</span>
+            </a>
+            
+            <a href="/self-integrity" class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <h3 class="feature-title">Self Integrity</h3>
+                <p class="feature-description">Self-testing and self-healing capabilities with automated integrity checks and health monitoring.</p>
+                <span class="feature-btn">Check Integrity →</span>
+            </a>
+            
+            <a href="/deployment-options" class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3 class="feature-title">Deployment Options</h3>
+                <p class="feature-description">Advanced deployment and federation options with airgapped, on-premise, and decentralized support.</p>
+                <span class="feature-btn">Configure Deployment →</span>
+            </a>
+            
+            <a href="/compliance-metadata" class="feature-card">
+                <div class="feature-icon">📋</div>
+                <h3 class="feature-title">Compliance Metadata</h3>
+                <p class="feature-description">Compliance-ready metadata layer with GDPR, HIPAA, SOC2, and CCPA support.</p>
+                <span class="feature-btn">Manage Compliance →</span>
+            </a>
+            
+            <a href="/global-ux" class="feature-card">
+                <div class="feature-icon">🌍</div>
+                <h3 class="feature-title">Global UX</h3>
+                <p class="feature-description">Global UX scaffolding with RTL layouts, i18n translation, locale awareness, and currency support.</p>
+                <span class="feature-btn">Configure UX →</span>
+            </a>
+            
+            <a href="/future-interactions" class="feature-card">
+                <div class="feature-icon">🔮</div>
+                <h3 class="feature-title">Future Interactions</h3>
+                <p class="feature-description">Future interaction UX with drag-drop builders, AI CLI, 3D canvas, and whiteboard conversion.</p>
+                <span class="feature-btn">Enable Interactions →</span>
+            </a>
+            
+            <a href="/predictive-adaptation" class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3 class="feature-title">Predictive Adaptation</h3>
+                <p class="feature-description">Predictive architecture adaptation with unknown metrics handling and plug-play optimization.</p>
+                <span class="feature-btn">Configure Adaptation →</span>
+            </a>
+        </div>
+        
+        <div class="quick-actions">
+            <h2>⚡ Quick Actions</h2>
+            <div class="action-buttons">
+                <a href="/memory-upload" class="action-btn">📤 Upload New File</a>
+                <a href="/memory-browser" class="action-btn">🧠 View Memories</a>
+                <a href="/template-launcher" class="action-btn">🚀 Browse Templates</a>
+                <a href="/referral-engine" class="action-btn">🔗 Referral Engine</a>
+                <a href="/affiliate-tools" class="action-btn">🤝 Affiliate Tools</a>
+                <a href="/demo-generator" class="action-btn">🎬 Demo Generator</a>
+                <a href="/seo-optimizer" class="action-btn">🔍 SEO Optimizer</a>
+                <a href="/collaboration" class="action-btn">👥 Collaboration</a>
+                <a href="/organization" class="action-btn">🏢 Organization</a>
+                                      <a href="/comments" class="action-btn">💬 Comments</a>
+                      <a href="/approvals" class="action-btn">✅ Approvals</a>
+                                              <a href="/llmops-dashboard" class="action-btn">🧠 LLMOps</a>
+                        <a href="/go-to-market" class="action-btn">🚀 Go-To-Market</a>
+                        <a href="/rebuild" class="action-btn">🔄 Auto-Rebuilder</a>
+                        <a href="/agent-training" class="action-btn">🧠 Agent Training</a>
+                        <a href="/marketplace" class="action-btn">🛒 Marketplace</a>
+                        <a href="/api/stats" class="action-btn">📊 View Stats</a>
+                        <!-- Priority 21 Quick Actions -->
+                        <a href="/privacy-controls" class="action-btn">🔒 Privacy Controls</a>
+                        <a href="/ethics-guardrails" class="action-btn">🛡️ Ethics Guardrails</a>
+                        <a href="/multimodal-interfaces" class="action-btn">🎨 Multimodal</a>
+                        <a href="/digital-rights" class="action-btn">📜 Digital Rights</a>
+                        <a href="/self-integrity" class="action-btn">🔍 Self Integrity</a>
+                        <a href="/deployment-options" class="action-btn">🚀 Deployment</a>
+                        <a href="/compliance-metadata" class="action-btn">📋 Compliance</a>
+                        <a href="/global-ux" class="action-btn">🌍 Global UX</a>
+                        <a href="/future-interactions" class="action-btn">🔮 Future UX</a>
+                        <a href="/predictive-adaptation" class="action-btn">🧠 Adaptation</a>
+            </div>
+        </div>
+        
+        <div class="file-types">
+            <h2>📋 Supported File Types</h2>
+            <div class="file-type-list">
+                {% if stats and stats.supported_extensions %}
+                    {% for ext in stats.supported_extensions %}
+                        <span class="file-type-tag">{{ ext }}</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="file-type-tag">.txt</span>
+                    <span class="file-type-tag">.md</span>
+                    <span class="file-type-tag">.json</span>
+                    <span class="file-type-tag">.pdf</span>
+                    <span class="file-type-tag">.csv</span>
+                    <span class="file-type-tag">.docx</span>
+                    <span class="file-type-tag">.mdx</span>
+                    <span class="file-type-tag">.rtf</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

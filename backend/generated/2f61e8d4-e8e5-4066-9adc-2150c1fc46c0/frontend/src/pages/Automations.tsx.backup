@@ -1,0 +1,679 @@
+import React, { useState, useEffect } from 'react';
+import { api } from '../lib/api';
+import { useToast } from '../contexts/ToastContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/Card';
+import { Button } from '../components/Button';
+import { Input } from '../components/Input';
+import { Label } from '../components/Label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/Select';
+import { Textarea } from '../components/Textarea';
+import { Badge } from '../components/Badge';
+import { Checkbox } from '../components/Checkbox';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '../components/Dialog';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '../components/Table';
+import { 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Play, 
+  Pause,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Settings,
+  Zap,
+  Eye
+} from 'lucide-react';
+
+interface AutomationRule {
+  id: number;
+  name: string;
+  is_enabled: boolean;
+  trigger: string;
+  conditions?: string;
+  actions?: string;
+  last_run_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AutomationRun {
+  id: number;
+  rule_id: number;
+  triggered_at: string;
+  payload?: string;
+  status: 'success' | 'failed' | 'skipped';
+  message?: string;
+}
+
+interface Template {
+  id: number;
+  name: string;
+  type: 'email' | 'sms';
+}
+
+interface Pipeline {
+  id: number;
+  name: string;
+}
+
+export default function Automations() {
+  const { showToast } = useToast();
+  const [rules, setRules] = useState<AutomationRule[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [selectedRule, setSelectedRule] = useState<AutomationRule | null>(null);
+  const [ruleHistory, setRuleHistory] = useState<AutomationRun[]>([]);
+  
+  // Form states
+  const [formData, setFormData] = useState({
+    name: '',
+    trigger: '',
+    conditions: {} as any,
+    actions: [] as any[]
+  });
+
+  const triggers = [
+    { value: 'deal.stage_changed', label: 'Deal Stage Changed' },
+    { value: 'contact.created', label: 'Contact Created' },
+    { value: 'communication.status_updated', label: 'Communication Status Updated' },
+    { value: 'activity.created', label: 'Activity Created' }
+  ];
+
+  const actionTypes = [
+    { value: 'send_email_template', label: 'Send Email Template' },
+    { value: 'send_sms_template', label: 'Send SMS Template' },
+    { value: 'create_activity', label: 'Create Activity' },
+    { value: 'move_deal_stage', label: 'Move Deal to Stage' },
+    { value: 'wait', label: 'Wait/Delay' }
+  ];
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [rulesData, templatesData, pipelinesData] = await Promise.all([
+        api.get('/automations/'),
+        api.get('/templates/'),
+        api.get('/pipelines/')
+      ]);
+      setRules(rulesData);
+      setTemplates(templatesData);
+      setPipelines(pipelinesData);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    try {
+      await api.post('/automations/', formData);
+      setShowCreateDialog(false);
+      setFormData({ name: '', trigger: '', conditions: {}, actions: [] });
+      showToast('Automation rule created successfully!', 'success');
+      fetchData();
+    } catch (err) {
+      showToast('Failed to create automation rule', 'error');
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedRule) return;
+    
+    try {
+      await api.put(`/automations/${selectedRule.id}`, formData);
+      setShowEditDialog(false);
+      setSelectedRule(null);
+      setFormData({ name: '', trigger: '', conditions: {}, actions: [] });
+      showToast('Automation rule updated successfully!', 'success');
+      fetchData();
+    } catch (err) {
+      showToast('Failed to update automation rule', 'error');
+    }
+  };
+
+  const handleDelete = async (ruleId: number) => {
+    try {
+      await api.del(`/automations/${ruleId}`);
+      showToast('Automation rule deleted successfully!', 'success');
+      fetchData();
+    } catch (err) {
+      showToast('Failed to delete automation rule', 'error');
+    }
+  };
+
+  const handleToggleEnabled = async (rule: AutomationRule) => {
+    try {
+      await api.put(`/automations/${rule.id}`, {
+        is_enabled: !rule.is_enabled
+      });
+      showToast(`Automation rule ${rule.is_enabled ? 'disabled' : 'enabled'} successfully!`, 'success');
+      fetchData();
+    } catch (err) {
+      showToast('Failed to update automation rule', 'error');
+    }
+  };
+
+  const handleViewHistory = async (rule: AutomationRule) => {
+    try {
+      const history = await api.get(`/automations/${rule.id}/runs`);
+      setRuleHistory(history);
+      setSelectedRule(rule);
+      setShowHistoryDialog(true);
+    } catch (err) {
+      showToast('Failed to load rule history', 'error');
+    }
+  };
+
+  const openEditDialog = (rule: AutomationRule) => {
+    setSelectedRule(rule);
+    setFormData({
+      name: rule.name,
+      trigger: rule.trigger,
+      conditions: rule.conditions ? JSON.parse(rule.conditions) : {},
+      actions: rule.actions ? JSON.parse(rule.actions) : []
+    });
+    setShowEditDialog(true);
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'failed':
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      case 'skipped':
+        return <AlertCircle className="w-4 h-4 text-yellow-500" />;
+      default:
+        return <Clock className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'success':
+        return 'bg-green-100 text-green-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      case 'skipped':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const addCondition = () => {
+    setFormData(prev => ({
+      ...prev,
+      conditions: { ...prev.conditions }
+    }));
+  };
+
+  const addAction = () => {
+    setFormData(prev => ({
+      ...prev,
+      actions: [...prev.actions, { type: 'send_email_template' }]
+    }));
+  };
+
+  const updateAction = (index: number, field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      actions: prev.actions.map((action, i) => 
+        i === index ? { ...action, [field]: value } : action
+      )
+    }));
+  };
+
+  const removeAction = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      actions: prev.actions.filter((_, i) => i !== index)
+    }));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Automations</h1>
+          <p className="mt-2 text-gray-600">
+            Create and manage automation rules to streamline your workflow
+          </p>
+        </div>
+        <Button onClick={() => setShowCreateDialog(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          New Automation
+        </Button>
+      </div>
+
+      {/* Rules List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Automation Rules ({rules.length})</CardTitle>
+          <CardDescription>
+            Rules that automatically trigger actions based on events
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Trigger</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Run</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rules.map((rule) => (
+                <TableRow key={rule.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{rule.name}</div>
+                      <div className="text-sm text-gray-500">
+                        {triggers.find(t => t.value === rule.trigger)?.label || rule.trigger}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {triggers.find(t => t.value === rule.trigger)?.label || rule.trigger}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Badge className={rule.is_enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                        {rule.is_enabled ? 'Enabled' : 'Disabled'}
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggleEnabled(rule)}
+                      >
+                        {rule.is_enabled ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {rule.last_run_at ? 
+                      new Date(rule.last_run_at).toLocaleString() : 
+                      'Never'
+                    }
+                  </TableCell>
+                  <TableCell>
+                    {new Date(rule.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewHistory(rule)}
+                      >
+                        <Eye className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditDialog(rule)}
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(rule.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          
+          {rules.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No automation rules found. Create your first rule to get started.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create/Edit Rule Dialog */}
+      <Dialog open={showCreateDialog || showEditDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowCreateDialog(false);
+          setShowEditDialog(false);
+          setSelectedRule(null);
+          setFormData({ name: '', trigger: '', conditions: {}, actions: [] });
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {showCreateDialog ? 'Create New Automation' : 'Edit Automation'}
+            </DialogTitle>
+            <DialogDescription>
+              Configure triggers, conditions, and actions for your automation rule
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">Rule Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter rule name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="trigger">Trigger</Label>
+                <Select value={formData.trigger} onValueChange={(value) => setFormData({ ...formData, trigger: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select trigger" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {triggers.map((trigger) => (
+                      <SelectItem key={trigger.value} value={trigger.value}>
+                        {trigger.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Conditions */}
+            <div>
+              <Label>Conditions (Optional)</Label>
+              <div className="mt-2 p-4 border rounded-lg bg-gray-50">
+                <div className="text-sm text-gray-600 mb-2">
+                  Conditions determine when the rule should execute
+                </div>
+                {/* Add condition builders here based on trigger type */}
+                <div className="text-sm text-gray-500">
+                  Condition builder coming soon...
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <Label>Actions</Label>
+                <Button variant="outline" size="sm" onClick={addAction}>
+                  <Plus className="w-3 h-3 mr-1" />
+                  Add Action
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                {formData.actions.map((action, index) => (
+                  <div key={index} className="p-4 border rounded-lg">
+                    <div className="flex justify-between items-center mb-3">
+                      <Select 
+                        value={action.type} 
+                        onValueChange={(value) => updateAction(index, 'type', value)}
+                      >
+                        <SelectTrigger className="w-48">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {actionTypes.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeAction(index)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    
+                    {/* Action-specific fields */}
+                    {action.type === 'send_email_template' && (
+                      <div>
+                        <Label>Email Template</Label>
+                        <Select 
+                          value={action.template_id?.toString() || ''} 
+                          onValueChange={(value) => updateAction(index, 'template_id', parseInt(value))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select email template" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {templates.filter(t => t.type === 'email').map((template) => (
+                              <SelectItem key={template.id} value={template.id.toString()}>
+                                {template.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    
+                    {action.type === 'send_sms_template' && (
+                      <div>
+                        <Label>SMS Template</Label>
+                        <Select 
+                          value={action.template_id?.toString() || ''} 
+                          onValueChange={(value) => updateAction(index, 'template_id', parseInt(value))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select SMS template" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {templates.filter(t => t.type === 'sms').map((template) => (
+                              <SelectItem key={template.id} value={template.id.toString()}>
+                                {template.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    
+                    {action.type === 'create_activity' && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Activity Type</Label>
+                          <Select 
+                            value={action.activity_type || 'task'} 
+                            onValueChange={(value) => updateAction(index, 'activity_type', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="call">Call</SelectItem>
+                              <SelectItem value="email">Email</SelectItem>
+                              <SelectItem value="meeting">Meeting</SelectItem>
+                              <SelectItem value="task">Task</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Subject</Label>
+                          <Input
+                            value={action.subject || ''}
+                            onChange={(e) => updateAction(index, 'subject', e.target.value)}
+                            placeholder="Activity subject"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label>Due Date Offset</Label>
+                          <Input
+                            value={action.due_date_offset || ''}
+                            onChange={(e) => updateAction(index, 'due_date_offset', e.target.value)}
+                            placeholder="e.g., 2d, 1h"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {action.type === 'move_deal_stage' && (
+                      <div>
+                        <Label>New Stage</Label>
+                        <Select 
+                          value={action.stage || ''} 
+                          onValueChange={(value) => updateAction(index, 'stage', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select stage" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="prospecting">Prospecting</SelectItem>
+                            <SelectItem value="qualification">Qualification</SelectItem>
+                            <SelectItem value="proposal">Proposal</SelectItem>
+                            <SelectItem value="negotiation">Negotiation</SelectItem>
+                            <SelectItem value="closed_won">Closed Won</SelectItem>
+                            <SelectItem value="closed_lost">Closed Lost</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    
+                    {action.type === 'wait' && (
+                      <div>
+                        <Label>Wait Duration (seconds)</Label>
+                        <Input
+                          type="number"
+                          value={action.seconds || ''}
+                          onChange={(e) => updateAction(index, 'seconds', parseInt(e.target.value))}
+                          placeholder="60"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {formData.actions.length === 0 && (
+                  <div className="text-center py-8 text-gray-500 border-2 border-dashed rounded-lg">
+                    No actions configured. Add an action to define what happens when the rule triggers.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowCreateDialog(false);
+              setShowEditDialog(false);
+              setSelectedRule(null);
+              setFormData({ name: '', trigger: '', conditions: {}, actions: [] });
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={showCreateDialog ? handleCreate : handleUpdate}>
+              {showCreateDialog ? 'Create Rule' : 'Update Rule'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rule History Dialog */}
+      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Rule Execution History</DialogTitle>
+            <DialogDescription>
+              Recent executions for "{selectedRule?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="max-h-96 overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Message</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ruleHistory.map((run) => (
+                  <TableRow key={run.id}>
+                    <TableCell>
+                      {new Date(run.triggered_at).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        {getStatusIcon(run.status)}
+                        <Badge className={getStatusColor(run.status)}>
+                          {run.status}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-gray-600">
+                        {run.message || '-'}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            
+            {ruleHistory.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No execution history found for this rule.
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button onClick={() => setShowHistoryDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

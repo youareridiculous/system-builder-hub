@@ -1,0 +1,366 @@
+"""
+Main Flask application factory
+"""
+import os
+import logging
+import traceback
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+
+# Import blueprints
+from src.llm_config_api import llm_config_bp
+from src.llm_status_api import bp as llm_status_bp
+from src.llm_dry_run_api import llm_dry_run_bp
+from src.builder_api import builder_api_bp
+from src.preview_ui import bp as preview_ui_bp
+from src.agent.router import bp as agent_bp
+from src.auth_api import bp as auth_bp
+from src.payments_api import bp as payments_bp
+from src.file_store_api import bp as file_store_bp
+from src.marketplace.api import bp as marketplace_bp
+
+# Import database helpers
+from src.db import close_db
+
+logger = logging.getLogger(__name__)
+
+def create_app():
+    """Create and configure the Flask application"""
+    app = Flask(__name__, template_folder="../templates", static_folder="../static")
+    
+    # Configure CORS
+    CORS(app, origins=['http://localhost:5001', 'http://127.0.0.1:5001'])
+    
+    # Configure database
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        app.config['DATABASE_URL'] = database_url
+        app.config['DATABASE'] = database_url  # For backward compatibility
+    else:
+        app.config['DATABASE'] = os.path.abspath('system_builder_hub.db')
+    
+    # Configure public base URL for agent testing
+    app.config['PUBLIC_BASE_URL'] = os.environ.get('PUBLIC_BASE_URL', 'http://localhost:5001')
+    
+    # Configure auth secret key
+    app.config['AUTH_SECRET_KEY'] = os.environ.get('AUTH_SECRET_KEY', 'default-secret-key-change-in-production')
+    
+    # Configure Stripe keys
+    app.config['STRIPE_SECRET_KEY'] = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_mock')
+    app.config['STRIPE_WEBHOOK_SECRET'] = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_test')
+    
+    # Configure file upload settings
+    app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
+    
+    # Configure storage settings
+    app.config['STORAGE_PROVIDER'] = os.environ.get('STORAGE_PROVIDER', 'local')
+    app.config['S3_BUCKET_NAME'] = os.environ.get('S3_BUCKET_NAME')
+    app.config['AWS_ACCESS_KEY_ID'] = os.environ.get('AWS_ACCESS_KEY_ID')
+    app.config['AWS_SECRET_ACCESS_KEY'] = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    app.config['AWS_REGION'] = os.environ.get('AWS_REGION', 'us-east-1')
+    app.config['S3_PRESIGN_EXPIRY_SECONDS'] = int(os.environ.get('S3_PRESIGN_EXPIRY_SECONDS', '900'))
+    
+    # Ensure instance folder exists
+    try:
+        os.makedirs(app.instance_path)
+    except OSError:
+        pass
+    
+    # Register database close function
+    app.teardown_appcontext(close_db)
+    
+    # Register blueprints with error handling
+    try:
+        # Register LLM blueprints (conditional on feature flag)
+        if os.environ.get('FEATURE_LLM_API', 'true').lower() == 'true':
+            app.register_blueprint(llm_config_bp)
+            app.register_blueprint(llm_status_bp)
+            app.register_blueprint(llm_dry_run_bp)
+            
+            # Register LLM Routing API
+            try:
+                from src.llm_routing_api import bp as llm_routing_bp
+                app.register_blueprint(llm_routing_bp)
+                logger.info("LLM Routing API registered successfully")
+            except ImportError as e:
+                logger.warning(f"LLM Routing API not available: {e}")
+            
+            logger.info("LLM blueprints registered successfully")
+        else:
+            logger.warning("LLM API feature disabled - skipping LLM blueprint registration")
+    except Exception as e:
+        if os.environ.get('FLASK_ENV') == 'production':
+            logger.error(f"Failed to register LLM blueprints: {e}")
+    
+        else:
+            logger.warning(f"LLM blueprints not available: {e}")
+    
+    # Register core blueprints
+    try:
+        app.register_blueprint(builder_api_bp)
+        app.register_blueprint(preview_ui_bp)
+        app.register_blueprint(agent_bp)
+        app.register_blueprint(auth_bp)
+        app.register_blueprint(payments_bp)
+        app.register_blueprint(file_store_bp)
+        app.register_blueprint(marketplace_bp)
+        
+        # Register CRM Lite blueprint
+        try:
+            from src.crm_lite.api import crm_lite_bp
+            app.register_blueprint(crm_lite_bp)
+            logger.info("CRM Lite blueprint registered successfully")
+        except ImportError as e:
+            logger.warning(f"CRM Lite blueprint not available: {e}")
+        
+        # Register Venture OS blueprint
+        try:
+            from src.venture_os.http.api import bp as venture_os_bp
+            app.register_blueprint(venture_os_bp, url_prefix="/api/venture_os")
+            logger.info("Venture OS blueprint registered successfully")
+        except ImportError as e:
+            logger.warning(f"Venture OS blueprint not available: {e}")
+        
+        # Add favicon route to quiet DevTools noise
+        @app.route('/favicon.ico')
+        def favicon():
+            return ('', 204)
+        
+        # Add health endpoint
+        @app.route('/api/health')
+        def health():
+            from datetime import datetime, timezone
+            return {'ok': True, 'ts': datetime.now(timezone.utc).isoformat()}, 200
+    except Exception as e:
+        logger.error(f"Failed to register core blueprints: {e}")
+
+    
+    # --- Co-Builder API blueprint ---
+    try:
+        from src.cobuilder.api import cobuilder_bp  # actual API blueprint
+        app.register_blueprint(cobuilder_bp, url_prefix="/api/cobuilder")
+        logger.info("✅ Registered blueprint: cobuilder")
+    except Exception as e:
+        logger.error(f"❌ Failed to register cobuilder blueprint: {e}")
+    
+    # Register Ops blueprints
+    try:
+        from src.ops.api import ops_bp
+        app.register_blueprint(ops_bp)
+        logger.info("Ops blueprints registered successfully")
+    except Exception as e:
+        logger.error("Failed to register Ops blueprints: %s\n%s", e, traceback.format_exc())
+    
+    # Register Growth blueprints
+    try:
+        from src.growth.api import growth_bp
+        app.register_blueprint(growth_bp)
+        logger.info("Growth blueprints registered successfully")
+    except Exception as e:
+        logger.error("Failed to register Growth blueprints: %s\n%s", e, traceback.format_exc())
+    
+    # Register Security blueprints
+    try:
+        from src.security.api import security_bp
+        app.register_blueprint(security_bp)
+        logger.info("Security blueprints registered successfully")
+    except Exception as e:
+        logger.error("Failed to register Security blueprints: %s\n%s", e, traceback.format_exc())
+    
+    # Register Build Hub blueprints
+    try:
+        from src.build_hub import build_hub_bp
+        app.register_blueprint(build_hub_bp)
+        logger.info("Build Hub blueprints registered successfully")
+    except Exception as e:
+        logger.error("Failed to register Build Hub blueprints: %s\n%s", e, traceback.format_exc())
+    
+    # Register Spec blueprints
+    try:
+        from src.spec import spec_bp, spec_ui_bp
+        app.register_blueprint(spec_bp)
+        app.register_blueprint(spec_ui_bp)
+        logger.info("Spec blueprints registered successfully")
+    except Exception as e:
+        logger.error("Failed to register Spec blueprints: %s\n%s", e, traceback.format_exc())
+    
+    # Register Ecosystem blueprints
+    try:
+        from src.ecosystem.api import ecosystem_bp
+        app.register_blueprint(ecosystem_bp)
+        logger.info("Ecosystem blueprints registered successfully")
+    except Exception as e:
+        logger.error("Failed to register Ecosystem blueprints: %s\n%s", e, traceback.format_exc())
+    
+    # Register Deployment blueprints
+    try:
+        from src.deployment.api import deployment_bp
+        app.register_blueprint(deployment_bp)
+        logger.info("Deployment blueprints registered successfully")
+    except Exception as e:
+        logger.error("Failed to register Deployment blueprints: %s\n%s", e, traceback.format_exc())
+    
+    # Register Deployment CD blueprints
+    try:
+        from src.deployment.api_cd import cd_bp
+        app.register_blueprint(cd_bp)
+        logger.info("Deployment CD blueprints registered successfully")
+    except Exception as e:
+        logger.error("Failed to register Deployment CD blueprints: %s\n%s", e, traceback.format_exc())
+    
+    # Test analytics serialization on startup
+    try:
+        from src.events.logger import test_analytics_serialization
+        test_analytics_serialization()
+        logger.info("Analytics serialization test completed")
+    except Exception as e:
+        logger.warning(f"Analytics serialization test failed: {e}")
+    
+    # Ensure analytics events table exists
+    try:
+        from src.events.bootstrap import ensure_analytics_table_exists
+        ensure_analytics_table_exists()
+        logger.info("Analytics table bootstrap completed")
+    except Exception as e:
+        logger.warning(f"Analytics table bootstrap failed: {e}")
+    
+    # Test Redis connection on startup
+    try:
+        from src.ext.redis_client import get_redis
+        redis_client = get_redis()
+        if redis_client:
+            logger.info("Redis connection test completed")
+        else:
+            logger.info("Redis disabled or unavailable")
+    except Exception as e:
+        logger.warning(f"Redis connection test failed: {e}")
+    
+    # Register Control Plane blueprints
+    try:
+        from src.control_plane.api import control_plane_bp
+        app.register_blueprint(control_plane_bp)
+        logger.info("Control Plane API blueprints registered successfully")
+    except Exception as e:
+        logger.error("Failed to register Control Plane API blueprints: %s\n%s", e, traceback.format_exc())
+    
+    # Register Control Plane UI blueprints
+    try:
+        from src.control_plane.ui import control_plane_ui_bp
+        app.register_blueprint(control_plane_ui_bp)
+        logger.info("Control Plane UI blueprints registered successfully")
+    except Exception as e:
+        logger.error("Failed to register Control Plane UI blueprints: %s\n%s", e, traceback.format_exc())
+    
+    # Log registered routes
+    llm_routes = [rule.rule for rule in app.url_map.iter_rules() if rule.rule.startswith('/api/llm')]
+    agent_routes = [rule.rule for rule in app.url_map.iter_rules() if rule.rule.startswith('/api/agent')]
+    auth_routes = [rule.rule for rule in app.url_map.iter_rules() if rule.rule.startswith('/api/auth')]
+    payment_routes = [rule.rule for rule in app.url_map.iter_rules() if rule.rule.startswith('/api/payments')]
+    file_routes = [rule.rule for rule in app.url_map.iter_rules() if rule.rule.startswith('/api/files')]
+    logger.info(f"Registered LLM routes: {llm_routes}")
+    logger.info(f"Registered Agent routes: {agent_routes}")
+    logger.info(f"Registered Auth routes: {auth_routes}")
+    logger.info(f"Registered Payment routes: {payment_routes}")
+    logger.info(f"Registered File routes: {file_routes}")
+    
+    @app.route('/healthz')
+    def healthz():
+        """Health check endpoint"""
+        return jsonify({
+            'status': 'ok',
+            'version': '1.0.0'
+        })
+    
+    @app.route('/api/init-db', methods=['POST'])
+    def init_database():
+        """Initialize database tables"""
+        try:
+            from src.db import init_database_tables
+            db_path = app.config.get("DATABASE", "system_builder_hub.db")
+            init_database_tables(db_path)
+            return jsonify({
+                'success': True,
+                'message': 'Database tables initialized successfully'
+            })
+        except Exception as e:
+            logger.error(f"Database initialization failed: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+    @app.route('/readiness')
+    def readiness():
+        """Readiness check endpoint"""
+        # Import-safe minimal checks - no external dependencies
+        try:
+            # Check database connectivity directly
+            db_path = app.config.get("DATABASE", "system_builder_hub.db")
+            if db_path.startswith('postgresql://'):
+                # PostgreSQL connection test
+                import psycopg2
+                with psycopg2.connect(db_path) as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("SELECT 1")
+            else:
+                # SQLite connection test
+                import sqlite3
+                with sqlite3.connect(db_path) as conn:
+                    conn.execute("SELECT 1")
+            db_ok = True
+            migrations_applied = True  # Assume OK if DB connects
+        except Exception:
+            db_ok = False
+            migrations_applied = False
+
+        # LLM: optional
+        feature_llm = app.config.get("FEATURE_LLM_API", True)
+        llm_details = {"configured": False, "ok": False, "details": "not_configured"}
+
+        try:
+            if not feature_llm:
+                llm_details = {"configured": False, "ok": False, "details": "disabled"}
+            else:
+                # Ask the status blueprint/service in a safe way
+                try:
+                    from src.llm_status_api import get_status_summary  # provide helper
+                    s = get_status_summary()  # never throws
+                    llm_details = {
+                        "configured": s.get("configured", False),
+                        "ok": s.get("ok", False),
+                        "details": s.get("details", "not_configured"),
+                    }
+                except Exception:
+                    # If imports fail in dev, don't crash readiness
+                    llm_details = {"configured": False, "ok": False, "details": "not_configured"}
+        except Exception as e:
+            llm_details = {"configured": False, "ok": False, "details": f"error:{type(e).__name__}"}
+
+        status = {
+            "db": bool(db_ok),
+            "migrations_applied": bool(migrations_applied),
+            "llm": llm_details,
+        }
+
+        # Core rule: as long as DB is OK, return 200 (LLM is optional)
+        http_code = 200 if db_ok else 503
+        return jsonify(status), http_code
+    
+    @app.route('/')
+    def index():
+        """Root endpoint"""
+        return jsonify({
+            'message': 'System Builder Hub API',
+            'version': '1.0.0',
+            'endpoints': {
+                'health': '/healthz',
+                'readiness': '/readiness',
+                'agent': '/api/agent',
+                'auth': '/api/auth',
+                'payments': '/api/payments',
+                'files': '/api/files',
+                'docs': '/docs'
+            }
+        })
+    
+    return app

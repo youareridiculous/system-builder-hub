@@ -1,0 +1,122 @@
+name: "Analytics Template Suite"
+description: "Comprehensive evaluation suite for Analytics template"
+
+golden_cases:
+  - name: "Data Visualization CRUD"
+    description: "Test dashboard create, read, update, delete operations"
+    prompt: "Create a data visualization system with CRUD operations for dashboards including charts, metrics, and data sources"
+    sla_class: "normal"
+    assertions:
+      - name: "dashboard_created"
+        type: "contains"
+        expected: "dashboard"
+        description: "Should create dashboard functionality"
+      - name: "crud_operations"
+        type: "contains"
+        expected: "CRUD"
+        description: "Should include CRUD operations"
+
+  - name: "User Authentication"
+    description: "Test user authentication for analysts and viewers"
+    prompt: "Implement user authentication with analyst and viewer roles, login, and session management"
+    sla_class: "normal"
+    assertions:
+      - name: "authentication"
+        type: "contains"
+        expected: "auth"
+        description: "Should include authentication"
+      - name: "roles"
+        type: "contains"
+        expected: "role"
+        description: "Should include role management"
+
+  - name: "Role-Based Access Control"
+    description: "Test RBAC for different user types"
+    prompt: "Create role-based access control with admin, analyst, and viewer roles with appropriate permissions"
+    sla_class: "thorough"
+    assertions:
+      - name: "rbac_roles"
+        type: "contains"
+        expected: "role"
+        description: "Should include role-based access"
+      - name: "permissions"
+        type: "contains"
+        expected: "permission"
+        description: "Should include permissions system"
+
+  - name: "Analytics Engine"
+    description: "Test analytics and reporting functionality"
+    prompt: "Build analytics engine with data processing, chart generation, and real-time metrics calculation"
+    sla_class: "normal"
+    assertions:
+      - name: "analytics_engine"
+        type: "contains"
+        expected: "analytics"
+        description: "Should include analytics engine"
+      - name: "data_processing"
+        type: "contains"
+        expected: "data"
+        description: "Should include data processing"
+
+scenario_bundles:
+  - name: "Analytics Template Smoke Test"
+    description: "End-to-end smoke test for Analytics template"
+    natural_language: "Launch a complete analytics system with dashboard creation, user authentication, and data visualization"
+    sla_class: "thorough"
+    steps:
+      - name: "Template Launch"
+        description: "Launch the Analytics template"
+        action: "launch"
+        inputs:
+          template: "analytics_complete"
+        assertions:
+          - name: "template_launched"
+            type: "contains"
+            expected: "success"
+            description: "Template should launch successfully"
+
+      - name: "Database Setup"
+        description: "Verify database schema and migrations"
+        action: "validate"
+        inputs:
+          check_tables: ["dashboards", "users", "charts", "data_sources"]
+        assertions:
+          - name: "database_schema"
+            type: "contains"
+            expected: "dashboards"
+            description: "Should have dashboards table"
+
+      - name: "API Endpoints"
+        description: "Test core API endpoints"
+        action: "test"
+        inputs:
+          endpoints: ["/api/dashboards", "/api/users", "/api/charts"]
+        assertions:
+          - name: "api_endpoints"
+            type: "contains"
+            expected: "200"
+            description: "API endpoints should respond"
+
+kpi_guards:
+  - name: "analytics_pass_rate"
+    metric: "pass_rate"
+    threshold: 0.90
+    operator: ">="
+    description: "Analytics template should have 90% pass rate"
+    severity: "error"
+
+  - name: "analytics_latency"
+    metric: "avg_latency_ms"
+    threshold: 15000
+    operator: "<="
+    description: "Analytics template should complete within 15 seconds"
+    severity: "warning"
+
+metadata:
+  tags: ["analytics", "template", "data"]
+  priority: "high"
+  estimated_duration_minutes: 20
+  enable_canary: false
+  enable_chaos: false
+  max_reruns_on_flake: 2
+  min_stable_passes: 2

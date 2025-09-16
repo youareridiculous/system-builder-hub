@@ -1,0 +1,73 @@
+name: CI Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov ruff bandit
+    
+    - name: Run linting
+      run: |
+        ruff check src/
+        bandit -r src/
+    
+    - name: Run tests
+      run: |
+        pytest tests/ --cov=src --cov-report=xml
+    
+    - name: Security audit
+      run: |
+        pip-audit --format json --output pip-audit-report.json || true
+    
+    - name: Build artifacts
+      run: |
+        python -m src.cli deploy generate-compose --bundle revops_suite_staging --output docker-compose.staging.yml
+        python -m src.cli deploy generate-manifest --bundle revops_suite_staging --output k8s-staging.yml
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: deployment-artifacts
+        path: |
+          docker-compose.staging.yml
+          k8s-staging.yml
+          pip-audit-report.json
+        retention-days: 30
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'

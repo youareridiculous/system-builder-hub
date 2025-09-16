@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 FastPath Agent - System Build Hub OS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-running {
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        .status-paused {
+            background: #ffc107;
+        }
+
+        .status-completed {
+            background: #17a2b8;
+        }
+
+        .status-failed {
+            background: #dc3545;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .optimization-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .optimization-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease;
+        }
+
+        .optimization-item:hover {
+            border-color: #667eea;
+        }
+
+        .optimization-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .optimization-title {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .optimization-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .optimization-details {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .module-list {
+            margin-top: 15px;
+        }
+
+        .module-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .module-name {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .module-status {
+            float: right;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+
+        .status-running {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-completed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 FastPath Agent</h1>
+            <p>Intelligent build optimization with bottleneck analysis and parallel execution</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Build Analysis -->
+            <div class="card">
+                <h2>🔍 Build Complexity Analysis</h2>
+                <form id="analysisForm">
+                    <div class="form-group">
+                        <label for="systemId">System ID:</label>
+                        <input type="text" id="systemId" name="systemId" placeholder="Enter system ID to analyze" required>
+                    </div>
+                    <button type="submit" class="btn">Analyze Build Complexity</button>
+                </form>
+                
+                <div id="analysisResult" style="display: none;">
+                    <h3>Analysis Results</h3>
+                    <div id="analysisContent"></div>
+                </div>
+            </div>
+
+            <!-- Optimization Management -->
+            <div class="card">
+                <h2>⚡ Optimization Management</h2>
+                <form id="optimizationForm">
+                    <div class="form-group">
+                        <label for="optimizationSystemId">System ID:</label>
+                        <input type="text" id="optimizationSystemId" name="optimizationSystemId" placeholder="Enter system ID to optimize" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="complexityThreshold">Complexity Threshold:</label>
+                        <select id="complexityThreshold" name="complexityThreshold">
+                            <option value="simple">Simple</option>
+                            <option value="moderate" selected>Moderate</option>
+                            <option value="complex">Complex</option>
+                            <option value="enterprise">Enterprise</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="maxParallelModules">Max Parallel Modules:</label>
+                        <input type="number" id="maxParallelModules" name="maxParallelModules" value="5" min="1" max="10">
+                    </div>
+                    <button type="submit" class="btn btn-success">Start Optimization</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Active Optimizations -->
+        <div class="card">
+            <h2>🔄 Active Optimizations</h2>
+            <div id="optimizationsList" class="optimization-list">
+                <p>No active optimizations</p>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div id="alerts"></div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let activeOptimizations = [];
+        let analysisResults = {};
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadActiveOptimizations();
+            setInterval(loadActiveOptimizations, 5000); // Refresh every 5 seconds
+        });
+
+        // Build Analysis Form
+        document.getElementById('analysisForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const systemId = document.getElementById('systemId').value;
+            
+            if (!systemId) {
+                showAlert('Please enter a system ID', 'error');
+                return;
+            }
+
+            showLoading(true);
+            
+            try {
+                const response = await fetch(`/api/fastpath/analyze/${systemId}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    analysisResults[systemId] = data;
+                    displayAnalysisResults(data);
+                    showAlert('Build complexity analysis completed successfully!', 'success');
+                } else {
+                    showAlert(`Analysis failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        // Optimization Form
+        document.getElementById('optimizationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const systemId = document.getElementById('optimizationSystemId').value;
+            const complexityThreshold = document.getElementById('complexityThreshold').value;
+            const maxParallelModules = document.getElementById('maxParallelModules').value;
+            
+            if (!systemId) {
+                showAlert('Please enter a system ID', 'error');
+                return;
+            }
+
+            showLoading(true);
+            
+            try {
+                const response = await fetch('/api/fastpath/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        system_id: systemId,
+                        config: {
+                            complexity_threshold: complexityThreshold,
+                            max_parallel_modules: parseInt(maxParallelModules)
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Optimization started successfully!', 'success');
+                    loadActiveOptimizations();
+                    document.getElementById('optimizationForm').reset();
+                } else {
+                    showAlert(`Optimization failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        // Load active optimizations
+        async function loadActiveOptimizations() {
+            try {
+                const response = await fetch('/api/fastpath/status');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    activeOptimizations = data.optimizations || [];
+                    displayOptimizations();
+                }
+            } catch (error) {
+                console.error('Error loading optimizations:', error);
+            }
+        }
+
+        // Display optimizations
+        function displayOptimizations() {
+            const container = document.getElementById('optimizationsList');
+            
+            if (activeOptimizations.length === 0) {
+                container.innerHTML = '<p>No active optimizations</p>';
+                return;
+            }
+
+            container.innerHTML = activeOptimizations.map(opt => `
+                <div class="optimization-item">
+                    <div class="optimization-header">
+                        <div>
+                            <span class="status-indicator status-${opt.status}"></span>
+                            <span class="optimization-title">${opt.system_id}</span>
+                        </div>
+                        <div class="optimization-actions">
+                            ${opt.status === 'running' ? 
+                                `<button class="btn btn-warning" onclick="pauseOptimization('${opt.optimization_id}')">Pause</button>
+                                 <button class="btn btn-danger" onclick="stopOptimization('${opt.optimization_id}')">Stop</button>` :
+                                opt.status === 'paused' ?
+                                `<button class="btn btn-success" onclick="resumeOptimization('${opt.optimization_id}')">Resume</button>
+                                 <button class="btn btn-danger" onclick="stopOptimization('${opt.optimization_id}')">Stop</button>` :
+                                ''
+                            }
+                        </div>
+                    </div>
+                    <div class="optimization-details">
+                        <p><strong>Status:</strong> ${opt.status}</p>
+                        <p><strong>Progress:</strong> ${opt.progress.completion_percentage.toFixed(1)}%</p>
+                        <p><strong>Modules:</strong> ${opt.progress.completed}/${opt.progress.total_modules} completed</p>
+                        <p><strong>Time Saved:</strong> ${opt.estimated_impact} minutes</p>
+                        <p><strong>Mode:</strong> ${opt.recommended_mode}</p>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${opt.progress.completion_percentage}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Display analysis results
+        function displayAnalysisResults(data) {
+            const container = document.getElementById('analysisContent');
+            const resultDiv = document.getElementById('analysisResult');
+            
+            container.innerHTML = `
+                <div class="optimization-details">
+                    <p><strong>Bottleneck Type:</strong> ${data.type}</p>
+                    <p><strong>Complexity:</strong> ${data.complexity}</p>
+                    <p><strong>Estimated Impact:</strong> ${data.estimated_impact} minutes saved</p>
+                    <p><strong>Parallelization Potential:</strong> ${(data.parallelization_potential * 100).toFixed(1)}%</p>
+                    <p><strong>Recommended Mode:</strong> ${data.recommended_mode}</p>
+                    <p><strong>Strategy:</strong> ${data.optimization_strategy}</p>
+                </div>
+                <h4>Modules (${data.modules.length})</h4>
+                <div class="module-list">
+                    ${data.modules.map(module => `
+                        <div class="module-item">
+                            <span class="module-name">${module.name}</span>
+                            <span class="module-status status-${module.status}">${module.status}</span>
+                            <br>
+                            <small>${module.description}</small>
+                            <br>
+                            <small><strong>Duration:</strong> ${module.estimated_duration} min | <strong>Priority:</strong> ${module.priority}</small>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            resultDiv.style.display = 'block';
+        }
+
+        // Optimization control functions
+        async function pauseOptimization(optimizationId) {
+            try {
+                const response = await fetch(`/api/fastpath/pause/${optimizationId}`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (response.ok && data.paused) {
+                    showAlert('Optimization paused successfully!', 'success');
+                    loadActiveOptimizations();
+                } else {
+                    showAlert('Failed to pause optimization', 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function resumeOptimization(optimizationId) {
+            try {
+                const response = await fetch(`/api/fastpath/resume/${optimizationId}`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (response.ok && data.resumed) {
+                    showAlert('Optimization resumed successfully!', 'success');
+                    loadActiveOptimizations();
+                } else {
+                    showAlert('Failed to resume optimization', 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function stopOptimization(optimizationId) {
+            if (!confirm('Are you sure you want to stop this optimization?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/fastpath/stop/${optimizationId}`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (response.ok && data.stopped) {
+                    showAlert('Optimization stopped successfully!', 'success');
+                    loadActiveOptimizations();
+                } else {
+                    showAlert('Failed to stop optimization', 'error');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Utility functions
+        function showAlert(message, type) {
+            const alertsContainer = document.getElementById('alerts');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            alertsContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            loading.style.display = show ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

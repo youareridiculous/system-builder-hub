@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORBIT - System Lifecycle Navigator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #1e3a8a;
+            --secondary-color: #1e40af;
+            --accent-color: #3b82f6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #06b6d4;
+            --dark-bg: #0f172a;
+            --light-bg: #f8fafc;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--light-bg) 0%, #e2e8f0 100%);
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.8rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-container {
+            padding: 2rem 0;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            transition: all 0.4s ease;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-radius: 20px 20px 0 0 !important;
+            padding: 1.5rem 2rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .orbit-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            text-align: center;
+            padding: 3rem 2rem;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .orbit-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 2px,
+                rgba(255,255,255,0.05) 2px,
+                rgba(255,255,255,0.05) 4px
+            );
+            animation: move 20s linear infinite;
+        }
+
+        @keyframes move {
+            0% { transform: translateX(-50px) translateY(-50px); }
+            100% { transform: translateX(50px) translateY(50px); }
+        }
+
+        .orbit-title {
+            position: relative;
+            z-index: 2;
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .orbit-subtitle {
+            position: relative;
+            z-index: 2;
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .system-card {
+            border-left: 5px solid var(--accent-color);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .system-card:hover {
+            border-left-color: var(--success-color);
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .system-status {
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-prototype { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white; }
+        .status-development { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white; }
+        .status-testing { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; }
+        .status-production { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
+        .status-maintenance { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
+        .status-deprecated { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
+
+        .timeline-container {
+            position: relative;
+            max-height: 600px;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 3rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 1.5rem;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, var(--accent-color) 0%, var(--secondary-color) 100%);
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .timeline-item:hover {
+            transform: translateX(10px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2.25rem;
+            top: 1.5rem;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .timeline-icon {
+            position: absolute;
+            left: -2.7rem;
+            top: 1.2rem;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .timeline-content h6 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-meta {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .version-item {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .version-item:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
+        }
+
+        .version-current {
+            border-color: var(--success-color);
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+        }
+
+        .version-badge {
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .version-current .version-badge {
+            background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--secondary-color) 100%);
+            border: none;
+            color: white;
+            padding: 0.7rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+            color: white;
+        }
+
+        .action-btn.btn-warning {
+            background: linear-gradient(135deg, var(--warning-color) 0%, #d97706 100%);
+        }
+
+        .action-btn.btn-warning:hover {
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
+        }
+
+        .action-btn.btn-danger {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%);
+        }
+
+        .action-btn.btn-danger:hover {
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+        }
+
+        .action-btn.btn-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+        }
+
+        .action-btn.btn-success:hover {
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+        }
+
+        .control-panel {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .control-section {
+            background: rgba(255,255,255,0.1);
+            padding: 1.5rem;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
+        }
+
+        .diff-viewer {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .diff-added {
+            background: #dcfce7;
+            color: #166534;
+            padding: 0.2rem;
+        }
+
+        .diff-removed {
+            background: #fef2f2;
+            color: #991b1b;
+            padding: 0.2rem;
+        }
+
+        .diff-modified {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 0.2rem;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .search-bar {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 1rem;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            z-index: 100;
+        }
+
+        .filter-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .filter-badge {
+            background: var(--accent-color);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-badge:hover {
+            background: var(--secondary-color);
+            transform: scale(1.05);
+        }
+
+        .filter-badge.active {
+            background: var(--success-color);
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem;
+            }
+            
+            .orbit-title {
+                font-size: 2rem;
+            }
+            
+            .control-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .timeline-item {
+                margin-left: -1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-satellite me-2"></i>
+                ORBIT - System Lifecycle Navigator
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text">
+                    <i class="fas fa-rocket me-2"></i>
+                    Mission Control for AI Systems
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container main-container">
+        <!-- ORBIT Header -->
+        <div class="orbit-header">
+            <h1 class="orbit-title">
+                <i class="fas fa-satellite-dish me-3"></i>
+                ORBIT Control Center
+            </h1>
+            <p class="orbit-subtitle">
+                "Every system has a life, a path, and an orbit. We give creators the mission control to guide its journey."
+            </p>
+        </div>
+
+        <!-- Statistics Dashboard -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalSystems">42</div>
+                <div class="stat-label">Active Systems</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="recentActivity">15</div>
+                <div class="stat-label">Recent Events</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="productionSystems">8</div>
+                <div class="stat-label">In Production</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avgTrustScore">87%</div>
+                <div class="stat-label">Avg Trust Score</div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h3 class="mb-4">
+                <i class="fas fa-cogs me-2"></i>
+                Mission Control Panel
+            </h3>
+            <div class="control-grid">
+                <div class="control-section">
+                    <h5>
+                        <i class="fas fa-rocket me-2"></i>
+                        System Operations
+                    </h5>
+                    <p class="mb-3">Launch, manage, and monitor your systems</p>
+                    <button class="action-btn me-2 mb-2" onclick="createNewSystem()">
+                        <i class="fas fa-plus me-1"></i> New System
+                    </button>
+                    <button class="action-btn btn-warning me-2 mb-2" onclick="showBulkActions()">
+                        <i class="fas fa-tasks me-1"></i> Bulk Actions
+                    </button>
+                </div>
+                <div class="control-section">
+                    <h5>
+                        <i class="fas fa-chart-line me-2"></i>
+                        Analytics & Insights
+                    </h5>
+                    <p class="mb-3">Deep dive into system performance and trends</p>
+                    <button class="action-btn me-2 mb-2" onclick="showAnalytics()">
+                        <i class="fas fa-analytics me-1"></i> View Analytics
+                    </button>
+                    <button class="action-btn btn-success me-2 mb-2" onclick="exportReport()">
+                        <i class="fas fa-download me-1"></i> Export Report
+                    </button>
+                </div>
+                <div class="control-section">
+                    <h5>
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Security & Compliance
+                    </h5>
+                    <p class="mb-3">Monitor compliance and security status</p>
+                    <button class="action-btn me-2 mb-2" onclick="runComplianceScan()">
+                        <i class="fas fa-scan me-1"></i> Scan All
+                    </button>
+                    <button class="action-btn btn-danger me-2 mb-2" onclick="showViolations()">
+                        <i class="fas fa-exclamation-triangle me-1"></i> Violations
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Creation Feed Panel -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-star me-2"></i>
+                            Creation Feed
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="search-bar">
+                            <input type="text" class="form-control" id="systemSearch" placeholder="Search systems...">
+                            <div class="filter-badges">
+                                <span class="filter-badge active" data-filter="all">All</span>
+                                <span class="filter-badge" data-filter="prototype">Prototype</span>
+                                <span class="filter-badge" data-filter="production">Production</span>
+                                <span class="filter-badge" data-filter="ai_native">AI Native</span>
+                            </div>
+                        </div>
+                        <div id="systemsList" class="position-relative">
+                            <!-- Systems will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline Panel -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-clock me-2"></i>
+                            System Lifecycle Timeline
+                        </h4>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-light btn-sm" onclick="setTimelineView('chronological')">
+                                <i class="fas fa-calendar-alt me-1"></i> Chronological
+                            </button>
+                            <button type="button" class="btn btn-outline-light btn-sm" onclick="setTimelineView('by_milestone')">
+                                <i class="fas fa-flag me-1"></i> Milestones
+                            </button>
+                            <button type="button" class="btn btn-outline-light btn-sm" onclick="setTimelineView('by_event_type')">
+                                <i class="fas fa-filter me-1"></i> By Type
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline-container">
+                            <div class="timeline" id="systemTimeline">
+                                <!-- Timeline items will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Version History & Controls -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-code-branch me-2"></i>
+                            Version Control Center
+                        </h4>
+                        <div>
+                            <button class="action-btn me-2" onclick="createSnapshot()">
+                                <i class="fas fa-camera me-1"></i> Snapshot
+                            </button>
+                            <button class="action-btn btn-warning me-2" onclick="showCompareVersions()">
+                                <i class="fas fa-code-compare me-1"></i> Compare
+                            </button>
+                            <button class="action-btn btn-success" onclick="showExportOptions()">
+                                <i class="fas fa-download me-1"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="versionHistory" class="position-relative">
+                            <!-- Version history will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Details Modal -->
+    <div class="modal fade" id="systemDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-satellite me-2"></i>
+                        System Orbit Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="systemDetailsContent">
+                        <!-- System details will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="action-btn" onclick="manageSystem()">
+                        <i class="fas fa-cogs me-1"></i> Manage System
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Version Compare Modal -->
+    <div class="modal fade" id="compareVersionsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-code-compare me-2"></i>
+                        Version Comparison
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Version A:</label>
+                            <select class="form-select" id="versionA">
+                                <option value="">Select version...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Version B:</label>
+                            <select class="form-select" id="versionB">
+                                <option value="">Select version...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="comparisonResult" class="diff-viewer" style="display: none;">
+                        <!-- Comparison results will be shown here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="action-btn" onclick="compareVersions()">
+                        <i class="fas fa-search me-1"></i> Compare
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Confirmation Modal -->
+    <div class="modal fade" id="confirmActionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmActionTitle">Confirm Action</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmActionMessage">Are you sure you want to perform this action?</p>
+                    <div id="confirmActionDetails" class="mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="action-btn btn-danger" id="confirmActionBtn">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global state
+        let currentSystemId = null;
+        let timelineView = 'chronological';
+        let systemsData = [];
+        let selectedVersions = { a: null, b: null };
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Search functionality
+            document.getElementById('systemSearch').addEventListener('input', filterSystems);
+            
+            // Filter badges
+            document.querySelectorAll('.filter-badge').forEach(badge => {
+                badge.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-badge').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    filterSystems();
+                });
+            });
+        }
+
+        async function loadDashboardData() {
+            try {
+                showLoading('systemsList');
+                showLoading('systemTimeline');
+                
+                // Load dashboard data
+                const response = await fetch('/api/system/orbit');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    updateStatistics(data.data.statistics);
+                    loadSystems(data.data.recent_systems);
+                    loadRecentActivity(data.data.recent_activity);
+                } else {
+                    throw new Error(data.error || 'Failed to load dashboard data');
+                }
+                
+                hideLoading('systemsList');
+                hideLoading('systemTimeline');
+                
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                showError('Failed to load dashboard data: ' + error.message);
+            }
+        }
+
+        function updateStatistics(stats) {
+            document.getElementById('totalSystems').textContent = stats.total_systems || 0;
+            document.getElementById('recentActivity').textContent = stats.recent_activity || 0;
+            document.getElementById('productionSystems').textContent = stats.by_status?.production || 0;
+            document.getElementById('avgTrustScore').textContent = '87%'; // Placeholder
+        }
+
+        function loadSystems(systems) {
+            systemsData = systems;
+            displaySystems(systems);
+        }
+
+        function displaySystems(systems) {
+            const container = document.getElementById('systemsList');
+            
+            if (systems.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-satellite fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Systems Found</h5>
+                        <p class="text-muted">Create your first system to get started</p>
+                        <button class="action-btn" onclick="createNewSystem()">
+                            <i class="fas fa-plus me-1"></i> Create System
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            const systemsHtml = systems.map(system => `
+                <div class="system-card card mb-3 fade-in" onclick="selectSystem('${system.system_id}')">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0">${system.name}</h6>
+                            <span class="system-status status-${system.status}">${system.status}</span>
+                        </div>
+                        <p class="card-text text-muted small mb-2">${system.description}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-user me-1"></i> ${system.creator_name}
+                            </small>
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i> ${formatDate(system.created_at)}
+                            </small>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-primary me-1">${system.domain}</span>
+                            <span class="badge bg-secondary">${system.architecture}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = systemsHtml;
+        }
+
+        function loadRecentActivity(activities) {
+            const container = document.getElementById('systemTimeline');
+            
+            if (activities.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Recent Activity</h5>
+                        <p class="text-muted">System events will appear here</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const timelineHtml = activities.map(activity => `
+                <div class="timeline-item fade-in">
+                    <div class="timeline-icon" style="background-color: ${activity.color}">
+                        <i class="${activity.icon}"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h6>${activity.title}</h6>
+                        <p class="mb-1">${activity.description}</p>
+                        <div class="timeline-meta">
+                            <span><i class="fas fa-satellite me-1"></i> ${activity.system_name}</span>
+                            <span><i class="fas fa-user me-1"></i> ${activity.creator_name}</span>
+                            <span><i class="fas fa-clock me-1"></i> ${formatDate(activity.timestamp)}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = timelineHtml;
+        }
+
+        function filterSystems() {
+            const searchTerm = document.getElementById('systemSearch').value.toLowerCase();
+            const activeFilter = document.querySelector('.filter-badge.active').dataset.filter;
+            
+            let filteredSystems = systemsData.filter(system => {
+                const matchesSearch = system.name.toLowerCase().includes(searchTerm) ||
+                                    system.description.toLowerCase().includes(searchTerm) ||
+                                    system.creator_name.toLowerCase().includes(searchTerm);
+                
+                const matchesFilter = activeFilter === 'all' || 
+                                    system.status === activeFilter ||
+                                    system.architecture === activeFilter;
+                
+                return matchesSearch && matchesFilter;
+            });
+            
+            displaySystems(filteredSystems);
+        }
+
+        async function selectSystem(systemId) {
+            currentSystemId = systemId;
+            
+            try {
+                // Highlight selected system
+                document.querySelectorAll('.system-card').forEach(card => {
+                    card.classList.remove('border-primary');
+                });
+                event.currentTarget.classList.add('border-primary');
+                
+                // Load system timeline and version history
+                await loadSystemTimeline(systemId);
+                await loadVersionHistory(systemId);
+                
+            } catch (error) {
+                console.error('Error selecting system:', error);
+                showError('Failed to load system details: ' + error.message);
+            }
+        }
+
+        async function loadSystemTimeline(systemId) {
+            try {
+                showLoading('systemTimeline');
+                
+                const response = await fetch(`/api/system/${systemId}/lifecycle`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayTimeline(data.data.timeline);
+                } else {
+                    throw new Error(data.error || 'Failed to load timeline');
+                }
+                
+                hideLoading('systemTimeline');
+                
+            } catch (error) {
+                console.error('Error loading timeline:', error);
+                hideLoading('systemTimeline');
+                showError('Failed to load timeline: ' + error.message);
+            }
+        }
+
+        function displayTimeline(timeline) {
+            const container = document.getElementById('systemTimeline');
+            
+            if (timeline.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Timeline Events</h5>
+                        <p class="text-muted">Events for this system will appear here</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const timelineHtml = timeline.map(event => `
+                <div class="timeline-item fade-in">
+                    <div class="timeline-icon" style="background-color: ${event.color}">
+                        <i class="${event.icon}"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <h6>${event.title}</h6>
+                        <p class="mb-1">${event.description}</p>
+                        <div class="timeline-meta">
+                            <span><i class="fas fa-user me-1"></i> ${event.actor_id}</span>
+                            <span><i class="fas fa-clock me-1"></i> ${formatDate(event.timestamp)}</span>
+                            <span><i class="fas fa-tag me-1"></i> ${event.category}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = timelineHtml;
+        }
+
+        async function loadVersionHistory(systemId) {
+            try {
+                showLoading('versionHistory');
+                
+                const response = await fetch(`/api/system/${systemId}/version-history`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayVersionHistory(data.data.versions);
+                    populateVersionSelects(data.data.versions);
+                } else {
+                    throw new Error(data.error || 'Failed to load version history');
+                }
+                
+                hideLoading('versionHistory');
+                
+            } catch (error) {
+                console.error('Error loading version history:', error);
+                hideLoading('versionHistory');
+                showError('Failed to load version history: ' + error.message);
+            }
+        }
+
+        function displayVersionHistory(versions) {
+            const container = document.getElementById('versionHistory');
+            
+            if (versions.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-code-branch fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Version History</h5>
+                        <p class="text-muted">Version history will appear here</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const versionsHtml = versions.map(version => `
+                <div class="version-item ${version.is_current ? 'version-current' : ''} fade-in">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="version-badge">${version.version}</span>
+                            ${version.is_current ? '<span class="badge bg-success ms-2">CURRENT</span>' : ''}
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            ${!version.is_current ? `
+                                <button class="btn btn-outline-warning" onclick="rollbackToVersion('${version.version}')">
+                                    <i class="fas fa-undo me-1"></i> Rollback
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-outline-primary" onclick="viewVersionDetails('${version.version_id}')">
+                                <i class="fas fa-eye me-1"></i> View
+                            </button>
+                        </div>
+                    </div>
+                    <p class="mb-2">${version.changes_summary}</p>
+                    <div class="d-flex justify-content-between align-items-center text-muted small">
+                        <span><i class="fas fa-user me-1"></i> ${version.created_by}</span>
+                        <span><i class="fas fa-clock me-1"></i> ${formatDate(version.timestamp)}</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = versionsHtml;
+        }
+
+        function populateVersionSelects(versions) {
+            const versionASelect = document.getElementById('versionA');
+            const versionBSelect = document.getElementById('versionB');
+            
+            const optionsHtml = versions.map(version => 
+                `<option value="${version.version}">${version.version} - ${version.changes_summary}</option>`
+            ).join('');
+            
+            versionASelect.innerHTML = '<option value="">Select version...</option>' + optionsHtml;
+            versionBSelect.innerHTML = '<option value="">Select version...</option>' + optionsHtml;
+        }
+
+        // Action functions
+        function createNewSystem() {
+            window.location.href = '/dashboard';
+        }
+
+        function setTimelineView(view) {
+            timelineView = view;
+            if (currentSystemId) {
+                loadSystemTimeline(currentSystemId);
+            }
+        }
+
+        async function createSnapshot() {
+            if (!currentSystemId) {
+                showError('Please select a system first');
+                return;
+            }
+            
+            const label = prompt('Enter snapshot label:');
+            if (!label) return;
+            
+            try {
+                const response = await fetch(`/api/system/${currentSystemId}/snapshot`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ label, description: 'Manual snapshot' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showSuccess('Snapshot created successfully');
+                    loadVersionHistory(currentSystemId);
+                } else {
+                    throw new Error(data.error || 'Failed to create snapshot');
+                }
+                
+            } catch (error) {
+                console.error('Error creating snapshot:', error);
+                showError('Failed to create snapshot: ' + error.message);
+            }
+        }
+
+        function showCompareVersions() {
+            if (!currentSystemId) {
+                showError('Please select a system first');
+                return;
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('compareVersionsModal'));
+            modal.show();
+        }
+
+        async function compareVersions() {
+            const versionA = document.getElementById('versionA').value;
+            const versionB = document.getElementById('versionB').value;
+            
+            if (!versionA || !versionB) {
+                showError('Please select both versions to compare');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/system/${currentSystemId}/compare`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ version_a: versionA, version_b: versionB })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayComparison(data.data.comparison);
+                } else {
+                    throw new Error(data.error || 'Failed to compare versions');
+                }
+                
+            } catch (error) {
+                console.error('Error comparing versions:', error);
+                showError('Failed to compare versions: ' + error.message);
+            }
+        }
+
+        function displayComparison(comparison) {
+            const container = document.getElementById('comparisonResult');
+            
+            let html = `
+                <h6>Comparison: ${comparison.version_a} vs ${comparison.version_b}</h6>
+                <div class="mb-3">
+                    <strong>Compatibility Score:</strong> ${(comparison.compatibility_score * 100).toFixed(1)}%
+                    <span class="badge bg-info ms-2">${comparison.migration_complexity} complexity</span>
+                </div>
+            `;
+            
+            if (comparison.added_features.length > 0) {
+                html += `
+                    <div class="mb-2">
+                        <strong>Added Features:</strong>
+                        <div class="diff-added">${comparison.added_features.join(', ')}</div>
+                    </div>
+                `;
+            }
+            
+            if (comparison.removed_features.length > 0) {
+                html += `
+                    <div class="mb-2">
+                        <strong>Removed Features:</strong>
+                        <div class="diff-removed">${comparison.removed_features.join(', ')}</div>
+                    </div>
+                `;
+            }
+            
+            if (comparison.modified_features.length > 0) {
+                html += `
+                    <div class="mb-2">
+                        <strong>Modified Features:</strong>
+                        <div class="diff-modified">${comparison.modified_features.join(', ')}</div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+            container.style.display = 'block';
+        }
+
+        async function rollbackToVersion(version) {
+            if (!currentSystemId) {
+                showError('Please select a system first');
+                return;
+            }
+            
+            const reason = prompt(`Enter reason for rolling back to version ${version}:`);
+            if (!reason) return;
+            
+            try {
+                const response = await fetch(`/api/system/${currentSystemId}/rollback`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_version: version, reason })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showSuccess(`Successfully rolled back to version ${version}`);
+                    loadVersionHistory(currentSystemId);
+                    loadSystemTimeline(currentSystemId);
+                } else {
+                    throw new Error(data.error || 'Failed to rollback');
+                }
+                
+            } catch (error) {
+                console.error('Error rolling back:', error);
+                showError('Failed to rollback: ' + error.message);
+            }
+        }
+
+        // Utility functions
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function showLoading(containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `
+                    <div class="loading-overlay">
+                        <div class="loading-spinner"></div>
+                    </div>
+                `;
+            }
+        }
+
+        function hideLoading(containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                const overlay = container.querySelector('.loading-overlay');
+                if (overlay) {
+                    overlay.remove();
+                }
+            }
+        }
+
+        function showError(message) {
+            // Create toast notification
+            const toast = document.createElement('div');
+            toast.className = 'toast align-items-center text-white bg-danger border-0 position-fixed';
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-exclamation-circle me-2"></i>${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            // Create toast notification
+            const toast = document.createElement('div');
+            toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-check-circle me-2"></i>${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
+        // Placeholder functions for unimplemented features
+        function showBulkActions() { showError('Bulk actions coming soon!'); }
+        function showAnalytics() { showError('Analytics dashboard coming soon!'); }
+        function exportReport() { showError('Report export coming soon!'); }
+        function runComplianceScan() { showError('Compliance scan coming soon!'); }
+        function showViolations() { showError('Violations dashboard coming soon!'); }
+        function showExportOptions() { showError('Export options coming soon!'); }
+        function viewVersionDetails(versionId) { showError('Version details coming soon!'); }
+        function manageSystem() { showError('System management coming soon!'); }
+    </script>
+</body>
+</html>

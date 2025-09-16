@@ -1,0 +1,57 @@
+{
+  "module": "test_project",
+  "name": "Test Project Management",
+  "version": "1.0.0",
+  "description": "Complete onboarding checklist for Test Project Management setup and configuration",
+  "estimated_time": "30 minutes",
+  "steps": [
+    {
+      "id": "welcome",
+      "title": "Welcome to Test Project Management",
+      "type": "info"
+    },
+    {
+      "id": "setup",
+      "title": "Initial Setup",
+      "type": "form"
+    },
+    {
+      "id": "projects_setup",
+      "title": "Set Up Projects",
+      "type": "action"
+    },
+    {
+      "id": "tasks_setup",
+      "title": "Set Up Tasks",
+      "type": "action"
+    },
+    {
+      "id": "timeline_setup",
+      "title": "Set Up Timeline",
+      "type": "action"
+    },
+    {
+      "id": "configure",
+      "title": "Configure Settings",
+      "type": "form"
+    },
+    {
+      "id": "test",
+      "title": "Test Your Setup",
+      "type": "action"
+    },
+    {
+      "id": "complete",
+      "title": "You're All Set!",
+      "type": "completion"
+    }
+  ],
+  "tips": [
+    "Start with a few key projects and expand gradually",
+    "Review the documentation for advanced features"
+  ],
+  "support": {
+    "contact": "support@sbh.com",
+    "documentation": "/ui/docs/test_project"
+  }
+}

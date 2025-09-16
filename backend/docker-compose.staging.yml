@@ -1,0 +1,49 @@
+version: '3.8'
+name: revops_suite_staging
+services:
+  backend:
+    container_name: sbh-backend
+    image: sbh-backend:staging
+    restart: unless-stopped
+    ports:
+    - 5001:5001
+    environment:
+      FLASK_ENV: staging
+      DEBUG: 'false'
+      DATABASE: /data/staging.db
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - -f
+      - http://localhost:5001/healthz
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+    - sbh-network
+  db:
+    container_name: sqlite-staging
+    image: alpine:latest
+    restart: unless-stopped
+    volumes:
+    - /data:/data
+    command: tail -f /dev/null
+    networks:
+    - sbh-network
+  worker:
+    container_name: sbh-worker
+    image: sbh-backend:staging
+    restart: unless-stopped
+    environment:
+      FLASK_ENV: staging
+      DATABASE: /data/staging.db
+    command: python -m src.cli worker
+    networks:
+    - sbh-network
+volumes:
+  sbh-data:
+    driver: local
+networks:
+  sbh-network:
+    driver: bridge

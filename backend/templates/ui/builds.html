@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Builds Dashboard - System Builder Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .refresh-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #2563eb;
+        }
+
+        .refresh-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .builds-table {
+            width: 100%;
+            background: white;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+
+        .builds-table th {
+            background: #f8fafc;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .builds-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .builds-table tr:hover {
+            background: #f8fafc;
+        }
+
+        .builds-table tr.highlighted {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: capitalize;
+        }
+
+        .status-completed {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-running, .status-generating {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-initializing, .status-created {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .status-failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .template-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: #f1f5f9;
+            color: #64748b;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .detail-drawer {
+            position: fixed;
+            top: 0;
+            right: -450px;
+            width: 450px;
+            height: 100vh;
+            background: white;
+            box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .detail-drawer.open {
+            right: 0;
+        }
+
+        .drawer-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .drawer-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #64748b;
+            padding: 0.25rem;
+        }
+
+        .drawer-content {
+            padding: 1.5rem;
+        }
+
+        .build-meta {
+            margin-bottom: 2rem;
+        }
+
+        .meta-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .meta-label {
+            font-weight: 500;
+            color: #64748b;
+        }
+
+        .meta-value {
+            color: #1e293b;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+        }
+
+        .logs-section h3 {
+            margin-bottom: 1rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .logs-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            background: #f8fafc;
+        }
+
+        .log-entry {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-timestamp {
+            color: #64748b;
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .log-message {
+            color: #1e293b;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+
+        .error {
+            text-align: center;
+            padding: 3rem;
+            color: #dc2626;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .detail-drawer {
+                width: 100%;
+                right: -100%;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Builds Dashboard</h1>
+            <button class="refresh-btn" onclick="loadBuilds()">
+                <span id="refresh-text">Refresh</span>
+            </button>
+        </div>
+
+        <div id="builds-content">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading builds...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    
+    <div class="detail-drawer" id="detail-drawer">
+        <div class="drawer-header">
+            <h2>Build Details</h2>
+            <button class="close-btn" onclick="closeDetail()">&times;</button>
+        </div>
+        <div class="drawer-content" id="drawer-content">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading build details...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let builds = [];
+        let currentBuildId = null;
+        let pollInterval = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadBuilds();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Close drawer with ESC
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeDetail();
+                }
+            });
+
+            // Close drawer with overlay click
+            document.getElementById('overlay').addEventListener('click', closeDetail);
+        }
+
+        async function loadBuilds() {
+            const refreshBtn = document.querySelector('.refresh-btn');
+            const refreshText = document.getElementById('refresh-text');
+            
+            refreshBtn.disabled = true;
+            refreshText.textContent = 'Loading...';
+
+            try {
+                const response = await fetch('/api/builds');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                builds = await response.json();
+                renderBuildsTable();
+                handleHighlight();
+            } catch (error) {
+                console.error('Error loading builds:', error);
+                renderError('Failed to load builds. Please try again.');
+            } finally {
+                refreshBtn.disabled = false;
+                refreshText.textContent = 'Refresh';
+            }
+        }
+
+        function renderBuildsTable() {
+            const container = document.getElementById('builds-content');
+            
+            if (builds.length === 0) {
+                container.innerHTML = `
+                    <div class="empty">
+                        <p>No builds found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort by created_at descending
+            builds.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            const tableHTML = `
+                <table class="builds-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Template</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${builds.map(build => `
+                            <tr data-build-id="${build.id}" onclick="openDetail('${build.id}')">
+                                <td class="meta-value">${build.id.substring(0, 8)}...</td>
+                                <td>${escapeHtml(build.name)}</td>
+                                <td><span class="template-badge">${build.template}</span></td>
+                                <td><span class="status-pill status-${build.status}">${build.status}</span></td>
+                                <td>${formatDate(build.created_at)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = tableHTML;
+        }
+
+        function handleHighlight() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const highlightId = urlParams.get('highlight');
+            
+            if (highlightId) {
+                const row = document.querySelector(`tr[data-build-id="${highlightId}"]`);
+                if (row) {
+                    row.classList.add('highlighted');
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    openDetail(highlightId);
+                }
+            }
+        }
+
+        async function openDetail(buildId) {
+            currentBuildId = buildId;
+            
+            // Highlight the selected row
+            document.querySelectorAll('.builds-table tr').forEach(tr => {
+                tr.classList.remove('highlighted');
+            });
+            document.querySelector(`tr[data-build-id="${buildId}"]`)?.classList.add('highlighted');
+
+            // Show drawer
+            document.getElementById('detail-drawer').classList.add('open');
+            document.getElementById('overlay').classList.add('open');
+
+            // Load build details
+            await loadBuildDetail(buildId);
+        }
+
+        async function loadBuildDetail(buildId) {
+            const content = document.getElementById('drawer-content');
+            content.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading build details...</p>
+                </div>
+            `;
+
+            try {
+                const [buildResponse, logsResponse, statusResponse] = await Promise.all([
+                    fetch(`/api/builds/${buildId}`),
+                    fetch(`/api/builds/${buildId}/logs`),
+                    fetch(`/serve/${buildId}/status`)
+                ]);
+
+                if (!buildResponse.ok || !logsResponse.ok) {
+                    throw new Error('Failed to load build details');
+                }
+
+                const build = await buildResponse.json();
+                const logs = await logsResponse.json();
+                const status = statusResponse.ok ? await statusResponse.json() : { backend_running: false };
+
+                renderBuildDetail(build, logs, status);
+                startPolling(buildId, build.status);
+            } catch (error) {
+                console.error('Error loading build detail:', error);
+                content.innerHTML = `
+                    <div class="error">
+                        <p>Failed to load build details.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderBuildDetail(build, logs, status) {
+            const content = document.getElementById('drawer-content');
+            
+            content.innerHTML = `
+                <div class="build-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">ID:</span>
+                        <span class="meta-value">${build.id}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Name:</span>
+                        <span class="meta-value">${escapeHtml(build.name)}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Template:</span>
+                        <span class="meta-value">${build.template}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Status:</span>
+                        <span class="status-pill status-${build.status}">${build.status}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Backend:</span>
+                        <span class="status-pill ${status.backend_running ? 'status-completed' : 'status-failed'}">${status.backend_running ? 'Running' : 'Stopped'}</span>
+                        ${status.backend_port ? ` (Port: ${status.backend_port})` : ''}
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Created:</span>
+                        <span class="meta-value">${formatDate(build.created_at)}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Actions:</span>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            ${status.frontend_running ? `
+                                <a href="/serve/${build.id}/" target="_blank" class="cta-button" style="background: #3498db; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 0.875rem;">
+                                    Open App
+                                </a>
+                            ` : ''}
+                            <a href="/serve/${build.id}/api/health" target="_blank" class="cta-button" style="background: #27ae60; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 0.875rem;">
+                                Open API
+                            </a>
+                            ${!status.frontend_running ? `
+                                <button onclick="startFrontend('${build.id}')" class="cta-button" style="background: #9b59b6; color: white; padding: 8px 16px; border-radius: 4px; border: none; font-size: 0.875rem; cursor: pointer;">
+                                    Start Frontend
+                                </button>
+                            ` : ''}
+                            ${!status.backend_running ? `
+                                <button onclick="startBackend('${build.id}')" class="cta-button" style="background: #f39c12; color: white; padding: 8px 16px; border-radius: 4px; border: none; font-size: 0.875rem; cursor: pointer;">
+                                    Start Backend
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="logs-section">
+                    <h3>Build Logs (${logs.length})</h3>
+                    <div class="logs-container">
+                        ${logs.length === 0 ? '<div class="empty"><p>No logs available</p></div>' : 
+                          logs.map(log => `
+                            <div class="log-entry">
+                                <div class="log-timestamp">${formatDate(log.created_at)}</div>
+                                <div class="log-message">${escapeHtml(log.message)}</div>
+                            </div>
+                          `).join('')}
+                    </div>
+                </div>
+            `;
+
+            // Scroll to bottom of logs
+            const logsContainer = content.querySelector('.logs-container');
+            if (logsContainer) {
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            }
+        }
+
+        function startPolling(buildId, status) {
+            // Clear existing interval
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+
+            // Only poll if status is not terminal
+            if (status !== 'completed' && status !== 'failed') {
+                pollInterval = setInterval(async () => {
+                    try {
+                        const [buildResponse, logsResponse, statusResponse] = await Promise.all([
+                            fetch(`/api/builds/${buildId}`),
+                            fetch(`/api/builds/${buildId}/logs`),
+                            fetch(`/serve/${buildId}/status`)
+                        ]);
+
+                        if (buildResponse.ok && logsResponse.ok) {
+                            const build = await buildResponse.json();
+                            const logs = await logsResponse.json();
+                            const status = statusResponse.ok ? await statusResponse.json() : { backend_running: false };
+
+                            // Update the table row status
+                            const row = document.querySelector(`tr[data-build-id="${buildId}"]`);
+                            if (row) {
+                                const statusCell = row.querySelector('.status-pill');
+                                statusCell.className = `status-pill status-${build.status}`;
+                                statusCell.textContent = build.status;
+                            }
+
+                            // Update detail view
+                            renderBuildDetail(build, logs, status);
+
+                            // Stop polling if terminal status
+                            if (build.status === 'completed' || build.status === 'failed') {
+                                clearInterval(pollInterval);
+                                pollInterval = null;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error polling build details:', error);
+                    }
+                }, 2000);
+            }
+        }
+
+        function closeDetail() {
+            document.getElementById('detail-drawer').classList.remove('open');
+            document.getElementById('overlay').classList.remove('open');
+            
+            // Clear polling
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+            
+            currentBuildId = null;
+        }
+
+        function renderError(message) {
+            document.getElementById('builds-content').innerHTML = `
+                <div class="error">
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+
+        async function startBackend(buildId) {
+            try {
+                const response = await fetch(`/serve/${buildId}/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                alert(`Backend started successfully on port ${result.port}`);
+                
+                // Refresh the build details to show updated status
+                if (currentBuildId === buildId) {
+                    await loadBuildDetail(buildId);
+                }
+            } catch (error) {
+                console.error('Error starting backend:', error);
+                alert('Failed to start backend. Please try again.');
+            }
+        }
+
+        async function startFrontend(buildId) {
+            try {
+                const response = await fetch(`/serve/${buildId}/start-frontend`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                alert(`Frontend started successfully on port ${result.port}`);
+                
+                // Refresh the build details to show updated status
+                if (currentBuildId === buildId) {
+                    await loadBuildDetail(buildId);
+                }
+            } catch (error) {
+                console.error('Error starting frontend:', error);
+                alert('Failed to start frontend. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>

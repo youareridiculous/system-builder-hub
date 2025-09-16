@@ -1,0 +1,98 @@
+{
+  "slug": "helpdesk-support",
+  "name": "Helpdesk & Support",
+  "description": "Customer support system with ticket management, SLA tracking, knowledge base, and customer portal.",
+  "category": "Customer Support",
+  "tags": ["helpdesk", "support", "tickets", "sla", "knowledge-base"],
+  "badges": ["Multi-tenant", "S3", "RBAC", "SLA", "Portal"],
+  "version": "1.0.0",
+  "author": "SBH Team",
+  "repository": "https://github.com/sbh/helpdesk",
+  "documentation": "/ui/docs/helpdesk",
+  "screenshots": [
+    "/marketplace/assets/helpdesk/dashboard.png",
+    "/marketplace/assets/helpdesk/tickets.png",
+    "/marketplace/assets/helpdesk/knowledge-base.png"
+  ],
+  "demo_video_url": "https://example.com/helpdesk-demo",
+  "features": [
+    "Ticket Management",
+    "SLA Tracking",
+    "Knowledge Base",
+    "Customer Portal",
+    "Agent Dashboard",
+    "Email Integration",
+    "Reporting & Analytics",
+    "Multi-tenant RBAC"
+  ],
+  "plans": {
+    "starter": {
+      "name": "Starter",
+      "price": 0,
+      "features": ["Up to 100 tickets/month", "Basic knowledge base", "Email support"]
+    },
+    "pro": {
+      "name": "Pro",
+      "price": 69,
+      "features": ["Unlimited tickets", "Advanced SLA", "Customer portal", "Priority support"]
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": 249,
+      "features": ["Custom integrations", "API access", "Dedicated support"]
+    }
+  },
+  "guided_prompt_schema": {
+    "role": {"type": "string", "required": true},
+    "context": {"type": "string", "required": true},
+    "task": {"type": "string", "required": true},
+    "audience": {"type": "string", "required": true},
+    "output": {"type": "string", "required": true}
+  },
+  "rbac_matrix": {
+    "owner": ["read", "write", "admin"],
+    "admin": ["read", "write"],
+    "member": ["read", "write"],
+    "viewer": ["read"]
+  },
+  "api_endpoints": [
+    {"method": "GET", "path": "/api/tickets", "description": "List tickets"},
+    {"method": "POST", "path": "/api/tickets", "description": "Create ticket"},
+    {"method": "GET", "path": "/api/knowledge-base", "description": "List knowledge base articles"},
+    {"method": "POST", "path": "/api/knowledge-base", "description": "Create knowledge base article"}
+  ],
+  "ui_routes": [
+    {"path": "/ui/tickets", "name": "Tickets", "description": "Ticket management"},
+    {"path": "/ui/knowledge-base", "name": "Knowledge Base", "description": "Knowledge base management"},
+    {"path": "/ui/portal", "name": "Customer Portal", "description": "Customer self-service portal"}
+  ],
+  "dependencies": [],
+  "conflicts": [],
+  "installation": {
+    "type": "marketplace",
+    "steps": ["Select plan", "Configure settings", "Launch template"]
+  },
+  "configuration": {
+    "max_tickets_per_month": {"type": "integer", "default": 1000},
+    "enable_sla_tracking": {"type": "boolean", "default": true},
+    "customer_portal_enabled": {"type": "boolean", "default": false}
+  },
+  "examples": [
+    {
+      "name": "SaaS Support",
+      "description": "Configure for SaaS customer support with SLA tracking",
+      "config": {"max_tickets_per_month": 5000, "enable_sla_tracking": true}
+    }
+  ],
+  "support": {
+    "documentation": "/ui/docs/helpdesk",
+    "community": "https://community.sbh.com",
+    "email": "support@sbh.com"
+  },
+  "changelog": [
+    {"version": "1.0.0", "date": "2024-01-01", "changes": ["Initial release"]}
+  ],
+  "is_active": true,
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
+}

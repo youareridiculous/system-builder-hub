@@ -1,0 +1,737 @@
+/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/app.py:24: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [68365]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+Database found, skipping initialization
+INFO:     127.0.0.1:56081 - "GET /api/health HTTP/1.1" 200 OK
+(trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     127.0.0.1:56126 - "POST /api/auth/login HTTP/1.1" 200 OK
+Database initialized with seed data at data/app.db
+Authentication data seeded successfully!
+
+Test users created:
+  owner@sbh.dev / Owner!123 (Owner)
+  admin@sbh.dev / Admin!123 (Admin)
+  manager@sbh.dev / Manager!123 (Manager)
+  sales@sbh.dev / Sales!123 (Sales)
+  readonly@sbh.dev / Read!123 (ReadOnly)
+INFO:     127.0.0.1:56131 - "POST /api/settings/admin/reset-demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60019 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60643 - "GET /api/accounts/ HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:60643 - "GET /api/accounts/ HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:60946 - "GET /api/accounts/ HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:60968 - "GET /api/accounts/ HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:60970 - "GET /api/accounts/ HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:61103 - "GET /api/accounts/ HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:61104 - "GET /api/accounts/ HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:61324 - "GET /api/accounts/ HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:61689 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61689 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62149 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62182 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62219 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62310 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62310 - "OPTIONS /analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62310 - "GET /analytics/dashboard/overview HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62310 - "OPTIONS /analytics/communications/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62312 - "OPTIONS /analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62310 - "GET /analytics/communications/summary?from=2025-08-01 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62314 - "OPTIONS /analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62312 - "GET /analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62310 - "GET /analytics/communications/summary?from=2025-08-01 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62316 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62319 - "GET /analytics/dashboard/overview HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62320 - "OPTIONS /analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62314 - "GET /analytics/activities/summary?from=2025-08-01 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62312 - "GET /analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62314 - "GET /analytics/activities/summary?from=2025-08-01 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62320 - "OPTIONS /contacts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62319 - "OPTIONS /contacts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62314 - "GET /contacts?limit=1 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62314 - "GET /contacts?limit=1 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62310 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63105 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63134 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63207 - "OPTIONS /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63208 - "OPTIONS /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63211 - "OPTIONS /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63212 - "OPTIONS /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63214 - "GET /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:63207 - "GET /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63208 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     127.0.0.1:63211 - "GET /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63339 - "OPTIONS /api/contacts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63339 - "GET /api/contacts?limit=1 HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:63339 - "OPTIONS /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63341 - "GET /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63341 - "OPTIONS /api/communications/history?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63339 - "GET /api/communications/history?limit=1 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:63482 - "GET /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63484 - "GET /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:63486 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     127.0.0.1:63488 - "GET /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63591 - "GET /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63593 - "GET /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:63595 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     127.0.0.1:63596 - "GET /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63709 - "GET /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63711 - "GET /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:63712 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     127.0.0.1:63713 - "GET /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63819 - "GET /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63850 - "GET /api/contacts?limit=1 HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:63880 - "GET /api/contacts?limit=1 HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:63909 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63942 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63979 - "GET /api/contacts?limit=1 HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:64014 - "GET /api/contacts?limit=1 HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:64051 - "GET /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64100 - "GET /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64100 - "GET /api/communications/history?limit=1 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:64170 - "GET /api/communications/history/?limit=1 HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:64199 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64232 - "GET /api/communications/history?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64296 - "GET /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64296 - "GET /api/communications/history?limit=1 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:64366 - "GET /api/automations HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:64399 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64432 - "GET /api/automations/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64489 - "GET /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64489 - "GET /api/communications/history?limit=1 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:64603 - "GET /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64605 - "GET /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64606 - "GET /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:64607 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     127.0.0.1:64609 - "GET /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64603 - "GET /api/communications/history?limit=1 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:64898 - "GET /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64899 - "GET /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:64901 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     127.0.0.1:64902 - "GET /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64902 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64899 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64899 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64902 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64902 - "GET /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64899 - "GET /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:64898 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     127.0.0.1:64902 - "GET /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64899 - "GET /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:64915 - "GET /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64899 - "GET /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64917 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     127.0.0.1:64915 - "GET /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64915 - "GET /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64915 - "GET /api/communications/history?limit=1 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:64915 - "GET /api/communications/history?limit=1 HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:65438 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65475 - "GET /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49282 - "OPTIONS /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49284 - "OPTIONS /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49286 - "OPTIONS /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49288 - "OPTIONS /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49289 - "OPTIONS /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49282 - "GET /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49286 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     127.0.0.1:49288 - "GET /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49282 - "OPTIONS /api/communications/history?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49293 - "GET /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49284 - "GET /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49288 - "GET /api/communications/history?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49288 - "OPTIONS /api/automations/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49284 - "GET /api/automations/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49284 - "OPTIONS /api/settings/branding HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49288 - "GET /api/settings/branding HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49288 - "OPTIONS /api/settings/provider-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49284 - "GET /api/settings/provider-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49398 - "GET /api/communications/history?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49595 - "GET /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49596 - "GET /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49600 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     127.0.0.1:49601 - "GET /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49595 - "GET /api/communications/history?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49598 - "GET /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49595 - "GET /api/automations/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49595 - "GET /api/settings/branding HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49595 - "GET /api/settings/provider-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49799 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49800 - "OPTIONS /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49800 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49799 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49799 - "GET /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49799 - "GET /api/analytics/dashboard/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49803 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     127.0.0.1:49804 - "GET /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49799 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     127.0.0.1:49804 - "GET /api/analytics/activities/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49800 - "GET /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49804 - "GET /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49804 - "GET /api/contacts/?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49800 - "GET /api/analytics/communications/summary?from=2025-08-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49800 - "GET /api/communications/history?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49800 - "GET /api/communications/history?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49804 - "GET /api/automations/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49804 - "GET /api/settings/branding HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49800 - "GET /api/automations/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49804 - "GET /api/settings/provider-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49800 - "GET /api/settings/branding HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49800 - "GET /api/settings/provider-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50533 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 83, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     127.0.0.1:50566 - "GET /api/analytics/pipeline/summary?from=2025-08-01 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/applications.py", line 1106, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/applications.py", line 122, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 184, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/errors.py", line 162, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/cors.py", line 83, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+    raise exc
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+    await self.app(scope, receive, sender)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+    raise e
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 718, in __call__
+    await route.handle(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/starlette/routing.py", line 66, in app
+    response = await func(request)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 274, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/.venv/lib/python3.10/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/ericlarson/Downloads/system-builder-hub/backend/generated/2f61e8d4-e8e5-4066-9adc-2150c1fc46c0/backend/routers/analytics.py", line 153, in get_pipeline_summary
+    cursor.execute(f"""
+sqlite3.OperationalError: no such column: updated_at
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [68365]

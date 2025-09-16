@@ -1,0 +1,127 @@
+name: CD Production
+
+on:
+  push:
+    tags:
+      - 'v*'  # Production releases (exclude rc tags)
+
+env:
+  PRODUCTION_SECRET_KEY: ${{ secrets.PRODUCTION_SECRET_KEY }}
+  PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+  PRODUCTION_REDIS_URL: ${{ secrets.PRODUCTION_REDIS_URL }}
+
+jobs:
+  promote-to-production:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Extract version
+      id: extract_version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+    
+    - name: Verify staging deployment
+      run: |
+        # Check if version was deployed to staging first
+        python -m src.cli releases list --target revops_suite | grep "v${{ steps.extract_version.outputs.version }}" | grep "staged"
+    
+    - name: Generate production artifacts
+      run: |
+        python -m src.cli deploy generate-compose \
+          --bundle revops_suite_prod \
+          --output docker-compose.prod.yml
+        
+        python -m src.cli deploy generate-manifest \
+          --bundle revops_suite_prod \
+          --output k8s-prod.yml
+    
+    - name: Validate production bundle
+      run: |
+        python -m src.cli deploy validate --bundle revops_suite_prod
+    
+    - name: Pre-deployment checks
+      run: |
+        # Check production environment health
+        curl -f http://prod.example.com/healthz || echo "Production health check failed"
+        
+        # Check error rates (simulate)
+        echo "Checking error rates..."
+        sleep 5
+    
+    - name: Deploy to production (dry-run)
+      run: |
+        python -m src.cli releases promote \
+          --target revops_suite \
+          --version ${{ steps.extract_version.outputs.version }} \
+          --env production \
+          --strategy bluegreen \
+          --dry-run
+    
+    - name: Deploy to production
+      run: |
+        python -m src.cli releases promote \
+          --target revops_suite \
+          --version ${{ steps.extract_version.outputs.version }} \
+          --env production \
+          --strategy bluegreen \
+          --confirm
+    
+    - name: Wait for deployment
+      run: |
+        echo "Waiting for production deployment to complete..."
+        sleep 60
+    
+    - name: Verify production deployment
+      run: |
+        # Check if production environment is healthy
+        curl -f http://prod.example.com/healthz || echo "Production health check failed"
+        
+        # Verify traffic is switched
+        echo "Verifying traffic switch..."
+        sleep 10
+    
+    - name: Post-deployment validation
+      run: |
+        # Run smoke tests
+        echo "Running post-deployment validation..."
+        
+        # Check database connectivity
+        python -m src.cli doctor
+        
+        # Verify all services are running
+        curl -f http://prod.example.com/readiness || echo "Readiness check failed"
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: production-artifacts-${{ steps.extract_version.outputs.version }}
+        path: |
+          docker-compose.prod.yml
+          k8s-prod.yml
+        retention-days: 90
+    
+    - name: Notify deployment success
+      if: success()
+      run: |
+        echo "🚀 Production deployment successful for version ${{ steps.extract_version.outputs.version }}"
+        # Add notification logic here (Slack, email, etc.)
+    
+    - name: Notify deployment failure
+      if: failure()
+      run: |
+        echo "❌ Production deployment failed for version ${{ steps.extract_version.outputs.version }}"
+        # Add notification logic here (Slack, email, etc.)

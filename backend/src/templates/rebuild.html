@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 Auto-Rebuilder - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .main-content {
+            padding: 2rem 0;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            background: white;
+            margin-bottom: 2rem;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            border: none;
+            padding: 1.5rem;
+        }
+        
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-in_progress { background: #cce5ff; color: #004085; }
+        .status-testing { background: #d1ecf1; color: #0c5460; }
+        .status-approved { background: #d4edda; color: #155724; }
+        .status-rejected { background: #f8d7da; color: #721c24; }
+        .status-deployed { background: #d1e7dd; color: #0f5132; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+        .status-rolled_back { background: #fff3cd; color: #856404; }
+        
+        .metric-card {
+            text-align: center;
+            padding: 1.5rem;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-bottom: 1rem;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+        }
+        
+        .table {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .table th {
+            background: #f8f9fa;
+            border: none;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .nav-tabs {
+            border: none;
+            margin-bottom: 2rem;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            border-radius: 25px;
+            margin-right: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 0.75rem 1rem;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .back-to-dashboard {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .back-to-dashboard:hover {
+            color: #764ba2;
+        }
+        
+        .diff-viewer {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .diff-added {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .diff-removed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .diff-context {
+            background: #e9ecef;
+            color: #495057;
+        }
+        
+        .test-result {
+            padding: 0.5rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .test-passed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .test-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .test-partial {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .snapshot-card {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .snapshot-card.active {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-sync-alt me-2"></i>System Builder Hub
+            </a>
+            <a href="/" class="back-to-dashboard">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 class="text-white text-center mb-3">
+                        <i class="fas fa-sync-alt me-3"></i>Auto-Rebuilder Agent
+                    </h1>
+                    <p class="text-white text-center opacity-75">
+                        Recursive Auto-Upgrade Intelligence & Meta-System Bootstrap
+                    </p>
+                </div>
+            </div>
+
+            <!-- Metrics Overview -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="total-rebuilds">0</div>
+                        <div class="metric-label">Total Rebuilds</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="successful-rebuilds">0</div>
+                        <div class="metric-label">Successful</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="active-jobs">0</div>
+                        <div class="metric-label">Active Jobs</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="avg-rebuild-time">0m</div>
+                        <div class="metric-label">Avg Rebuild Time</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Navigation Tabs -->
+            <ul class="nav nav-tabs" id="rebuildTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+                        <i class="fas fa-chart-line me-2"></i>Overview
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">
+                        <i class="fas fa-history me-2"></i>Rebuild History
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="trigger-tab" data-bs-toggle="tab" data-bs-target="#trigger" type="button" role="tab">
+                        <i class="fas fa-play me-2"></i>Trigger Rebuild
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="monitoring-tab" data-bs-toggle="tab" data-bs-target="#monitoring" type="button" role="tab">
+                        <i class="fas fa-eye me-2"></i>Monitoring
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="snapshots-tab" data-bs-toggle="tab" data-bs-target="#snapshots" type="button" role="tab">
+                        <i class="fas fa-camera me-2"></i>Snapshots
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="rebuildTabContent">
+                <!-- Overview Tab -->
+                <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-chart-line me-2"></i>Rebuild Activity
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="rebuildActivityChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-tachometer-alt me-2"></i>System Health
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="system-health">
+                                        <!-- System health indicators will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-clock me-2"></i>Recent Activity
+                            </h5>
+                            <button class="btn btn-light btn-sm" onclick="refreshOverview()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="recent-activity">
+                                <!-- Recent activity will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rebuild History Tab -->
+                <div class="tab-pane fade" id="history" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-history me-2"></i>Rebuild History
+                            </h5>
+                            <div>
+                                <button class="btn btn-light btn-sm me-2" onclick="refreshHistory()">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <button class="btn btn-primary btn-sm" onclick="exportHistory()">
+                                    <i class="fas fa-download me-2"></i>Export
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Job ID</th>
+                                            <th>Trigger</th>
+                                            <th>Status</th>
+                                            <th>Target Modules</th>
+                                            <th>Created</th>
+                                            <th>Duration</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rebuild-history-table">
+                                        <!-- Rebuild history will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trigger Rebuild Tab -->
+                <div class="tab-pane fade" id="trigger" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-play me-2"></i>Manual Trigger
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="manual-trigger-form">
+                                        <div class="mb-3">
+                                            <label class="form-label">Trigger Type</label>
+                                            <select class="form-select" id="trigger-type" required>
+                                                <option value="">Select trigger type</option>
+                                                <option value="manual">Manual</option>
+                                                <option value="health_check">Health Check</option>
+                                                <option value="performance_regression">Performance Regression</option>
+                                                <option value="critical_fix">Critical Fix</option>
+                                                <option value="auto_upgrade">Auto Upgrade</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Target Modules</label>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="module-agent" value="agent_framework.py">
+                                                <label class="form-check-label" for="module-agent">Agent Framework</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="module-llm" value="llm_factory.py">
+                                                <label class="form-check-label" for="module-llm">LLM Factory</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="module-autonomous" value="autonomous_builder.py">
+                                                <label class="form-check-label" for="module-autonomous">Autonomous Builder</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="module-delivery" value="system_delivery.py">
+                                                <label class="form-check-label" for="module-delivery">System Delivery</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="module-all" value="all">
+                                                <label class="form-check-label" for="module-all">All Modules</label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Configuration</label>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="auto-deploy">
+                                                <label class="form-check-label" for="auto-deploy">Auto Deploy</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="auto-rollback" checked>
+                                                <label class="form-check-label" for="auto-rollback">Auto Rollback on Failure</label>
+                                            </div>
+                                        </div>
+                                        
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-play me-2"></i>Trigger Rebuild
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-clock me-2"></i>Scheduled Jobs
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="scheduled-jobs">
+                                        <!-- Scheduled jobs will be loaded here -->
+                                    </div>
+                                    
+                                    <hr>
+                                    
+                                    <button class="btn btn-outline-primary btn-sm" onclick="createScheduledJob()">
+                                        <i class="fas fa-plus me-2"></i>Create Scheduled Job
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monitoring Tab -->
+                <div class="tab-pane fade" id="monitoring" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-heartbeat me-2"></i>Health Monitoring
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="health-monitoring">
+                                        <!-- Health monitoring will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-tachometer-alt me-2"></i>Performance Monitoring
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="performanceChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-bell me-2"></i>Alerts & Notifications
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="alerts-list">
+                                <!-- Alerts will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Snapshots Tab -->
+                <div class="tab-pane fade" id="snapshots" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-camera me-2"></i>System Snapshots
+                            </h5>
+                            <button class="btn btn-primary btn-sm" onclick="createSnapshot()">
+                                <i class="fas fa-camera me-2"></i>Create Snapshot
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="snapshots-list">
+                                <!-- Snapshots will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    
+    <!-- Rebuild Details Modal -->
+    <div class="modal fade" id="rebuildDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-info-circle me-2"></i>Rebuild Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="rebuild-details-content">
+                        <!-- Rebuild details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diff Viewer Modal -->
+    <div class="modal fade" id="diffViewerModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-code-branch me-2"></i>Diff Viewer
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="diff-content">
+                        <!-- Diff content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Results Modal -->
+    <div class="modal fade" id="testResultsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-vial me-2"></i>Test Results
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="test-results-content">
+                        <!-- Test results will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let rebuildActivityChart = null;
+        let performanceChart = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            initializeCharts();
+            setupEventListeners();
+        });
+
+        function loadDashboardData() {
+            loadOverview();
+            loadHistory();
+            loadMonitoring();
+            loadSnapshots();
+        }
+
+        function loadOverview() {
+            // Load overview metrics
+            fetch('/api/rebuild/metrics')
+                .then(response => response.json())
+                .then(metrics => {
+                    document.getElementById('total-rebuilds').textContent = metrics.total_rebuilds || 0;
+                    document.getElementById('successful-rebuilds').textContent = metrics.successful_rebuilds || 0;
+                    document.getElementById('active-jobs').textContent = metrics.active_jobs || 0;
+                    document.getElementById('avg-rebuild-time').textContent = (metrics.avg_rebuild_time || 0) + 'm';
+                })
+                .catch(error => {
+                    console.error('Error loading metrics:', error);
+                });
+
+            // Load recent activity
+            fetch('/api/rebuild/recent-activity')
+                .then(response => response.json())
+                .then(activities => {
+                    const container = document.getElementById('recent-activity');
+                    container.innerHTML = '';
+                    
+                    activities.forEach(activity => {
+                        const activityDiv = document.createElement('div');
+                        activityDiv.className = 'd-flex justify-content-between align-items-center p-2 border-bottom';
+                        activityDiv.innerHTML = `
+                            <div>
+                                <strong>${activity.trigger}</strong> - ${activity.description}
+                            </div>
+                            <small class="text-muted">${new Date(activity.timestamp).toLocaleString()}</small>
+                        `;
+                        container.appendChild(activityDiv);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading recent activity:', error);
+                });
+        }
+
+        function loadHistory() {
+            fetch('/api/rebuild/history')
+                .then(response => response.json())
+                .then(history => {
+                    const tbody = document.getElementById('rebuild-history-table');
+                    tbody.innerHTML = '';
+                    
+                    history.forEach(job => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td><code>${job.job_id.substring(0, 8)}...</code></td>
+                            <td>${job.trigger}</td>
+                            <td><span class="status-badge status-${job.status}">${job.status}</span></td>
+                            <td>${job.target_modules.join(', ')}</td>
+                            <td>${new Date(job.created_at).toLocaleDateString()}</td>
+                            <td>${calculateDuration(job.started_at, job.completed_at)}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewRebuildDetails('${job.job_id}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-info" onclick="viewTestResults('${job.job_id}')">
+                                    <i class="fas fa-vial"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="viewDiffs('${job.job_id}')">
+                                    <i class="fas fa-code-branch"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading rebuild history:', error);
+                });
+        }
+
+        function loadMonitoring() {
+            // Load health monitoring
+            fetch('/api/rebuild/health-status')
+                .then(response => response.json())
+                .then(health => {
+                    const container = document.getElementById('health-monitoring');
+                    container.innerHTML = '';
+                    
+                    Object.entries(health).forEach(([component, status]) => {
+                        const healthDiv = document.createElement('div');
+                        healthDiv.className = 'd-flex justify-content-between align-items-center p-2 border-bottom';
+                        healthDiv.innerHTML = `
+                            <div>
+                                <strong>${component}</strong>
+                            </div>
+                            <span class="status-badge status-${status.status}">${status.status}</span>
+                        `;
+                        container.appendChild(healthDiv);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading health status:', error);
+                });
+
+            // Load alerts
+            fetch('/api/rebuild/alerts')
+                .then(response => response.json())
+                .then(alerts => {
+                    const container = document.getElementById('alerts-list');
+                    container.innerHTML = '';
+                    
+                    alerts.forEach(alert => {
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = `alert alert-${alert.severity} alert-dismissible fade show`;
+                        alertDiv.innerHTML = `
+                            <strong>${alert.title}</strong> ${alert.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        container.appendChild(alertDiv);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading alerts:', error);
+                });
+        }
+
+        function loadSnapshots() {
+            fetch('/api/rebuild/snapshots')
+                .then(response => response.json())
+                .then(snapshots => {
+                    const container = document.getElementById('snapshots-list');
+                    container.innerHTML = '';
+                    
+                    snapshots.forEach(snapshot => {
+                        const snapshotDiv = document.createElement('div');
+                        snapshotDiv.className = 'snapshot-card';
+                        snapshotDiv.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Snapshot ${snapshot.snapshot_id.substring(0, 8)}</strong>
+                                    <br>
+                                    <small class="text-muted">${new Date(snapshot.timestamp).toLocaleString()}</small>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewSnapshot('${snapshot.snapshot_id}')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-success" onclick="restoreSnapshot('${snapshot.snapshot_id}')">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(snapshotDiv);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading snapshots:', error);
+                });
+        }
+
+        function initializeCharts() {
+            // Rebuild activity chart
+            const activityCtx = document.getElementById('rebuildActivityChart').getContext('2d');
+            rebuildActivityChart = new Chart(activityCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Rebuilds',
+                        data: [12, 19, 3, 5, 2, 3],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+
+            // Performance chart
+            const perfCtx = document.getElementById('performanceChart').getContext('2d');
+            performanceChart = new Chart(perfCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Response Time', 'Throughput', 'Error Rate', 'Memory Usage'],
+                    datasets: [{
+                        label: 'Current',
+                        data: [150, 1000, 0.01, 512],
+                        backgroundColor: '#667eea'
+                    }, {
+                        label: 'Baseline',
+                        data: [120, 1200, 0.005, 480],
+                        backgroundColor: '#764ba2'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+
+        function setupEventListeners() {
+            // Manual trigger form
+            document.getElementById('manual-trigger-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                triggerManualRebuild();
+            });
+        }
+
+        function triggerManualRebuild() {
+            const triggerType = document.getElementById('trigger-type').value;
+            const targetModules = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            const autoDeploy = document.getElementById('auto-deploy').checked;
+            const autoRollback = document.getElementById('auto-rollback').checked;
+
+            const formData = {
+                trigger: triggerType,
+                target_modules: targetModules,
+                rebuild_config: {
+                    auto_deploy: autoDeploy,
+                    auto_rollback: autoRollback
+                }
+            };
+
+            fetch('/api/rebuild/trigger', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.job_id) {
+                    showAlert('Rebuild triggered successfully!', 'success');
+                    loadHistory();
+                } else {
+                    showAlert('Failed to trigger rebuild', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error triggering rebuild:', error);
+                showAlert('Error triggering rebuild', 'error');
+            });
+        }
+
+        function viewRebuildDetails(jobId) {
+            fetch(`/api/rebuild/job/${jobId}`)
+                .then(response => response.json())
+                .then(job => {
+                    const modal = new bootstrap.Modal(document.getElementById('rebuildDetailsModal'));
+                    document.getElementById('rebuild-details-content').innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Job Information</h6>
+                                <p><strong>Job ID:</strong> ${job.job_id}</p>
+                                <p><strong>Trigger:</strong> ${job.trigger}</p>
+                                <p><strong>Status:</strong> <span class="status-badge status-${job.status}">${job.status}</span></p>
+                                <p><strong>Created:</strong> ${new Date(job.created_at).toLocaleString()}</p>
+                                <p><strong>Started:</strong> ${job.started_at ? new Date(job.started_at).toLocaleString() : 'Not started'}</p>
+                                <p><strong>Completed:</strong> ${job.completed_at ? new Date(job.completed_at).toLocaleString() : 'Not completed'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Target Modules</h6>
+                                <ul>
+                                    ${job.target_modules.map(module => `<li>${module}</li>`).join('')}
+                                </ul>
+                                
+                                <h6>Configuration</h6>
+                                <ul>
+                                    <li>Auto Deploy: ${job.rebuild_config.auto_deploy ? 'Yes' : 'No'}</li>
+                                    <li>Auto Rollback: ${job.rebuild_config.auto_rollback ? 'Yes' : 'No'}</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        ${job.diff_summary ? `
+                        <div class="mt-3">
+                            <h6>Diff Summary</h6>
+                            <p><strong>Changed Modules:</strong> ${job.diff_summary.changed_modules.join(', ')}</p>
+                            <p><strong>Impact Score:</strong> ${job.diff_summary.impact_score}</p>
+                            <p><strong>System Hash Changed:</strong> ${job.diff_summary.system_hash_changed ? 'Yes' : 'No'}</p>
+                        </div>
+                        ` : ''}
+                    `;
+                    modal.show();
+                })
+                .catch(error => {
+                    console.error('Error loading rebuild details:', error);
+                });
+        }
+
+        function viewTestResults(jobId) {
+            fetch(`/api/rebuild/job/${jobId}`)
+                .then(response => response.json())
+                .then(job => {
+                    const modal = new bootstrap.Modal(document.getElementById('testResultsModal'));
+                    document.getElementById('test-results-content').innerHTML = `
+                        <h6>Test Results for Job ${job.job_id.substring(0, 8)}...</h6>
+                        ${Object.entries(job.test_results).map(([testType, result]) => `
+                            <div class="test-result test-${result.status}">
+                                <strong>${testType}</strong>: ${result.status}
+                                ${result.passed ? `<br>Passed: ${result.passed}` : ''}
+                                ${result.failed ? `<br>Failed: ${result.failed}` : ''}
+                                ${result.error ? `<br>Error: ${result.error}` : ''}
+                            </div>
+                        `).join('')}
+                    `;
+                    modal.show();
+                })
+                .catch(error => {
+                    console.error('Error loading test results:', error);
+                });
+        }
+
+        function viewDiffs(jobId) {
+            fetch(`/api/rebuild/diffs/${jobId}`)
+                .then(response => response.json())
+                .then(diffs => {
+                    const modal = new bootstrap.Modal(document.getElementById('diffViewerModal'));
+                    document.getElementById('diff-content').innerHTML = `
+                        <h6>Diffs for Job ${jobId.substring(0, 8)}...</h6>
+                        ${diffs.map(diff => `
+                            <div class="mb-3">
+                                <strong>${diff.file_path}</strong> (${diff.change_type})
+                                <div class="diff-viewer">
+                                    <pre>${diff.diff_content}</pre>
+                                </div>
+                            </div>
+                        `).join('')}
+                    `;
+                    modal.show();
+                })
+                .catch(error => {
+                    console.error('Error loading diffs:', error);
+                });
+        }
+
+        function createSnapshot() {
+            fetch('/api/rebuild/snapshot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.snapshot_id) {
+                    showAlert('Snapshot created successfully!', 'success');
+                    loadSnapshots();
+                } else {
+                    showAlert('Failed to create snapshot', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating snapshot:', error);
+                showAlert('Error creating snapshot', 'error');
+            });
+        }
+
+        function calculateDuration(started, completed) {
+            if (!started || !completed) return 'N/A';
+            
+            const start = new Date(started);
+            const end = new Date(completed);
+            const diff = end - start;
+            
+            const minutes = Math.floor(diff / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            
+            return `${minutes}m ${seconds}s`;
+        }
+
+        function refreshOverview() {
+            loadOverview();
+        }
+
+        function refreshHistory() {
+            loadHistory();
+        }
+
+        function exportHistory() {
+            fetch('/api/rebuild/export-history')
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'rebuild_history.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                })
+                .catch(error => {
+                    console.error('Error exporting history:', error);
+                });
+        }
+
+        function showAlert(message, type) {
+            // Simple alert implementation
+            alert(message);
+        }
+
+        // Auto-refresh data every 30 seconds
+        setInterval(loadDashboardData, 30000);
+    </script>
+</body>
+</html>

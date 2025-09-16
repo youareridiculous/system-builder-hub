@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluation Lab Dashboard - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .metric-card {
+            border-left: 4px solid #007bff;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        .metric-card.success {
+            border-left-color: #28a745;
+        }
+        .metric-card.warning {
+            border-left-color: #ffc107;
+        }
+        .metric-card.danger {
+            border-left-color: #dc3545;
+        }
+        .status-badge {
+            font-size: 0.8em;
+        }
+        .progress-thin {
+            height: 6px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="row bg-primary text-white p-3 mb-4">
+            <div class="col">
+                <h1><i class="bi bi-graph-up"></i> Evaluation Lab Dashboard</h1>
+                <p class="mb-0">Monitor and analyze evaluation results</p>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-light" onclick="refreshData()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Metrics Overview -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title text-muted">Total Runs</h6>
+                                <h3 id="total-runs">-</h3>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-play-circle text-primary" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card success">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title text-muted">Success Rate</h6>
+                                <h3 id="success-rate">-</h3>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card warning">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title text-muted">Avg Latency</h6>
+                                <h3 id="avg-latency">-</h3>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-speedometer2 text-warning" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card danger">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title text-muted">Total Cost</h6>
+                                <h3 id="total-cost">-</h3>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-currency-dollar text-danger" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-graph-up"></i> Pass Rate Trend</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="passRateChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-speedometer2"></i> Latency Trend</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="latencyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Runs -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="bi bi-clock-history"></i> Recent Evaluation Runs</h5>
+                        <button class="btn btn-primary btn-sm" onclick="createNewRun()">
+                            <i class="bi bi-plus"></i> New Run
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Run ID</th>
+                                        <th>Suite</th>
+                                        <th>Status</th>
+                                        <th>Pass Rate</th>
+                                        <th>Latency</th>
+                                        <th>Cost</th>
+                                        <th>Started</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="runs-table-body">
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted">
+                                            <i class="bi bi-hourglass-split"></i> Loading...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Run Modal -->
+        <div class="modal fade" id="newRunModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create New Evaluation Run</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="newRunForm">
+                            <div class="mb-3">
+                                <label for="suiteSelect" class="form-label">Evaluation Suite</label>
+                                <select class="form-select" id="suiteSelect" required>
+                                    <option value="">Select a suite...</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="privacyMode" class="form-label">Privacy Mode</label>
+                                <select class="form-select" id="privacyMode" required>
+                                    <option value="private_cloud">Private Cloud</option>
+                                    <option value="local_only">Local Only</option>
+                                    <option value="byo_keys">BYO Keys</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="environment" class="form-label">Environment</label>
+                                <select class="form-select" id="environment" required>
+                                    <option value="test">Test</option>
+                                    <option value="staging">Staging</option>
+                                    <option value="production">Production</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="submitNewRun()">Create Run</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Global variables
+        let passRateChart, latencyChart;
+        let currentData = {};
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSuites();
+            refreshData();
+            initializeCharts();
+        });
+
+        // Load available suites
+        async function loadSuites() {
+            try {
+                const response = await fetch('/api/v1/eval-lab/suites');
+                const data = await response.json();
+                
+                const suiteSelect = document.getElementById('suiteSelect');
+                suiteSelect.innerHTML = '<option value="">Select a suite...</option>';
+                
+                data.data.forEach(suite => {
+                    const option = document.createElement('option');
+                    option.value = suite.name;
+                    option.textContent = `${suite.name} - ${suite.description}`;
+                    suiteSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading suites:', error);
+            }
+        }
+
+        // Refresh dashboard data
+        async function refreshData() {
+            try {
+                // Load metrics
+                const metricsResponse = await fetch('/api/v1/eval-lab/metrics');
+                const metricsData = await metricsResponse.json();
+                
+                // Load recent runs
+                const runsResponse = await fetch('/api/v1/eval-lab/runs');
+                const runsData = await runsResponse.json();
+                
+                updateMetrics(metricsData.data);
+                updateRunsTable(runsData.data);
+                updateCharts(runsData.data);
+                
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+            }
+        }
+
+        // Update metrics display
+        function updateMetrics(metrics) {
+            document.getElementById('total-runs').textContent = metrics.total_runs || 0;
+            document.getElementById('success-rate').textContent = 
+                metrics.avg_pass_rate ? `${(metrics.avg_pass_rate * 100).toFixed(1)}%` : 'N/A';
+            document.getElementById('avg-latency').textContent = 
+                metrics.avg_latency_ms ? `${metrics.avg_latency_ms.toFixed(0)}ms` : 'N/A';
+            document.getElementById('total-cost').textContent = 
+                metrics.total_cost_usd ? `$${metrics.total_cost_usd.toFixed(2)}` : 'N/A';
+        }
+
+        // Update runs table
+        function updateRunsTable(runs) {
+            const tbody = document.getElementById('runs-table-body');
+            
+            if (runs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">
+                            <i class="bi bi-inbox"></i> No evaluation runs found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = runs.map(run => `
+                <tr>
+                    <td><code>${run.id}</code></td>
+                    <td>${run.suite_name}</td>
+                    <td>
+                        <span class="badge status-badge bg-${getStatusColor(run.status)}">
+                            ${run.status}
+                        </span>
+                    </td>
+                    <td>
+                        ${run.pass_rate ? `${(run.pass_rate * 100).toFixed(1)}%` : 'N/A'}
+                    </td>
+                    <td>${run.avg_latency_ms ? `${run.avg_latency_ms.toFixed(0)}ms` : 'N/A'}</td>
+                    <td>${run.total_cost_usd ? `$${run.total_cost_usd.toFixed(2)}` : 'N/A'}</td>
+                    <td>${formatDate(run.started_at)}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="viewRun('${run.id}')">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="downloadReport('${run.id}')">
+                                <i class="bi bi-download"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Initialize charts
+        function initializeCharts() {
+            const passRateCtx = document.getElementById('passRateChart').getContext('2d');
+            const latencyCtx = document.getElementById('latencyChart').getContext('2d');
+            
+            passRateChart = new Chart(passRateCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Pass Rate (%)',
+                        data: [],
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+            
+            latencyChart = new Chart(latencyCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Latency (ms)',
+                        data: [],
+                        borderColor: '#ffc107',
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update charts with new data
+        function updateCharts(runs) {
+            const sortedRuns = runs.sort((a, b) => new Date(a.started_at) - new Date(b.started_at));
+            
+            const labels = sortedRuns.map(run => formatDate(run.started_at, true));
+            const passRates = sortedRuns.map(run => run.pass_rate ? run.pass_rate * 100 : 0);
+            const latencies = sortedRuns.map(run => run.avg_latency_ms || 0);
+            
+            // Update pass rate chart
+            passRateChart.data.labels = labels;
+            passRateChart.data.datasets[0].data = passRates;
+            passRateChart.update();
+            
+            // Update latency chart
+            latencyChart.data.labels = labels;
+            latencyChart.data.datasets[0].data = latencies;
+            latencyChart.update();
+        }
+
+        // Utility functions
+        function getStatusColor(status) {
+            switch (status) {
+                case 'completed': return 'success';
+                case 'running': return 'primary';
+                case 'failed': return 'danger';
+                default: return 'secondary';
+            }
+        }
+
+        function formatDate(dateString, short = false) {
+            const date = new Date(dateString);
+            if (short) {
+                return date.toLocaleDateString();
+            }
+            return date.toLocaleString();
+        }
+
+        // Action functions
+        function createNewRun() {
+            const modal = new bootstrap.Modal(document.getElementById('newRunModal'));
+            modal.show();
+        }
+
+        async function submitNewRun() {
+            const suiteName = document.getElementById('suiteSelect').value;
+            const privacyMode = document.getElementById('privacyMode').value;
+            const environment = document.getElementById('environment').value;
+            
+            if (!suiteName) {
+                alert('Please select a suite');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/v1/eval-lab/runs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        suite_name: suiteName,
+                        privacy_mode: privacyMode,
+                        environment: environment
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('newRunModal')).hide();
+                    alert(`Evaluation run created: ${data.data.run_id}`);
+                    refreshData();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('Error creating run:', error);
+                alert('Error creating evaluation run');
+            }
+        }
+
+        function viewRun(runId) {
+            window.open(`/eval-lab/runs/${runId}`, '_blank');
+        }
+
+        async function downloadReport(runId) {
+            try {
+                const response = await fetch(`/api/v1/eval-lab/runs/${runId}/report`);
+                const data = await response.json();
+                
+                const blob = new Blob([JSON.stringify(data.data, null, 2)], {
+                    type: 'application/json'
+                });
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `eval-report-${runId}.json`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Error downloading report:', error);
+                alert('Error downloading report');
+            }
+        }
+    </script>
+</body>
+</html>

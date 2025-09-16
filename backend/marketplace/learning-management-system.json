@@ -1,0 +1,98 @@
+{
+  "slug": "learning-management-system",
+  "name": "Learning Management System",
+  "description": "Complete LMS for online learning with courses, lessons, enrollments, assessments, and certificates.",
+  "category": "Education",
+  "tags": ["lms", "education", "courses", "assessments", "certificates"],
+  "badges": ["Multi-tenant", "Stripe", "S3", "RBAC", "Assessments"],
+  "version": "1.0.0",
+  "author": "SBH Team",
+  "repository": "https://github.com/sbh/lms",
+  "documentation": "/ui/docs/lms",
+  "screenshots": [
+    "/marketplace/assets/lms/dashboard.png",
+    "/marketplace/assets/lms/courses.png",
+    "/marketplace/assets/lms/assessments.png"
+  ],
+  "demo_video_url": "https://example.com/lms-demo",
+  "features": [
+    "Course Management",
+    "Lesson Creation",
+    "Student Enrollment",
+    "Assessment Engine",
+    "Certificate Generation",
+    "Progress Tracking",
+    "Payment Processing",
+    "Multi-tenant RBAC"
+  ],
+  "plans": {
+    "starter": {
+      "name": "Starter",
+      "price": 0,
+      "features": ["Up to 10 courses", "Basic assessments", "Email support"]
+    },
+    "pro": {
+      "name": "Pro",
+      "price": 79,
+      "features": ["Unlimited courses", "Advanced assessments", "Certificates", "Priority support"]
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": 299,
+      "features": ["Custom branding", "API access", "Dedicated support"]
+    }
+  },
+  "guided_prompt_schema": {
+    "role": {"type": "string", "required": true},
+    "context": {"type": "string", "required": true},
+    "task": {"type": "string", "required": true},
+    "audience": {"type": "string", "required": true},
+    "output": {"type": "string", "required": true}
+  },
+  "rbac_matrix": {
+    "owner": ["read", "write", "admin"],
+    "admin": ["read", "write"],
+    "member": ["read", "write"],
+    "viewer": ["read"]
+  },
+  "api_endpoints": [
+    {"method": "GET", "path": "/api/courses", "description": "List courses"},
+    {"method": "POST", "path": "/api/courses", "description": "Create course"},
+    {"method": "GET", "path": "/api/enrollments", "description": "List enrollments"},
+    {"method": "POST", "path": "/api/enrollments", "description": "Create enrollment"}
+  ],
+  "ui_routes": [
+    {"path": "/ui/courses", "name": "Courses", "description": "Course management"},
+    {"path": "/ui/students", "name": "Students", "description": "Student management"},
+    {"path": "/ui/assessments", "name": "Assessments", "description": "Assessment management"}
+  ],
+  "dependencies": [],
+  "conflicts": [],
+  "installation": {
+    "type": "marketplace",
+    "steps": ["Select plan", "Configure settings", "Launch template"]
+  },
+  "configuration": {
+    "max_courses": {"type": "integer", "default": 100},
+    "enable_assessments": {"type": "boolean", "default": true},
+    "certificate_enabled": {"type": "boolean", "default": false}
+  },
+  "examples": [
+    {
+      "name": "Corporate Training",
+      "description": "Configure for corporate training with assessments",
+      "config": {"max_courses": 50, "enable_assessments": true}
+    }
+  ],
+  "support": {
+    "documentation": "/ui/docs/lms",
+    "community": "https://community.sbh.com",
+    "email": "support@sbh.com"
+  },
+  "changelog": [
+    {"version": "1.0.0", "date": "2024-01-01", "changes": ["Initial release"]}
+  ],
+  "is_active": true,
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
+}

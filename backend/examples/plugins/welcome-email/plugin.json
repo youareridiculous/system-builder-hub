@@ -1,0 +1,28 @@
+{
+  "slug": "welcome-email",
+  "name": "Welcome Email",
+  "version": "1.0.0",
+  "description": "Sends welcome emails to new users and daily digest emails",
+  "author": "SBH Team",
+  "entry": "main.py",
+  "permissions": [
+    "send_email",
+    "read_users",
+    "emit_webhook"
+  ],
+  "routes": true,
+  "events": [
+    "auth.user.created"
+  ],
+  "jobs": [
+    {
+      "name": "daily_digest",
+      "schedule": "0 8 * * *",
+      "description": "Send daily digest email to users"
+    }
+  ],
+  "secrets": [
+    "WELCOME_EMAIL_TEMPLATE",
+    "DIGEST_EMAIL_TEMPLATE"
+  ]
+}

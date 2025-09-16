@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - System Builder Hub</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(180deg, #5a66ff 0%, #6a4cd9 50%, #7a3cc4 100%);
+            --surface: rgba(255, 255, 255, 0.06);
+            --text: #e9ecf1;
+            --text-muted: #b8bfd1;
+            --accent: #8b5cf6;
+            --focus: 2px solid #a78bfa;
+            --radius: 16px;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .back-link {
+            background: var(--surface);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .content {
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            padding: 32px;
+            box-shadow: var(--shadow);
+        }
+
+        .title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .description {
+            font-size: 1.125rem;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .coming-soon {
+            text-align: center;
+            padding: 48px 24px;
+        }
+
+        .coming-soon-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+            opacity: 0.7;
+        }
+
+        .coming-soon-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .coming-soon-description {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .feature-status {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        .feature-status.beta {
+            background: #f59e0b;
+        }
+
+        .feature-status.security {
+            background: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <a href="/" class="header-brand">
+                🧠 System Builder Hub
+            </a>
+            <a href="/" class="back-link">← Back to Dashboard</a>
+        </header>
+
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found - System Builder Hub</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(180deg, #5a66ff 0%, #6a4cd9 50%, #7a3cc4 100%);
+            --surface: rgba(255, 255, 255, 0.06);
+            --text: #e9ecf1;
+            --text-muted: #b8bfd1;
+            --accent: #8b5cf6;
+            --focus: 2px solid #a78bfa;
+            --radius: 16px;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            color: var(--text);
+            line-height: 1.6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .error-card {
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            padding: 48px 32px;
+            box-shadow: var(--shadow);
+        }
+
+        .error-code {
+            font-size: 6rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 16px;
+            line-height: 1;
+        }
+
+        .error-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .error-description {
+            font-size: 1.125rem;
+            color: var(--text-muted);
+            margin-bottom: 32px;
+        }
+
+        .back-button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+        .back-button:hover {
+            background: #a78bfa;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .help-text {
+            margin-top: 24px;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .suggestions {
+            margin-top: 24px;
+            text-align: left;
+        }
+
+        .suggestions h3 {
+            font-size: 1rem;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .suggestions ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .suggestions li {
+            padding: 4px 0;
+            color: var(--text-muted);
+        }
+
+        .suggestions li:before {
+            content: "•";
+            color: var(--accent);
+            font-weight: bold;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-card">
+            <div class="error-code">404</div>
+            <h1 class="error-title">Page Not Found</h1>
+            <p class="error-description">
+                The page you're looking for doesn't exist or has been moved.
+            </p>
+            <a href="/" class="back-button">← Back to Dashboard</a>
+            
+            <div class="suggestions">
+                <h3>Try these instead:</h3>
+                <ul>
+                    <li><a href="/" style="color: var(--accent); text-decoration: none;">Dashboard</a> - Main hub for all features</li>
+                    <li><a href="/feature/start-build" style="color: var(--accent); text-decoration: none;">Start a Build</a> - Create new systems</li>
+                    <li><a href="/feature/open-preview" style="color: var(--accent); text-decoration: none;">Open Preview</a> - Test your systems</li>
+                    <li><a href="/feature/create-brain" style="color: var(--accent); text-decoration: none;">Create Brain</a> - Build AI agents</li>
+                </ul>
+            </div>
+            
+            <div class="help-text">
+                If you believe this is an error, please contact support.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

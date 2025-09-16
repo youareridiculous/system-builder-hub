@@ -1,0 +1,245 @@
+name: Build and Deploy Phase-3
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - staging
+        - prod
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::776567512687:role/GitHubActions-SBH-Deploy
+        aws-region: us-west-2
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and push Docker image
+      id: build-push
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        platforms: linux/arm64
+        push: true
+        tags: |
+          776567512687.dkr.ecr.us-west-2.amazonaws.com/sbh-repo-dev:phase3-${{ github.run_number }}
+          776567512687.dkr.ecr.us-west-2.amazonaws.com/sbh-repo-dev:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Verify image manifest
+      run: |
+        echo "Verifying ARM64 image..."
+        aws ecr describe-images --repository-name sbh-repo-dev --image-ids imageTag=phase3-${{ github.run_number }} --region us-west-2
+        
+        # Get image size
+        IMAGE_SIZE=$(aws ecr describe-images --repository-name sbh-repo-dev --image-ids imageTag=phase3-${{ github.run_number }} --region us-west-2 --query 'imageDetails[0].imageSizeInBytes' --output text)
+        echo "Image size: $IMAGE_SIZE bytes"
+        
+        # Verify minimum size (should be > 10MB for our app)
+        if [ "$IMAGE_SIZE" -lt 10485760 ]; then
+          echo "❌ Image too small: $IMAGE_SIZE bytes (expected > 10MB)"
+          exit 1
+        fi
+        
+        echo "✅ Image verification passed: $IMAGE_SIZE bytes"
+
+    - name: Create new task definition
+      id: create-task-def
+      run: |
+        # Get current task definition
+        CURRENT_TD=$(aws ecs describe-task-definition --task-definition sbh-task-dev --region us-west-2 --query 'taskDefinition')
+        
+        # Update image URI
+        NEW_TD=$(echo "$CURRENT_TD" | jq --arg image "776567512687.dkr.ecr.us-west-2.amazonaws.com/sbh-repo-dev:phase3-${{ github.run_number }}" '.containerDefinitions[0].image = $image')
+        
+        # Remove fields that can't be in register-task-definition
+        CLEAN_TD=$(echo "$NEW_TD" | jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+        
+        # Save to file
+        echo "$CLEAN_TD" > new_task_def.json
+        
+        # Register new task definition
+        NEW_REVISION=$(aws ecs register-task-definition --cli-input-json file://new_task_def.json --region us-west-2 --query 'taskDefinition.revision' --output text)
+        echo "revision=$NEW_REVISION" >> $GITHUB_OUTPUT
+        echo "New task definition revision: $NEW_REVISION"
+
+    - name: Deploy to ECS
+      run: |
+        aws ecs update-service \
+          --cluster sbh-cluster-dev \
+          --service sbh-service-dev \
+          --task-definition sbh-task-dev:${{ steps.create-task-def.outputs.revision }} \
+          --region us-west-2
+
+    - name: Wait for deployment
+      run: |
+        echo "Waiting for service to stabilize..."
+        aws ecs wait services-stable \
+          --cluster sbh-cluster-dev \
+          --services sbh-service-dev \
+          --region us-west-2
+        echo "✅ Deployment completed successfully"
+
+    - name: Verify health endpoint
+      run: |
+        echo "Checking health endpoint..."
+        for i in {1..30}; do
+          HEALTH=$(curl -s https://sbh.umbervale.com/api/health | jq -r '.ok // false')
+          if [ "$HEALTH" = "true" ]; then
+            echo "✅ Health check passed"
+            break
+          fi
+          echo "Attempt $i: Health check failed, retrying in 10 seconds..."
+          sleep 10
+        done
+        
+        if [ "$HEALTH" != "true" ]; then
+          echo "❌ Health check failed after 30 attempts"
+          exit 1
+        fi
+
+    - name: Apply database schema
+      run: |
+        echo "Applying database schema..."
+        
+        # Try to call the migration endpoint
+        MIGRATION_RESULT=$(curl -s -X POST https://sbh.umbervale.com/api/migrate/up || echo "endpoint_not_found")
+        
+        if [ "$MIGRATION_RESULT" = "endpoint_not_found" ]; then
+          echo "Migration endpoint not found, trying schema fix endpoint..."
+          SCHEMA_RESULT=$(curl -s -X POST https://sbh.umbervale.com/api/fix-db-schema || echo "endpoint_not_found")
+          
+          if [ "$SCHEMA_RESULT" = "endpoint_not_found" ]; then
+            echo "❌ No migration endpoints available"
+            exit 1
+          else
+            echo "✅ Schema fix endpoint called successfully"
+          fi
+        else
+          echo "✅ Migration endpoint called successfully"
+        fi
+
+    - name: Verify Phase-3 functionality
+      run: |
+        echo "Verifying Phase-3 APIs..."
+        
+        # Test conversation creation
+        CONV_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/memory/conversations \
+          -H "Content-Type: application/json" \
+          -H "X-User-Email: test@example.com" \
+          -H "X-Tenant: demo" \
+          -d '{"title": "Test Conversation"}' || echo "failed")
+        
+        if [ "$CONV_RESPONSE" = "failed" ]; then
+          echo "❌ Conversation creation failed"
+          exit 1
+        fi
+        
+        CONV_ID=$(echo "$CONV_RESPONSE" | jq -r '.id // empty')
+        if [ -z "$CONV_ID" ]; then
+          echo "❌ No conversation ID returned"
+          exit 1
+        fi
+        
+        echo "✅ Conversation created with ID: $CONV_ID"
+        
+        # Test message creation
+        MSG_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/memory/conversations/$CONV_ID/messages \
+          -H "Content-Type: application/json" \
+          -H "X-User-Email: test@example.com" \
+          -H "X-Tenant: demo" \
+          -d '{"role": "user", "content": {"text": "Hello, world!"}}' || echo "failed")
+        
+        if [ "$MSG_RESPONSE" = "failed" ]; then
+          echo "❌ Message creation failed"
+          exit 1
+        fi
+        
+        echo "✅ Message created successfully"
+        
+        # Test spec creation
+        SPEC_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/specs \
+          -H "Content-Type: application/json" \
+          -H "X-User-Email: test@example.com" \
+          -H "X-Tenant: demo" \
+          -d '{"title": "Test Spec", "plan_manifest": {"type": "website"}, "repo_skeleton": {"files": []}}' || echo "failed")
+        
+        if [ "$SPEC_RESPONSE" = "failed" ]; then
+          echo "❌ Spec creation failed"
+          exit 1
+        fi
+        
+        SPEC_ID=$(echo "$SPEC_RESPONSE" | jq -r '.id // empty')
+        if [ -z "$SPEC_ID" ]; then
+          echo "❌ No spec ID returned"
+          exit 1
+        fi
+        
+        echo "✅ Spec created with ID: $SPEC_ID"
+        
+        # Test build creation
+        BUILD_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/builds \
+          -H "Content-Type: application/json" \
+          -H "X-User-Email: test@example.com" \
+          -H "X-Tenant: demo" \
+          -d "{\"spec_id\": \"$SPEC_ID\"}" || echo "failed")
+        
+        if [ "$BUILD_RESPONSE" = "failed" ]; then
+          echo "❌ Build creation failed"
+          exit 1
+        fi
+        
+        BUILD_ID=$(echo "$BUILD_RESPONSE" | jq -r '.build_id // empty')
+        if [ -z "$BUILD_ID" ]; then
+          echo "❌ No build ID returned"
+          exit 1
+        fi
+        
+        echo "✅ Build created with ID: $BUILD_ID"
+
+    - name: Final health check
+      run: |
+        echo "Final health check..."
+        HEALTH_RESPONSE=$(curl -s https://sbh.umbervale.com/api/health)
+        echo "$HEALTH_RESPONSE" | jq .
+        
+        # Check that all subsystems are healthy
+        DB_STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.database.status')
+        PM_STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.persistent_memory.status')
+        STORAGE_STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.storage.status')
+        
+        if [ "$DB_STATUS" != "healthy" ] || [ "$PM_STATUS" != "healthy" ] || [ "$STORAGE_STATUS" != "healthy" ]; then
+          echo "❌ Not all subsystems are healthy:"
+          echo "  Database: $DB_STATUS"
+          echo "  Persistent Memory: $PM_STATUS"
+          echo "  Storage: $STORAGE_STATUS"
+          exit 1
+        fi
+        
+        echo "✅ All subsystems are healthy!"

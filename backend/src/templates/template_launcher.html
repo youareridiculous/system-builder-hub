@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🚀 Template Launcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e9ecef;
+            background: white;
+            color: #495057;
+            text-decoration: none;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .filter-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .filter-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .clear-btn {
+            background: #6c757d;
+            color: white;
+            border-color: #6c757d;
+        }
+        
+        .clear-btn:hover {
+            background: #5a6268;
+            border-color: #5a6268;
+            color: white;
+        }
+        
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        
+        .template {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .template:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+        
+        .template.favorite {
+            border-color: #ffc107;
+            background: linear-gradient(135deg, #fff9c4 0%, #fff59d 100%);
+        }
+        
+        .star {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            cursor: pointer;
+            font-size: 24px;
+            color: #ffc107;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .star:hover {
+            transform: scale(1.2);
+        }
+        
+        .template h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding-right: 40px;
+        }
+        
+        .preview {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            color: #495057;
+        }
+        
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 15px 0;
+        }
+        
+        .tag {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 15px;
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            border: 1px solid #bbdefb;
+        }
+        
+        .tag.frontend { background: #e8f5e8; color: #2e7d32; border-color: #c8e6c9; }
+        .tag.backend { background: #fff3e0; color: #f57c00; border-color: #ffcc02; }
+        .tag.AI { background: #f3e5f5; color: #7b1fa2; border-color: #ce93d8; }
+        .tag.utils { background: #e0f2f1; color: #00695c; border-color: #80cbc4; }
+        .tag.infra { background: #fce4ec; color: #c2185b; border-color: #f8bbd9; }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .download-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+        
+        .no-templates {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .no-templates h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        @media (max-width: 768px) {
+            .templates-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .filters {
+                flex-direction: column;
+            }
+        }
+    </style>
+    <script>
+        function toggleFavorite(filename, icon) {
+            fetch('/toggle-favorite/' + filename, { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        const template = icon.closest('.template');
+                        const isFavorite = icon.textContent === '★';
+                        
+                        icon.textContent = isFavorite ? '☆' : '★';
+                        
+                        if (isFavorite) {
+                            template.classList.remove('favorite');
+                        } else {
+                            template.classList.add('favorite');
+                        }
+                        
+                        // Add a subtle animation
+                        icon.style.transform = 'scale(1.3)';
+                        setTimeout(() => {
+                            icon.style.transform = 'scale(1)';
+                        }, 200);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error toggling favorite:', error);
+                    alert('Failed to update favorite status');
+                });
+        }
+        
+        // Add smooth scrolling for better UX
+        document.addEventListener('DOMContentLoaded', function() {
+            const links = document.querySelectorAll('a[href^="#"]');
+            links.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Template Launcher</h1>
+            <p>Browse, filter, and favorite your reusable code patterns</p>
+        </div>
+        
+        <div class="content">
+            <div class="stats">
+                <span>📁 {{ templates|length }} template{{ 's' if templates|length != 1 else '' }} found</span>
+                <span>🏷️ {{ tags|length }} tag{{ 's' if tags|length != 1 else '' }} available</span>
+            </div>
+            
+            <div class="filters">
+                <a href="{{ url_for('template_launcher.template_launcher_view', favorites='true') }}" 
+                   class="filter-btn {{ 'selected' if show_favorites_only else '' }}">⭐ Favorites Only</a>
+                {% for tag in tags %}
+                    <a href="{{ url_for('template_launcher.template_launcher_view', tag=tag) }}"
+                       class="filter-btn {{ 'selected' if tag == selected_tag else '' }}">🏷️ {{ tag }}</a>
+                {% endfor %}
+                <a href="{{ url_for('template_launcher.template_launcher_view') }}" class="filter-btn clear-btn">🗑️ Clear Filters</a>
+            </div>
+            
+            {% if templates %}
+                <div class="templates-grid">
+                    {% for template in templates %}
+                    <div class="template {{ 'favorite' if template.favorite else '' }}">
+                        <span class="star" onclick="toggleFavorite('{{ template.filename }}', this)" title="{{ 'Remove from favorites' if template.favorite else 'Add to favorites' }}">
+                            {{ '★' if template.favorite else '☆' }}
+                        </span>
+                        <h3>{{ template.filename }}</h3>
+                        <div class="preview">{{ template.preview }}</div>
+                        <div class="tags">
+                            {% for tag in template.tags %}
+                                <span class="tag {{ tag.lower() }}">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="actions">
+                            <a href="{{ url_for('template_launcher.download_template', filename=template.filename) }}" 
+                               class="download-btn" download title="Download template">
+                                ⬇️ Download
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-templates">
+                    <h3>📭 No templates found</h3>
+                    <p>{{ 'No templates match the selected filter.' if selected_tag else 'Add some template files to get started!' }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

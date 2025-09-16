@@ -1,0 +1,42 @@
+# SBH Terraform Variables Example - Phase 1 Cloud Migration
+# Copy this file to terraform.tfvars and update with your actual values
+
+# =============================================================================
+# REQUIRED VARIABLES
+# =============================================================================
+
+# AWS Configuration
+aws_region = "us-east-1"
+environment = "dev"
+project_name = "sbh"
+
+# Database Configuration
+db_username = "sbh_user"
+db_password = "your-secure-database-password-here"
+
+# OpenAI Configuration
+openai_api_key = "your-openai-api-key-here"
+
+# Flask Configuration
+secret_key = "your-flask-secret-key-here"
+
+# =============================================================================
+# OPTIONAL VARIABLES
+# =============================================================================
+
+# Database Configuration
+db_instance_class = "db.t3.micro"
+db_allocated_storage = 20
+db_max_allocated_storage = 100
+
+# Security Configuration
+enable_deletion_protection = false
+backup_retention_period = 7
+
+# Additional Tags
+tags = {
+  Owner       = "your-name"
+  Project     = "sbh"
+  Environment = "dev"
+  ManagedBy   = "terraform"
+}

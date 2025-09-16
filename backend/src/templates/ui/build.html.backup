@@ -1,0 +1,1037 @@
+{% extends "ui/base.html" %}
+
+{% block content %}
+<div class="build-wizard">
+    <h1 class="title">Start a Build</h1>
+    <p class="description">Create a new system from scratch or use a template</p>
+    
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-button active" data-tab="quick-start" data-testid="tab-quick-start">
+            <span class="tab-icon">⚡</span>
+            Quick Start
+        </button>
+        <button class="tab-button" data-tab="guided" data-testid="tab-guided">
+            <span class="tab-icon">🤖</span>
+            Guided Build
+        </button>
+    </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>    
+    <!-- Quick Start Tab -->
+    <div class="tab-content active" id="quick-start-tab" data-testid="quick-start-content">
+        <div class="form-section">
+            <h3>Project Details</h3>
+            <div class="form-group">
+                <label for="project-name">Project Name *</label>
+                <input type="text" id="project-name" name="name" placeholder="My Awesome App" required>
+            </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>            <div class="form-group">
+                <label for="project-description">Description</label>
+                <textarea id="project-description" name="description" placeholder="Describe your project..."></textarea>
+            </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>        </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>        
+        <div class="form-section">
+            <h3>Choose Template (Optional)</h3>
+            <div class="template-grid" id="template-grid">
+                <!-- Templates will be loaded here -->
+            </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>        </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>        
+        <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="window.history.back()">Cancel</button>
+            <button type="button" class="btn-primary" id="start-build-btn" data-testid="start-build-btn">
+                Start Building
+            </button>
+        </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>    </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>    
+    <!-- Guided Tab -->
+    <div class="tab-content" id="guided-tab" data-testid="guided-content">
+        <div class="form-section">
+            <h3>Describe Your System</h3>
+            <p class="help-text">Tell us what you want to build and we'll guide you through the process.</p>
+            <div class="form-group">
+                <label for="guided-prompt">What would you like to build? *</label>
+                <textarea id="guided-prompt" name="initial_prompt" placeholder="I want to build a task management app with user authentication, task creation, and progress tracking..." required rows="6"></textarea>
+            </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>        </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>        
+        <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="window.history.back()">Cancel</button>
+            <button type="button" class="btn-primary" id="start-guided-btn" data-testid="start-guided-btn">
+                Start Guided Build
+            </button>
+        </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>    </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div></div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>
+<style>
+.build-wizard {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 32px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 16px;
+}
+
+.tab-button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+}
+
+.tab-button.active {
+    background: var(--accent);
+    color: white;
+}
+
+.tab-icon {
+    font-size: 1.2rem;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.form-section {
+    margin-bottom: 32px;
+}
+
+.form-section h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.help-text {
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    font-size: 0.875rem;
+}
+
+.template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.template-card {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.template-card:hover {
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-2px);
+}
+
+.template-card.selected {
+    border-color: var(--accent);
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.template-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.template-icon {
+    font-size: 1.5rem;
+}
+
+.template-name {
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+.template-description {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.template-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.template-complexity {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.template-time {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-primary,
+.btn-secondary {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #a78bfa;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid transparent;
+    border-top: 2px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error-message {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    display: none;
+}
+
+.success-message {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #86efac;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    display: none;
+}
+</style>
+
+<script>
+let selectedTemplate = null;
+let templates = [];
+
+// Initialize build wizard
+document.addEventListener('DOMContentLoaded', function() {
+    initializeTabs();
+    loadTemplates();
+    initializeFormHandlers();
+});
+
+function initializeTabs() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+            
+            // Update active tab button
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update active tab content
+            tabContents.forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        });
+    });
+}
+
+async function loadTemplates() {
+    try {
+        const response = await fetch('/ui/api/build/templates');
+        const data = await response.json();
+        templates = data.templates;
+        renderTemplates();
+    } catch (error) {
+        console.error('Failed to load templates:', error);
+        showError('Failed to load templates. Please try again.');
+    }
+}
+
+function renderTemplates() {
+    const templateGrid = document.getElementById('template-grid');
+    
+    if (templates.length === 0) {
+        templateGrid.innerHTML = '<p class="help-text">No templates available</p>';
+        return;
+    }
+    
+    templateGrid.innerHTML = templates.map(template => `
+        <div class="template-card" data-slug="${template.slug}" onclick="selectTemplate('${template.slug}')">
+            <div class="template-header">
+                <span class="template-icon">📋</span>
+                <h4 class="template-name">${template.name}</h4>
+            </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>            <p class="template-description">${template.description}</p>
+            <div class="template-meta">
+                <span class="template-complexity">${template.complexity}</span>
+                <span class="template-time">⏱️ ${template.estimated_time}</span>
+            </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>        </div>
+    <!-- LLM Setup Modal -->
+    <div id="llm-setup-modal" class="setup-modal">
+        <div class="setup-modal-content">
+            <h3>🤖 LLM Provider Setup Required</h3>
+            <p>This feature requires an LLM provider to be configured. Please set up your preferred provider to continue.</p>
+            
+            <div class="setup-form">
+                <label>Provider:</label>
+                <select id="setup-provider" class="form-select">
+                    <option value="openai">OpenAI (Recommended)</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="groq">Groq</option>
+                </select>
+                
+                <label>API Key:</label>
+                <input type="password" id="setup-api-key" class="form-input" placeholder="Enter your API key" />
+                
+                <label>Model (optional):</label>
+                <input type="text" id="setup-model" class="form-input" placeholder="Auto-detected" />
+            </div>
+            
+            <div class="setup-actions">
+                <button id="setup-save" class="btn btn-primary">Save & Continue</button>
+                <button id="setup-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM Status Badge -->
+    <div id="llm-status-badge" class="llm-badge">
+        <span id="llm-badge-dot" class="status-dot"></span>
+        <span id="llm-badge-text">LLM: Checking...</span>
+    </div>    `).join('');
+}
+
+function selectTemplate(slug) {
+    // Remove previous selection
+    document.querySelectorAll('.template-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Select new template
+    const card = document.querySelector(`[data-slug="${slug}"]`);
+    if (card) {
+        card.classList.add('selected');
+        selectedTemplate = slug;
+    }
+}
+
+function initializeFormHandlers() {
+    // Quick start build
+    document.getElementById('start-build-btn').addEventListener('click', function() {
+        startBuild('normal');
+    });
+    
+    // Guided build
+    document.getElementById('start-guided-btn').addEventListener('click', function() {
+        startBuild('guided');
+    });
+}
+
+async function startBuild(mode) {
+    const startBtn = mode === 'normal' ? 
+        document.getElementById('start-build-btn') : 
+        document.getElementById('start-guided-btn');
+    
+    try {
+        startBtn.classList.add('loading');
+        startBtn.disabled = true;
+        
+        const buildData = {
+            name: document.getElementById('project-name').value,
+            description: document.getElementById('project-description').value,
+            mode: mode
+        };
+        
+        if (mode === 'normal' && selectedTemplate) {
+            buildData.template_slug = selectedTemplate;
+        } else if (mode === 'guided') {
+            buildData.initial_prompt = document.getElementById('guided-prompt').value;
+        }
+        
+        // Validate required fields
+        if (!buildData.name) {
+            showError('Project name is required');
+            return;
+        }
+        
+        if (mode === 'guided' && !buildData.initial_prompt) {
+            showError('Please describe what you want to build');
+            return;
+        }
+        
+        const response = await fetch('/ui/api/build/start', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(buildData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showSuccess('Build started successfully! Redirecting to Visual Builder...');
+            
+            // Fire telemetry
+            fireEvent('build_started', {
+                mode: mode,
+                template: selectedTemplate,
+                has_description: !!buildData.description
+            });
+            
+            // Redirect to visual builder
+            setTimeout(() => {
+                window.location.href = `/ui/visual-builder?project=${result.project_id}`;
+            }, 1500);
+        } else {
+            showError(result.error || 'Failed to start build');
+        }
+        
+    } catch (error) {
+        console.error('Build start error:', error);
+        showError('Failed to start build. Please try again.');
+    } finally {
+        startBtn.classList.remove('loading');
+        startBtn.disabled = false;
+    }
+}
+
+function showError(message) {
+    const errorDiv = document.querySelector('.error-message') || createMessageDiv('error-message');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    
+    // Hide success message if shown
+    const successDiv = document.querySelector('.success-message');
+    if (successDiv) successDiv.style.display = 'none';
+}
+
+function showSuccess(message) {
+    const successDiv = document.querySelector('.success-message') || createMessageDiv('success-message');
+    successDiv.textContent = message;
+    successDiv.style.display = 'block';
+    
+    // Hide error message if shown
+    const errorDiv = document.querySelector('.error-message');
+    if (errorDiv) errorDiv.style.display = 'none';
+}
+
+function createMessageDiv(className) {
+    const div = document.createElement('div');
+    div.className = className;
+    document.querySelector('.build-wizard').insertBefore(div, document.querySelector('.tabs'));
+    return div;
+}
+
+function fireEvent(eventName, data) {
+    console.log(`Event: ${eventName}`, data);
+    // In production, this would send to analytics service
+}
+</script>
+{% endblock %}

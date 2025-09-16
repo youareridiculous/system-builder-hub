@@ -1,0 +1,122 @@
+name: "Helpdesk Template Suite"
+description: "Comprehensive evaluation suite for Helpdesk template"
+
+golden_cases:
+  - name: "Ticket Management CRUD"
+    description: "Test ticket create, read, update, delete operations"
+    prompt: "Create a ticket management system with CRUD operations for support tickets including title, description, priority, and status fields"
+    sla_class: "normal"
+    assertions:
+      - name: "ticket_created"
+        type: "contains"
+        expected: "ticket"
+        description: "Should create ticket functionality"
+      - name: "crud_operations"
+        type: "contains"
+        expected: "CRUD"
+        description: "Should include CRUD operations"
+
+  - name: "User Authentication"
+    description: "Test user authentication for agents and customers"
+    prompt: "Implement user authentication with agent and customer roles, login, and session management"
+    sla_class: "normal"
+    assertions:
+      - name: "authentication"
+        type: "contains"
+        expected: "auth"
+        description: "Should include authentication"
+      - name: "roles"
+        type: "contains"
+        expected: "role"
+        description: "Should include role management"
+
+  - name: "Role-Based Access Control"
+    description: "Test RBAC for different user types"
+    prompt: "Create role-based access control with admin, agent, and customer roles with appropriate permissions"
+    sla_class: "thorough"
+    assertions:
+      - name: "rbac_roles"
+        type: "contains"
+        expected: "role"
+        description: "Should include role-based access"
+      - name: "permissions"
+        type: "contains"
+        expected: "permission"
+        description: "Should include permissions system"
+
+  - name: "Support Analytics"
+    description: "Test analytics and reporting functionality"
+    prompt: "Build analytics dashboard showing ticket volume, resolution times, and customer satisfaction metrics"
+    sla_class: "normal"
+    assertions:
+      - name: "analytics"
+        type: "contains"
+        expected: "analytics"
+        description: "Should include analytics"
+      - name: "resolution"
+        type: "contains"
+        expected: "resolution"
+        description: "Should include resolution tracking"
+
+scenario_bundles:
+  - name: "Helpdesk Template Smoke Test"
+    description: "End-to-end smoke test for Helpdesk template"
+    natural_language: "Launch a complete helpdesk system with ticket management, user authentication, and support analytics"
+    sla_class: "thorough"
+    steps:
+      - name: "Template Launch"
+        description: "Launch the Helpdesk template"
+        action: "launch"
+        inputs:
+          template: "helpdesk_complete"
+        assertions:
+          - name: "template_launched"
+            type: "contains"
+            expected: "success"
+            description: "Template should launch successfully"
+
+      - name: "Database Setup"
+        description: "Verify database schema and migrations"
+        action: "validate"
+        inputs:
+          check_tables: ["tickets", "users", "responses", "categories"]
+        assertions:
+          - name: "database_schema"
+            type: "contains"
+            expected: "tickets"
+            description: "Should have tickets table"
+
+      - name: "API Endpoints"
+        description: "Test core API endpoints"
+        action: "test"
+        inputs:
+          endpoints: ["/api/tickets", "/api/users", "/api/responses"]
+        assertions:
+          - name: "api_endpoints"
+            type: "contains"
+            expected: "200"
+            description: "API endpoints should respond"
+
+kpi_guards:
+  - name: "helpdesk_pass_rate"
+    metric: "pass_rate"
+    threshold: 0.90
+    operator: ">="
+    description: "Helpdesk template should have 90% pass rate"
+    severity: "error"
+
+  - name: "helpdesk_latency"
+    metric: "avg_latency_ms"
+    threshold: 15000
+    operator: "<="
+    description: "Helpdesk template should complete within 15 seconds"
+    severity: "warning"
+
+metadata:
+  tags: ["helpdesk", "template", "support"]
+  priority: "high"
+  estimated_duration_minutes: 20
+  enable_canary: false
+  enable_chaos: false
+  max_reruns_on_flake: 2
+  min_stable_passes: 2

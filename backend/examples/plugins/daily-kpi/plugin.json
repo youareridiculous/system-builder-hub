@@ -1,0 +1,17 @@
+{
+  "slug": "daily-kpi",
+  "name": "Daily KPI Calculator",
+  "version": "1.0.0",
+  "description": "Calculates daily KPIs and stores analytics",
+  "author": "SBH Team",
+  "entry": "main.py",
+  "permissions": ["db.read", "emit_webhook"],
+  "routes": true,
+  "events": [],
+  "jobs": [
+    {
+      "name": "calculate_daily_kpis",
+      "schedule": "0 1 * * *"
+    }
+  ]
+}

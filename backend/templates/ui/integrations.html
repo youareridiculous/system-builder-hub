@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrations - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .nav-tabs .nav-link {
+            color: #6c757d;
+        }
+        .nav-tabs .nav-link.active {
+            color: #495057;
+            font-weight: 500;
+        }
+        .api-key-preview {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+        .webhook-secret {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+        .copy-btn {
+            cursor: pointer;
+            color: #6c757d;
+        }
+        .copy-btn:hover {
+            color: #495057;
+        }
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/dashboard">
+                                <i class="bi bi-house"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/domains">
+                                <i class="bi bi-globe"></i> Custom Domains
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/ui/integrations">
+                                <i class="bi bi-plug"></i> Integrations
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/builder">
+                                <i class="bi bi-puzzle"></i> Visual Builder
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Integrations</h1>
+                </div>
+
+                <!-- Tabs -->
+                <ul class="nav nav-tabs" id="integrationsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="api-keys-tab" data-bs-toggle="tab" data-bs-target="#api-keys" type="button" role="tab">
+                            <i class="bi bi-key"></i> API Keys
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="webhooks-tab" data-bs-toggle="tab" data-bs-target="#webhooks" type="button" role="tab">
+                            <i class="bi bi-webhook"></i> Webhooks
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="email-tab" data-bs-toggle="tab" data-bs-target="#email" type="button" role="tab">
+                            <i class="bi bi-envelope"></i> Email
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab content -->
+                <div class="tab-content" id="integrationsTabContent">
+                    <!-- API Keys Tab -->
+                    <div class="tab-pane fade show active" id="api-keys" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+                            <h3>API Keys</h3>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createApiKeyModal">
+                                <i class="bi bi-plus"></i> Create API Key
+                            </button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Prefix</th>
+                                        <th>Status</th>
+                                        <th>Last Used</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="apiKeysTable">
+                                    <!-- API keys will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div id="apiKeysLoading" class="text-center py-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+
+                        <div id="apiKeysEmpty" class="text-center py-4" style="display: none;">
+                            <i class="bi bi-key" style="font-size: 3rem; color: #6c757d;"></i>
+                            <h4 class="mt-3">No API Keys</h4>
+                            <p class="text-muted">Create your first API key to get started.</p>
+                        </div>
+                    </div>
+
+                    <!-- Webhooks Tab -->
+                    <div class="tab-pane fade" id="webhooks" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+                            <h3>Webhooks</h3>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createWebhookModal">
+                                <i class="bi bi-plus"></i> Create Webhook
+                            </button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Target URL</th>
+                                        <th>Events</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="webhooksTable">
+                                    <!-- Webhooks will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div id="webhooksLoading" class="text-center py-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+
+                        <div id="webhooksEmpty" class="text-center py-4" style="display: none;">
+                            <i class="bi bi-webhook" style="font-size: 3rem; color: #6c757d;"></i>
+                            <h4 class="mt-3">No Webhooks</h4>
+                            <p class="text-muted">Create your first webhook to receive real-time events.</p>
+                        </div>
+                    </div>
+
+                    <!-- Email Tab -->
+                    <div class="tab-pane fade" id="email" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+                            <h3>Email Templates</h3>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#testEmailModal">
+                                <i class="bi bi-envelope"></i> Send Test Email
+                            </button>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5>Available Templates</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="list-group list-group-flush" id="emailTemplatesList">
+                                            <!-- Templates will be loaded here -->
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5>Recent Emails</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="recentEmailsList">
+                                            <!-- Recent emails will be loaded here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Create API Key Modal -->
+    <div class="modal fade" id="createApiKeyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create API Key</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createApiKeyForm">
+                        <div class="mb-3">
+                            <label for="apiKeyName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="apiKeyName" required>
+                            <div class="form-text">Give your API key a descriptive name</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="apiKeyScope" class="form-label">Scope</label>
+                            <select class="form-select" id="apiKeyScope">
+                                <option value="read">Read Only</option>
+                                <option value="write">Read & Write</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="apiKeyRateLimit" class="form-label">Rate Limit (per minute)</label>
+                            <input type="number" class="form-control" id="apiKeyRateLimit" value="120" min="1" max="1000">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="createApiKeyBtn">Create Key</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Key Created Modal -->
+    <div class="modal fade" id="apiKeyCreatedModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">API Key Created</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Important:</strong> This is the only time you'll see the full API key. Copy it now!
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">API Key</label>
+                        <div class="api-key-preview" id="newApiKeyDisplay">
+                            <!-- API key will be displayed here -->
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary mt-2" id="copyApiKeyBtn">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Usage Example</label>
+                        <div class="api-key-preview">
+                            curl -H "Authorization: SBH YOUR_API_KEY" https://myapp.com/api/endpoint
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Webhook Modal -->
+    <div class="modal fade" id="createWebhookModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Webhook</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createWebhookForm">
+                        <div class="mb-3">
+                            <label for="webhookUrl" class="form-label">Target URL</label>
+                            <input type="url" class="form-control" id="webhookUrl" required>
+                            <div class="form-text">The URL where webhook events will be sent</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Events</label>
+                            <div id="webhookEventsList">
+                                <!-- Events will be loaded here -->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="createWebhookBtn">Create Webhook</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Webhook Created Modal -->
+    <div class="modal fade" id="webhookCreatedModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Webhook Created</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Important:</strong> This is the only time you'll see the webhook secret. Copy it now!
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Webhook Secret</label>
+                        <div class="webhook-secret" id="newWebhookSecretDisplay">
+                            <!-- Secret will be displayed here -->
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary mt-2" id="copyWebhookSecretBtn">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Signature Verification</label>
+                        <div class="api-key-preview">
+                            <small>
+                                X-SBH-Signature: sha256=HMAC(secret, timestamp + "." + body)<br>
+                                X-SBH-Timestamp: &lt;epoch-ms&gt;<br>
+                                X-SBH-Event: &lt;event-type&gt;
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Email Modal -->
+    <div class="modal fade" id="testEmailModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Send Test Email</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="testEmailForm">
+                        <div class="mb-3">
+                            <label for="emailTemplate" class="form-label">Template</label>
+                            <select class="form-select" id="emailTemplate" required>
+                                <option value="welcome">Welcome</option>
+                                <option value="password_reset">Password Reset</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="emailPayload" class="form-label">Payload (JSON)</label>
+                            <textarea class="form-control" id="emailPayload" rows="4">{"user_name": "Test User"}</textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="sendTestEmailBtn">Send Test Email</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let apiKeys = [];
+        let webhooks = [];
+        let emailTemplates = [];
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadApiKeys();
+            loadWebhooks();
+            loadEmailTemplates();
+            loadRecentEmails();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // API Key creation
+            document.getElementById('createApiKeyBtn').addEventListener('click', createApiKey);
+            document.getElementById('copyApiKeyBtn').addEventListener('click', copyApiKey);
+            
+            // Webhook creation
+            document.getElementById('createWebhookBtn').addEventListener('click', createWebhook);
+            document.getElementById('copyWebhookSecretBtn').addEventListener('click', copyWebhookSecret);
+            
+            // Test email
+            document.getElementById('sendTestEmailBtn').addEventListener('click', sendTestEmail);
+            
+            // Copy buttons
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('copy-btn')) {
+                    copyToClipboard(e.target.dataset.value);
+                }
+            });
+        }
+
+        // API Keys functions
+        async function loadApiKeys() {
+            try {
+                showApiKeysLoading(true);
+                
+                const response = await fetch('/api/keys', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'X-Tenant-Slug': getCurrentTenant()
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    apiKeys = data.api_keys || [];
+                    renderApiKeys();
+                } else {
+                    showError('Failed to load API keys');
+                }
+            } catch (error) {
+                console.error('Error loading API keys:', error);
+                showError('Failed to load API keys');
+            } finally {
+                showApiKeysLoading(false);
+            }
+        }
+
+        function renderApiKeys() {
+            const tableBody = document.getElementById('apiKeysTable');
+            const emptyState = document.getElementById('apiKeysEmpty');
+
+            if (apiKeys.length === 0) {
+                tableBody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            tableBody.innerHTML = apiKeys.map(key => `
+                <tr>
+                    <td>
+                        <strong>${key.name}</strong>
+                    </td>
+                    <td>
+                        <code>${key.prefix}...</code>
+                    </td>
+                    <td>
+                        <span class="badge ${key.status === 'active' ? 'bg-success' : 'bg-danger'} status-badge">
+                            ${key.status}
+                        </span>
+                    </td>
+                    <td>
+                        ${key.last_used_at ? new Date(key.last_used_at).toLocaleDateString() : 'Never'}
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="rotateApiKey('${key.id}')">
+                                Rotate
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="revokeApiKey('${key.id}')">
+                                Revoke
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function createApiKey() {
+            const name = document.getElementById('apiKeyName').value;
+            const scope = document.getElementById('apiKeyScope').value;
+            const rateLimit = document.getElementById('apiKeyRateLimit').value;
+
+            if (!name) return;
+
+            try {
+                const response = await fetch('/api/keys', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'X-Tenant-Slug': getCurrentTenant()
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        scope: { endpoints: [scope] },
+                        rate_limit_per_min: parseInt(rateLimit)
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Show the new API key
+                    document.getElementById('newApiKeyDisplay').textContent = data.api_key.key;
+                    document.getElementById('copyApiKeyBtn').dataset.value = data.api_key.key;
+                    
+                    // Close create modal and show key modal
+                    bootstrap.Modal.getInstance(document.getElementById('createApiKeyModal')).hide();
+                    new bootstrap.Modal(document.getElementById('apiKeyCreatedModal')).show();
+                    
+                    // Reset form
+                    document.getElementById('createApiKeyForm').reset();
+                    
+                    // Reload keys
+                    loadApiKeys();
+                } else {
+                    const error = await response.json();
+                    showError(error.error || 'Failed to create API key');
+                }
+            } catch (error) {
+                console.error('Error creating API key:', error);
+                showError('Failed to create API key');
+            }
+        }
+
+        async function rotateApiKey(keyId) {
+            if (!confirm('Are you sure you want to rotate this API key? The old key will be revoked.')) return;
+
+            try {
+                const response = await fetch(`/api/keys/${keyId}/rotate`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'X-Tenant-Slug': getCurrentTenant()
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Show the new API key
+                    document.getElementById('newApiKeyDisplay').textContent = data.api_key.key;
+                    document.getElementById('copyApiKeyBtn').dataset.value = data.api_key.key;
+                    
+                    new bootstrap.Modal(document.getElementById('apiKeyCreatedModal')).show();
+                    loadApiKeys();
+                } else {
+                    const error = await response.json();
+                    showError(error.error || 'Failed to rotate API key');
+                }
+            } catch (error) {
+                console.error('Error rotating API key:', error);
+                showError('Failed to rotate API key');
+            }
+        }
+
+        async function revokeApiKey(keyId) {
+            if (!confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) return;
+
+            try {
+                const response = await fetch(`/api/keys/${keyId}/revoke`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'X-Tenant-Slug': getCurrentTenant()
+                    }
+                });
+
+                if (response.ok) {
+                    loadApiKeys();
+                    showSuccess('API key revoked successfully');
+                } else {
+                    const error = await response.json();
+                    showError(error.error || 'Failed to revoke API key');
+                }
+            } catch (error) {
+                console.error('Error revoking API key:', error);
+                showError('Failed to revoke API key');
+            }
+        }
+
+        // Webhooks functions
+        async function loadWebhooks() {
+            try {
+                showWebhooksLoading(true);
+                
+                const response = await fetch('/api/webhooks', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'X-Tenant-Slug': getCurrentTenant()
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    webhooks = data.webhooks || [];
+                    renderWebhooks();
+                } else {
+                    showError('Failed to load webhooks');
+                }
+            } catch (error) {
+                console.error('Error loading webhooks:', error);
+                showError('Failed to load webhooks');
+            } finally {
+                showWebhooksLoading(false);
+            }
+        }
+
+        function renderWebhooks() {
+            const tableBody = document.getElementById('webhooksTable');
+            const emptyState = document.getElementById('webhooksEmpty');
+
+            if (webhooks.length === 0) {
+                tableBody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            tableBody.innerHTML = webhooks.map(webhook => `
+                <tr>
+                    <td>
+                        <code>${webhook.target_url}</code>
+                    </td>
+                    <td>
+                        ${webhook.events.map(event => `<span class="badge bg-secondary me-1">${event}</span>`).join('')}
+                    </td>
+                    <td>
+                        <span class="badge ${webhook.status === 'active' ? 'bg-success' : 'bg-warning'} status-badge">
+                            ${webhook.status}
+                        </span>
+                    </td>
+                    <td>
+                        ${new Date(webhook.created_at).toLocaleDateString()}
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-warning" onclick="toggleWebhook('${webhook.id}', '${webhook.status}')">
+                                ${webhook.status === 'active' ? 'Pause' : 'Activate'}
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteWebhook('${webhook.id}')">
+                                Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function createWebhook() {
+            const url = document.getElementById('webhookUrl').value;
+            const selectedEvents = Array.from(document.querySelectorAll('input[name="webhookEvent"]:checked')).map(cb => cb.value);
+
+            if (!url || selectedEvents.length === 0) return;
+
+            try {
+                const response = await fetch('/api/webhooks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'X-Tenant-Slug': getCurrentTenant()
+                    },
+                    body: JSON.stringify({
+                        target_url: url,
+                        events: selectedEvents
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Show the webhook secret
+                    document.getElementById('newWebhookSecretDisplay').textContent = data.webhook.secret;
+                    document.getElementById('copyWebhookSecretBtn').dataset.value = data.webhook.secret;
+                    
+                    // Close create modal and show secret modal
+                    bootstrap.Modal.getInstance(document.getElementById('createWebhookModal')).hide();
+                    new bootstrap.Modal(document.getElementById('webhookCreatedModal')).show();
+                    
+                    // Reset form
+                    document.getElementById('createWebhookForm').reset();
+                    
+                    // Reload webhooks
+                    loadWebhooks();
+                } else {
+                    const error = await response.json();
+                    showError(error.error || 'Failed to create webhook');
+                }
+            } catch (error) {
+                console.error('Error creating webhook:', error);
+                showError('Failed to create webhook');
+            }
+        }
+
+        async function loadWebhookEvents() {
+            try {
+                const response = await fetch('/api/webhooks/events', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'X-Tenant-Slug': getCurrentTenant()
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const eventsList = document.getElementById('webhookEventsList');
+                    
+                    eventsList.innerHTML = Object.entries(data.events).map(([event, description]) => `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="webhookEvent" value="${event}" id="event_${event}">
+                            <label class="form-check-label" for="event_${event}">
+                                <strong>${event}</strong><br>
+                                <small class="text-muted">${description}</small>
+                            </label>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading webhook events:', error);
+            }
+        }
+
+        // Email functions
+        async function loadEmailTemplates() {
+            try {
+                const response = await fetch('/api/email/templates', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'X-Tenant-Slug': getCurrentTenant()
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    emailTemplates = data.templates || {};
+                    
+                    const templatesList = document.getElementById('emailTemplatesList');
+                    templatesList.innerHTML = Object.entries(emailTemplates).map(([template, description]) => `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${template}</strong><br>
+                                <small class="text-muted">${description}</small>
+                            </div>
+                        </li>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading email templates:', error);
+            }
+        }
+
+        async function loadRecentEmails() {
+            try {
+                const response = await fetch('/api/email/outbound?limit=10', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'X-Tenant-Slug': getCurrentTenant()
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const emailsList = document.getElementById('recentEmailsList');
+                    
+                    if (data.emails.length === 0) {
+                        emailsList.innerHTML = '<p class="text-muted">No recent emails</p>';
+                        return;
+                    }
+                    
+                    emailsList.innerHTML = data.emails.map(email => `
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>${email.template}</strong><br>
+                                <small class="text-muted">${email.to_email}</small>
+                            </div>
+                            <span class="badge ${email.status === 'sent' ? 'bg-success' : email.status === 'failed' ? 'bg-danger' : 'bg-warning'}">
+                                ${email.status}
+                            </span>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading recent emails:', error);
+            }
+        }
+
+        async function sendTestEmail() {
+            const template = document.getElementById('emailTemplate').value;
+            const payloadText = document.getElementById('emailPayload').value;
+
+            try {
+                const payload = JSON.parse(payloadText);
+                
+                const response = await fetch('/api/email/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'X-Tenant-Slug': getCurrentTenant()
+                    },
+                    body: JSON.stringify({
+                        template: template,
+                        payload: payload
+                    })
+                });
+
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('testEmailModal')).hide();
+                    showSuccess('Test email sent successfully');
+                    loadRecentEmails();
+                } else {
+                    const error = await response.json();
+                    showError(error.error || 'Failed to send test email');
+                }
+            } catch (error) {
+                console.error('Error sending test email:', error);
+                showError('Invalid JSON payload');
+            }
+        }
+
+        // Utility functions
+        function showApiKeysLoading(show) {
+            document.getElementById('apiKeysLoading').style.display = show ? 'block' : 'none';
+        }
+
+        function showWebhooksLoading(show) {
+            document.getElementById('webhooksLoading').style.display = show ? 'block' : 'none';
+        }
+
+        function copyApiKey() {
+            copyToClipboard(document.getElementById('newApiKeyDisplay').textContent);
+        }
+
+        function copyWebhookSecret() {
+            copyToClipboard(document.getElementById('newWebhookSecretDisplay').textContent);
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showSuccess('Copied to clipboard');
+            }).catch(() => {
+                showError('Failed to copy to clipboard');
+            });
+        }
+
+        function showSuccess(message) {
+            alert('Success: ' + message);
+        }
+
+        function showError(message) {
+            alert('Error: ' + message);
+        }
+
+        function getAuthToken() {
+            return localStorage.getItem('authToken') || '';
+        }
+
+        function getCurrentTenant() {
+            return localStorage.getItem('currentTenant') || 'primary';
+        }
+
+        // Load webhook events when webhook tab is shown
+        document.getElementById('webhooks-tab').addEventListener('shown.bs.tab', function() {
+            loadWebhookEvents();
+        });
+    </script>
+</body>
+</html>

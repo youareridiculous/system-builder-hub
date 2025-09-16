@@ -1,0 +1,353 @@
+"""
+SBH Meta-Builder v2 Models
+Multi-agent, iterative, evaluation-guided scaffold generation with auto-fix and human approval.
+"""
+
+import json
+import logging
+from datetime import datetime
+from typing import Dict, Any, List, Optional, Union
+from enum import Enum
+from dataclasses import dataclass, asdict
+from sqlalchemy import Column, String, Text, JSON, DateTime, Integer, Boolean, ForeignKey, Float
+from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
+
+from src.database import Base
+from src.utils.multi_tenancy import TenantMixin
+
+logger = logging.getLogger(__name__)
+
+
+class MetaRunStatus(str, Enum):
+    """Status of a meta-builder run."""
+    PENDING = "pending"
+    PLANNING = "planning"
+    GENERATING = "generating"
+    EVALUATING = "evaluating"
+    FIXING = "fixing"
+    APPROVAL_REQUIRED = "approval_required"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class AgentRole(str, Enum):
+    """Roles of agents in the meta-builder pipeline."""
+    PRODUCT_ARCHITECT = "product_architect"
+    SYSTEM_DESIGNER = "system_designer"
+    SECURITY_COMPLIANCE = "security_compliance"
+    CODEGEN_ENGINEER = "codegen_engineer"
+    QA_EVALUATOR = "qa_evaluator"
+    AUTO_FIXER = "auto_fixer"
+    DEVOPS = "devops"
+    REVIEWER = "reviewer"
+
+
+class SpecDomain(str, Enum):
+    """Supported domains for specifications."""
+    CRM = "crm"
+    LMS = "lms"
+    HELPDESK = "helpdesk"
+    CUSTOM = "custom"
+
+
+@dataclass
+class EntityField:
+    """Entity field definition."""
+    name: str
+    type: str
+    required: bool = False
+    unique: bool = False
+    default: Optional[Any] = None
+    validation: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class Entity:
+    """Entity definition."""
+    name: str
+    fields: List[EntityField]
+    relationships: Optional[List[Dict[str, Any]]] = None
+
+
+@dataclass
+class WorkflowTransition:
+    """Workflow transition definition."""
+    from_state: str
+    to_state: str
+    conditions: Optional[List[str]] = None
+    actions: Optional[List[str]] = None
+
+
+@dataclass
+class Workflow:
+    """Workflow definition."""
+    name: str
+    states: List[str]
+    transitions: List[WorkflowTransition]
+    initial_state: str
+
+
+@dataclass
+class AcceptanceCriterion:
+    """Acceptance criterion definition."""
+    id: str
+    text: str
+    category: str = "functional"
+    priority: str = "medium"
+
+
+@dataclass
+class MetaSpec:
+    """Meta-Builder v2 Specification DSL."""
+    name: str
+    domain: SpecDomain
+    entities: List[Entity]
+    workflows: Optional[List[Workflow]] = None
+    integrations: Optional[List[str]] = None
+    ai: Optional[Dict[str, Any]] = None
+    non_functional: Optional[Dict[str, Any]] = None
+    acceptance: List[AcceptanceCriterion]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'MetaSpec':
+        """Create from dictionary."""
+        # Convert nested objects
+        entities = [Entity(**entity) for entity in data.get('entities', [])]
+        workflows = [Workflow(**workflow) for workflow in data.get('workflows', [])] if data.get('workflows') else None
+        acceptance = [AcceptanceCriterion(**criterion) for criterion in data.get('acceptance', [])]
+        
+        return cls(
+            name=data['name'],
+            domain=SpecDomain(data['domain']),
+            entities=entities,
+            workflows=workflows,
+            integrations=data.get('integrations'),
+            ai=data.get('ai'),
+            non_functional=data.get('non_functional'),
+            acceptance=acceptance
+        )
+
+
+class MetaRun(Base, TenantMixin):
+    """Meta-Builder v2 run instance."""
+    
+    __tablename__ = 'meta_runs'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String(50), nullable=False, index=True)
+    
+    # Run metadata
+    name = Column(String(255), nullable=False)
+    goal_text = Column(Text, nullable=False)
+    status = Column(String(50), nullable=False, default=MetaRunStatus.PENDING)
+    
+    # Configuration
+    spec = Column(JSON, nullable=True)  # MetaSpec as JSON
+    limits = Column(JSON, nullable=False, default=lambda: {
+        'max_iters': 4,
+        'token_budget': 2000000,
+        'timeout_s': 900
+    })
+    review_config = Column(JSON, nullable=False, default=lambda: {
+        'require_approval': True
+    })
+    
+    # Progress tracking
+    current_iteration = Column(Integer, default=0)
+    total_tokens_used = Column(Integer, default=0)
+    start_time = Column(DateTime, default=datetime.utcnow)
+    end_time = Column(DateTime, nullable=True)
+    
+    # Results
+    final_score = Column(Float, nullable=True)
+    artifacts = relationship("MetaArtifact", back_populates="run")
+    reports = relationship("MetaReport", back_populates="run")
+    approvals = relationship("MetaApproval", back_populates="run")
+    
+    # Audit
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = Column(String(50), nullable=False)
+    
+    def __repr__(self):
+        return f"<MetaRun(id={self.id}, name='{self.name}', status='{self.status}')>"
+
+
+class MetaArtifact(Base, TenantMixin):
+    """Artifacts generated during meta-builder runs."""
+    
+    __tablename__ = 'meta_artifacts'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String(50), nullable=False, index=True)
+    run_id = Column(UUID(as_uuid=True), ForeignKey('meta_runs.id'), nullable=False)
+    
+    # Artifact metadata
+    name = Column(String(255), nullable=False)
+    type = Column(String(50), nullable=False)  # 'diff', 'bundle', 'migration', 'test'
+    iteration = Column(Integer, nullable=False)
+    agent_role = Column(String(50), nullable=False)
+    
+    # Content
+    content = Column(Text, nullable=True)  # For diffs, JSON, etc.
+    file_path = Column(String(500), nullable=True)  # For file artifacts
+    file_size = Column(Integer, nullable=True)
+    
+    # Metadata
+    metadata = Column(JSON, nullable=True)  # Additional metadata
+    
+    # Relationships
+    run = relationship("MetaRun", back_populates="artifacts")
+    
+    # Audit
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<MetaArtifact(id={self.id}, name='{self.name}', type='{self.type}')>"
+
+
+class MetaReport(Base, TenantMixin):
+    """Evaluation reports for meta-builder runs."""
+    
+    __tablename__ = 'meta_reports'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String(50), nullable=False, index=True)
+    run_id = Column(UUID(as_uuid=True), ForeignKey('meta_runs.id'), nullable=False)
+    
+    # Report metadata
+    iteration = Column(Integer, nullable=False)
+    agent_role = Column(String(50), nullable=False)
+    report_type = Column(String(50), nullable=False)  # 'evaluation', 'security', 'performance'
+    
+    # Results
+    score = Column(Float, nullable=True)  # 0-100 score
+    passed = Column(Boolean, nullable=True)
+    details = Column(JSON, nullable=True)  # Detailed results
+    
+    # Outputs
+    summary = Column(Text, nullable=True)
+    recommendations = Column(JSON, nullable=True)
+    
+    # Relationships
+    run = relationship("MetaRun", back_populates="reports")
+    
+    # Audit
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<MetaReport(id={self.id}, type='{self.report_type}', score={self.score})>"
+
+
+class MetaApproval(Base, TenantMixin):
+    """Human approval records for meta-builder runs."""
+    
+    __tablename__ = 'meta_approvals'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String(50), nullable=False, index=True)
+    run_id = Column(UUID(as_uuid=True), ForeignKey('meta_runs.id'), nullable=False)
+    
+    # Approval metadata
+    approved = Column(Boolean, nullable=False)
+    approved_by = Column(String(50), nullable=False)
+    approved_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Review details
+    comments = Column(Text, nullable=True)
+    concerns = Column(JSON, nullable=True)  # List of concerns
+    requested_changes = Column(JSON, nullable=True)  # Specific change requests
+    
+    # Rollback plan
+    rollback_plan = Column(JSON, nullable=True)  # Auto-generated rollback steps
+    
+    # Relationships
+    run = relationship("MetaRun", back_populates="approvals")
+    
+    # Audit
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<MetaApproval(id={self.id}, approved={self.approved}, by='{self.approved_by}')>"
+
+
+class GoldenTask(Base, TenantMixin):
+    """Golden tasks for evaluation."""
+    
+    __tablename__ = 'golden_tasks'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String(50), nullable=False, index=True)
+    
+    # Task metadata
+    name = Column(String(255), nullable=False)
+    category = Column(String(50), nullable=False)  # 'crud', 'auth', 'payments', 'files', 'automations', 'ai'
+    description = Column(Text, nullable=False)
+    
+    # Task definition
+    setup = Column(JSON, nullable=True)  # Setup steps
+    steps = Column(JSON, nullable=False)  # Test steps
+    assertions = Column(JSON, nullable=False)  # Expected results
+    cleanup = Column(JSON, nullable=True)  # Cleanup steps
+    
+    # Scoring
+    weight = Column(Float, default=1.0)  # Weight in overall score
+    timeout_s = Column(Integer, default=30)  # Timeout in seconds
+    
+    # Metadata
+    tags = Column(JSON, nullable=True)  # Tags for filtering
+    is_active = Column(Boolean, default=True)
+    
+    # Audit
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<GoldenTask(id={self.id}, name='{self.name}', category='{self.category}')>"
+
+
+class AgentSpan(Base, TenantMixin):
+    """Agent execution spans for observability."""
+    
+    __tablename__ = 'agent_spans'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String(50), nullable=False, index=True)
+    run_id = Column(UUID(as_uuid=True), ForeignKey('meta_runs.id'), nullable=False)
+    
+    # Span metadata
+    agent_role = Column(String(50), nullable=False)
+    span_name = Column(String(255), nullable=False)
+    iteration = Column(Integer, nullable=False)
+    
+    # Timing
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=True)
+    duration_ms = Column(Integer, nullable=True)
+    
+    # Results
+    success = Column(Boolean, nullable=True)
+    error_message = Column(Text, nullable=True)
+    
+    # Metrics
+    tokens_used = Column(Integer, default=0)
+    cache_hits = Column(Integer, default=0)
+    
+    # Context
+    inputs = Column(JSON, nullable=True)
+    outputs = Column(JSON, nullable=True)
+    
+    # Audit
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<AgentSpan(id={self.id}, agent='{self.agent_role}', span='{self.span_name}')>"

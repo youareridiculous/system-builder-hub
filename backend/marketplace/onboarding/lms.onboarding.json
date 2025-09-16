@@ -1,0 +1,62 @@
+{
+  "module": "lms",
+  "name": "Learning Management System",
+  "version": "1.0.0",
+  "description": "Complete onboarding checklist for Learning Management System setup and configuration",
+  "estimated_time": "30 minutes",
+  "steps": [
+    {
+      "id": "welcome",
+      "title": "Welcome to Learning Management System",
+      "type": "info"
+    },
+    {
+      "id": "setup",
+      "title": "Initial Setup",
+      "type": "form"
+    },
+    {
+      "id": "courses_setup",
+      "title": "Set Up Courses",
+      "type": "action"
+    },
+    {
+      "id": "lessons_setup",
+      "title": "Set Up Lessons",
+      "type": "action"
+    },
+    {
+      "id": "quizzes_setup",
+      "title": "Set Up Quizzes",
+      "type": "action"
+    },
+    {
+      "id": "progress_setup",
+      "title": "Set Up Progress",
+      "type": "action"
+    },
+    {
+      "id": "configure",
+      "title": "Configure Settings",
+      "type": "form"
+    },
+    {
+      "id": "test",
+      "title": "Test Your Setup",
+      "type": "action"
+    },
+    {
+      "id": "complete",
+      "title": "You're All Set!",
+      "type": "completion"
+    }
+  ],
+  "tips": [
+    "Start with a few key courses and expand gradually",
+    "Review the documentation for advanced features"
+  ],
+  "support": {
+    "contact": "support@sbh.com",
+    "documentation": "/ui/docs/lms"
+  }
+}

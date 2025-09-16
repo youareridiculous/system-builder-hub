@@ -1,0 +1,54 @@
+INFO:__main__:Database initialized successfully
+ERROR:__main__:Priority 1 module initialization failed: ConsensusMemory.__init__() missing 5 required positional arguments: 'base_dir', 'agent_messaging_layer', 'multi_agent_planning', 'access_control', and 'llm_factory'
+ERROR:__main__:❌ Module initialization failed: DemoGenerator.__init__() missing 4 required positional arguments: 'base_dir', 'system_delivery', 'storefront', and 'llm_factory'
+INFO:__main__:Background tasks started
+✅ Priority 1 modules imported successfully
+⚠️ Some Priority 2 modules failed to import: cannot import name 'ProcessingStatus' from 'voice_input_processor' (/Users/ericlarson/Downloads/system-builder-hub/backend/src/voice_input_processor.py)
+⚠️ Some Priority 3 modules failed to import: cannot import name 'InspectionType' from 'black_box_inspector' (/Users/ericlarson/Downloads/system-builder-hub/backend/src/black_box_inspector.py)
+🚀 Starting System Builder Hub (Priority 1, 2 & 3 - Complete System)
+======================================================================
+📋 System Overview:
+   • Priority 1: Core Infrastructure (P1-P10)
+   • Priority 2: Advanced Features (P11-P20)
+   • Priority 3: Intelligence & Diagnostics (P21-P29)
+======================================================================
+🗄️ Initializing database...
+✅ Database initialized successfully
+🔧 Initializing modules...
+⚠️ Some modules failed to initialize
+🔄 Starting background tasks...
+✅ Background tasks started
+======================================================================
+�� System Builder Hub is ready!
+📊 Available endpoints:
+   • Health: http://localhost:5000/health
+   • API Status: http://localhost:5000/api/status
+   • Dashboard: http://localhost:5000/dashboard
+   • Memory Upload: http://localhost:5000/memory/upload
+   • Templates: http://localhost:5000/templates/generate
+   • Self-Healing: http://localhost:5000/self-healing/status
+   • Client Success: http://localhost:5000/client-success/profile
+   • Developer Dashboard: http://localhost:5000/developer-dashboard/overview
+   • Black Box Inspector: http://localhost:5000/black-box/inspect
+   • Agent Messaging: http://localhost:5000/agent-messaging/send
+   • Multi-Agent Planning: http://localhost:5000/multi-agent/plan
+   • Context Engine: http://localhost:5000/context-engine/expand
+   • Security: http://localhost:5000/security/events
+   • Compliance: http://localhost:5000/compliance/report
+   • System Genesis: http://localhost:5000/system-genesis/create
+======================================================================
+🌐 Starting Flask application...
+ * Serving Flask app 'app'
+ * Debug mode: on
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.10.66:5001
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with stat
+INFO:__main__:Database initialized successfully
+ERROR:__main__:Priority 1 module initialization failed: ConsensusMemory.__init__() missing 5 required positional arguments: 'base_dir', 'agent_messaging_layer', 'multi_agent_planning', 'access_control', and 'llm_factory'
+ERROR:__main__:❌ Module initialization failed: DemoGenerator.__init__() missing 4 required positional arguments: 'base_dir', 'system_delivery', 'storefront', and 'llm_factory'
+INFO:__main__:Background tasks started
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 113-855-944

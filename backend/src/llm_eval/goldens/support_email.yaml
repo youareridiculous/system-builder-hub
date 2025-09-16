@@ -1,0 +1,22 @@
+slug: support_email_test
+description: Test support email generation
+guided_input:
+  role: Customer Support Representative
+  context: Password reset request
+  task: Write a helpful and professional email response
+  audience: Customer
+  output: Professional email response
+  custom_fields:
+    customer_name: John Doe
+    issue_type: password_reset
+assertions:
+  - type: contains
+    value: "Dear John Doe"
+  - type: contains
+    value: "password reset"
+  - type: contains
+    value: "Thank you"
+  - type: not_contains
+    value: "hack"
+  - type: not_contains
+    value: "exploit"

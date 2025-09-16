@@ -1,0 +1,480 @@
+{
+  "info": {
+    "name": "CRM Flagship v1.0.0 API",
+    "description": "Complete API collection for CRM Flagship - includes authentication, CRUD operations, communications, automations, analytics, and more.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tenant_id",
+      "value": "demo-tenant",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login - Owner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner@sbh.dev\",\n  \"password\": \"Owner!123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('auth_token', response.access_token);",
+                  "    console.log('Token saved:', response.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Sales",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sales@sbh.dev\",\n  \"password\": \"Sales!123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Accounts",
+      "item": [
+        {
+          "name": "List Accounts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts"]
+            }
+          }
+        },
+        {
+          "name": "Create Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Corp\",\n  \"industry\": \"Technology\",\n  \"website\": \"https://democorp.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "accounts"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contacts",
+      "item": [
+        {
+          "name": "List Contacts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/contacts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "contacts"]
+            }
+          }
+        },
+        {
+          "name": "Create Contact",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"email\": \"john@democorp.com\",\n  \"phone\": \"+1234567890\",\n  \"account_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/contacts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "contacts"]
+            }
+          }
+        },
+        {
+          "name": "Get Contact Detail",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/contacts/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "contacts", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Deals",
+      "item": [
+        {
+          "name": "List Deals",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/deals",
+              "host": ["{{base_url}}"],
+              "path": ["api", "deals"]
+            }
+          }
+        },
+        {
+          "name": "Create Deal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Demo Deal\",\n  \"amount\": 50000,\n  \"stage\": \"prospecting\",\n  \"account_id\": 1,\n  \"contact_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/deals",
+              "host": ["{{base_url}}"],
+              "path": ["api", "deals"]
+            }
+          }
+        },
+        {
+          "name": "Update Deal Stage (Kanban)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stage\": \"qualification\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/deals/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "deals", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Communications",
+      "item": [
+        {
+          "name": "Send Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_email\": \"john@democorp.com\",\n  \"subject\": \"Test Email\",\n  \"body\": \"This is a test email from CRM Flagship.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/communications/send-email",
+              "host": ["{{base_url}}"],
+              "path": ["api", "communications", "send-email"]
+            }
+          }
+        },
+        {
+          "name": "Send SMS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_phone\": \"+1234567890\",\n  \"message\": \"Test SMS from CRM Flagship\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/communications/send-sms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "communications", "send-sms"]
+            }
+          }
+        },
+        {
+          "name": "Initiate Call",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_phone\": \"+1234567890\",\n  \"record\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/communications/initiate-call",
+              "host": ["{{base_url}}"],
+              "path": ["api", "communications", "initiate-call"]
+            }
+          }
+        },
+        {
+          "name": "Get Communications History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/communications/history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "communications", "history"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Templates",
+      "item": [
+        {
+          "name": "List Templates",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/templates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "templates"]
+            }
+          }
+        },
+        {
+          "name": "Render Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"template_id\": 1,\n  \"context\": {\n    \"contact_name\": \"John Doe\",\n    \"deal_title\": \"Demo Deal\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/templates/1/render",
+              "host": ["{{base_url}}"],
+              "path": ["api", "templates", "1", "render"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Automations",
+      "item": [
+        {
+          "name": "List Automations",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/automations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "automations"]
+            }
+          }
+        },
+        {
+          "name": "Test Automation (Dry Run)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test_data\": {\n    \"contact_id\": 1,\n    \"deal_id\": 1\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/automations/1/test",
+              "host": ["{{base_url}}"],
+              "path": ["api", "automations", "1", "test"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Communications Summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/analytics/communications/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "analytics", "communications", "summary"]
+            }
+          }
+        },
+        {
+          "name": "Pipeline Summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/analytics/pipeline/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "analytics", "pipeline", "summary"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "List Webhook Events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/events",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "events"]
+            }
+          }
+        },
+        {
+          "name": "Replay Webhook Event",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/events/1/replay",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "events", "1", "replay"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Get Provider Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/settings/provider-status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "settings", "provider-status"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

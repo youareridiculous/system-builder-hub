@@ -1,0 +1,56 @@
+{
+  "id": "crm_lite",
+  "slug": "crm_lite",
+  "name": "CRM Lite",
+  "description": "Lightweight CRM focused on contacts, deals, and tasks.",
+  "category": "Business",
+  "tags": [
+    "crm_lite",
+    "business",
+    "contacts",
+    "deals",
+    "tasks"
+  ],
+  "version": "1.0.0",
+  "author": "SBH Team",
+  "features": [
+    "Contacts",
+    "Deals (placeholder)",
+    "Tasks (placeholder)"
+  ],
+  "plans": {
+    "starter": {
+      "name": "Starter",
+      "price": 0,
+      "billing_cycle": "monthly",
+      "features": [
+        "Contacts only"
+      ]
+    },
+    "pro": {
+      "name": "Pro",
+      "price": 29,
+      "billing_cycle": "monthly",
+      "features": [
+        "Contacts + Tasks (placeholder)"
+      ]
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": 99,
+      "billing_cycle": "monthly",
+      "features": [
+        "Contacts + Tasks + Deals (placeholders OK for now)"
+      ]
+    }
+  },
+  "provision": {
+    "module": "crm_lite",
+    "migrations": true,
+    "seed": true
+  },
+  "onboarding": "marketplace/onboarding/crm_lite.onboarding.json",
+  "is_active": true,
+  "created_at": "2025-09-02T16:59:18.872400Z",
+  "updated_at": "2025-09-02T16:59:18.872405Z"
+}

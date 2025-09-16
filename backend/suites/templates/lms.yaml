@@ -1,0 +1,122 @@
+name: "LMS Template Suite"
+description: "Comprehensive evaluation suite for Learning Management System template"
+
+golden_cases:
+  - name: "Course Management CRUD"
+    description: "Test course create, read, update, delete operations"
+    prompt: "Create a course management system with CRUD operations for courses including title, description, instructor, and enrollment fields"
+    sla_class: "normal"
+    assertions:
+      - name: "course_created"
+        type: "contains"
+        expected: "course"
+        description: "Should create course functionality"
+      - name: "crud_operations"
+        type: "contains"
+        expected: "CRUD"
+        description: "Should include CRUD operations"
+
+  - name: "User Authentication"
+    description: "Test user authentication for students and instructors"
+    prompt: "Implement user authentication with student and instructor roles, login, and session management"
+    sla_class: "normal"
+    assertions:
+      - name: "authentication"
+        type: "contains"
+        expected: "auth"
+        description: "Should include authentication"
+      - name: "roles"
+        type: "contains"
+        expected: "role"
+        description: "Should include role management"
+
+  - name: "Role-Based Access Control"
+    description: "Test RBAC for different user types"
+    prompt: "Create role-based access control with admin, instructor, and student roles with appropriate permissions"
+    sla_class: "thorough"
+    assertions:
+      - name: "rbac_roles"
+        type: "contains"
+        expected: "role"
+        description: "Should include role-based access"
+      - name: "permissions"
+        type: "contains"
+        expected: "permission"
+        description: "Should include permissions system"
+
+  - name: "Learning Analytics"
+    description: "Test analytics and progress tracking"
+    prompt: "Build analytics dashboard showing student progress, course completion rates, and learning outcomes"
+    sla_class: "normal"
+    assertions:
+      - name: "analytics"
+        type: "contains"
+        expected: "analytics"
+        description: "Should include analytics"
+      - name: "progress"
+        type: "contains"
+        expected: "progress"
+        description: "Should include progress tracking"
+
+scenario_bundles:
+  - name: "LMS Template Smoke Test"
+    description: "End-to-end smoke test for LMS template"
+    natural_language: "Launch a complete learning management system with course management, user authentication, and progress tracking"
+    sla_class: "thorough"
+    steps:
+      - name: "Template Launch"
+        description: "Launch the LMS template"
+        action: "launch"
+        inputs:
+          template: "lms_complete"
+        assertions:
+          - name: "template_launched"
+            type: "contains"
+            expected: "success"
+            description: "Template should launch successfully"
+
+      - name: "Database Setup"
+        description: "Verify database schema and migrations"
+        action: "validate"
+        inputs:
+          check_tables: ["courses", "users", "enrollments", "progress"]
+        assertions:
+          - name: "database_schema"
+            type: "contains"
+            expected: "courses"
+            description: "Should have courses table"
+
+      - name: "API Endpoints"
+        description: "Test core API endpoints"
+        action: "test"
+        inputs:
+          endpoints: ["/api/courses", "/api/users", "/api/progress"]
+        assertions:
+          - name: "api_endpoints"
+            type: "contains"
+            expected: "200"
+            description: "API endpoints should respond"
+
+kpi_guards:
+  - name: "lms_pass_rate"
+    metric: "pass_rate"
+    threshold: 0.90
+    operator: ">="
+    description: "LMS template should have 90% pass rate"
+    severity: "error"
+
+  - name: "lms_latency"
+    metric: "avg_latency_ms"
+    threshold: 15000
+    operator: "<="
+    description: "LMS template should complete within 15 seconds"
+    severity: "warning"
+
+metadata:
+  tags: ["lms", "template", "education"]
+  priority: "high"
+  estimated_duration_minutes: 20
+  enable_canary: false
+  enable_chaos: false
+  max_reruns_on_flake: 2
+  min_stable_passes: 2

@@ -1,0 +1,1191 @@
+"""
+Codegen Engineer Agent
+Generates code artifacts using the Codegen API and produces unified diffs.
+"""
+
+import json
+import logging
+import tempfile
+import os
+from typing import Dict, Any, List, Optional
+from pathlib import Path
+from .base import BaseAgent, AgentContext
+
+logger = logging.getLogger(__name__)
+
+
+class CodegenEngineerAgent(BaseAgent):
+    """Codegen Engineer Agent - produces code artifacts and unified diffs."""
+    
+    def __init__(self, context: AgentContext):
+        super().__init__(context)
+        self.codegen_api = self._get_codegen_client()
+        self.template_engine = self._get_template_engine()
+    
+    def _get_codegen_client(self):
+        """Get Codegen API client."""
+        # This would integrate with the existing Codegen Agent
+        from src.agent_codegen.codegen_client import CodegenClient
+        return CodegenClient()
+    
+    def _get_template_engine(self):
+        """Get template engine for code generation."""
+        from src.templates.template_engine import TemplateEngine
+        return TemplateEngine()
+    
+    async def execute(self, action: str, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute Codegen Engineer actions."""
+        if action == "generate_code":
+            return await self._generate_code(inputs)
+        elif action == "create_diff":
+            return await self._create_diff(inputs)
+        elif action == "apply_changes":
+            return await self._apply_changes(inputs)
+        elif action == "generate_tests":
+            return await self._generate_tests(inputs)
+        else:
+            raise ValueError(f"Unknown action: {action}")
+    
+    async def _generate_code(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate code artifacts from specification and plan."""
+        spec = inputs.get("spec", {})
+        plan = inputs.get("plan", {})
+        security_report = inputs.get("security_report", {})
+        
+        # Create temporary workspace
+        with tempfile.TemporaryDirectory() as workspace:
+            workspace_path = Path(workspace)
+            
+            # Generate database models
+            models = await self._generate_models(spec, plan, workspace_path)
+            
+            # Generate API endpoints
+            apis = await self._generate_apis(spec, plan, workspace_path)
+            
+            # Generate UI components
+            ui_components = await self._generate_ui_components(spec, plan, workspace_path)
+            
+            # Generate configuration files
+            configs = await self._generate_configs(spec, plan, workspace_path)
+            
+            # Generate tests
+            tests = await self._generate_tests(inputs)
+            
+            # Generate documentation
+            docs = await self._generate_documentation(spec, plan, workspace_path)
+            
+            # Collect all artifacts
+            artifacts = []
+            artifacts.extend(models["artifacts"])
+            artifacts.extend(apis["artifacts"])
+            artifacts.extend(ui_components["artifacts"])
+            artifacts.extend(configs["artifacts"])
+            artifacts.extend(tests["artifacts"])
+            artifacts.extend(docs["artifacts"])
+            
+            # Create unified diff
+            diff = await self._create_unified_diff(workspace_path, inputs.get("base_path"))
+            
+            return {
+                "artifacts": artifacts,
+                "diff": diff,
+                "summary": {
+                    "files_generated": len(artifacts),
+                    "models": len(models["artifacts"]),
+                    "apis": len(apis["artifacts"]),
+                    "ui_components": len(ui_components["artifacts"]),
+                    "configs": len(configs["artifacts"]),
+                    "tests": len(tests["artifacts"]),
+                    "docs": len(docs["artifacts"])
+                }
+            }
+    
+    async def _generate_models(self, spec: Dict[str, Any], plan: Dict[str, Any], workspace_path: Path) -> Dict[str, Any]:
+        """Generate database models."""
+        entities = spec.get("entities", [])
+        database_schema = plan.get("database_schema", {})
+        
+        artifacts = []
+        
+        # Generate SQLAlchemy models
+        models_content = await self._generate_sqlalchemy_models(entities, database_schema)
+        models_file = workspace_path / "src" / "models.py"
+        models_file.parent.mkdir(parents=True, exist_ok=True)
+        models_file.write_text(models_content)
+        
+        artifacts.append({
+            "file_path": "src/models.py",
+            "content": models_content,
+            "type": "model",
+            "language": "python"
+        })
+        
+        # Generate database migrations
+        migrations_content = await self._generate_migrations(entities, database_schema)
+        migrations_file = workspace_path / "migrations" / "001_initial.py"
+        migrations_file.parent.mkdir(parents=True, exist_ok=True)
+        migrations_file.write_text(migrations_content)
+        
+        artifacts.append({
+            "file_path": "migrations/001_initial.py",
+            "content": migrations_content,
+            "type": "migration",
+            "language": "python"
+        })
+        
+        # Generate database configuration
+        db_config_content = await self._generate_db_config(database_schema)
+        db_config_file = workspace_path / "src" / "database.py"
+        db_config_file.write_text(db_config_content)
+        
+        artifacts.append({
+            "file_path": "src/database.py",
+            "content": db_config_content,
+            "type": "config",
+            "language": "python"
+        })
+        
+        return {"artifacts": artifacts}
+    
+    async def _generate_sqlalchemy_models(self, entities: List[Dict[str, Any]], database_schema: Dict[str, Any]) -> str:
+        """Generate SQLAlchemy model definitions."""
+        imports = [
+            "from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text, ForeignKey, Enum, Numeric",
+            "from sqlalchemy.ext.declarative import declarative_base",
+            "from sqlalchemy.orm import relationship",
+            "import uuid",
+            "from datetime import datetime",
+            "from typing import Optional"
+        ]
+        
+        model_definitions = []
+        
+        for entity in entities:
+            entity_name = entity.get("name", "")
+            fields = entity.get("fields", [])
+            
+            # Generate model class
+            model_class = f"""
+class {entity_name}(Base):
+    __tablename__ = '{self._to_snake_case(entity_name)}'
+    
+    # Primary key
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    
+    # Standard fields
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Tenant field for multi-tenancy
+    tenant_id = Column(String(36), nullable=False, index=True)
+"""
+            
+            # Add entity-specific fields
+            for field in fields:
+                field_name = field.get("name", "")
+                field_type = field.get("type", "string")
+                field_definition = self._generate_field_definition(field_name, field_type, field)
+                model_class += f"    {field_definition}\n"
+            
+            # Add relationships
+            relationships = self._generate_relationships(entity, entities)
+            for rel in relationships:
+                model_class += f"    {rel}\n"
+            
+            model_class += "\n"
+            model_definitions.append(model_class)
+        
+        # Combine all parts
+        content = "\n".join(imports) + "\n\nBase = declarative_base()\n\n" + "\n".join(model_definitions)
+        return content
+    
+    def _generate_field_definition(self, field_name: str, field_type: str, field: Dict[str, Any]) -> str:
+        """Generate SQLAlchemy field definition."""
+        field_type_map = {
+            "string": "String",
+            "integer": "Integer",
+            "boolean": "Boolean",
+            "datetime": "DateTime",
+            "text": "Text",
+            "uuid": "String(36)",
+            "decimal": "Numeric",
+            "enum": "Enum"
+        }
+        
+        sqlalchemy_type = field_type_map.get(field_type, "String")
+        
+        # Build field definition
+        definition = f"{field_name} = Column({sqlalchemy_type}"
+        
+        # Add constraints
+        if field.get("required", False):
+            definition += ", nullable=False"
+        else:
+            definition += ", nullable=True"
+        
+        if field.get("unique", False):
+            definition += ", unique=True"
+        
+        if field.get("indexed", False):
+            definition += ", index=True"
+        
+        # Add default values
+        if field_type == "uuid":
+            definition += ", default=lambda: str(uuid.uuid4())"
+        elif field_type == "datetime" and field.get("auto", False):
+            definition += ", default=datetime.utcnow"
+        
+        # Add enum values
+        if field_type == "enum" and field.get("values"):
+            values = field["values"]
+            definition += f", Enum({', '.join(repr(v) for v in values)})"
+        
+        # Add precision for decimal
+        if field_type == "decimal":
+            precision = field.get("precision", 10)
+            scale = field.get("scale", 2)
+            definition += f"({precision}, {scale})"
+        
+        definition += ")"
+        return definition
+    
+    def _generate_relationships(self, entity: Dict[str, Any], all_entities: List[Dict[str, Any]]) -> List[str]:
+        """Generate SQLAlchemy relationships."""
+        relationships = []
+        entity_name = entity.get("name", "")
+        
+        for field in entity.get("fields", []):
+            if field.get("type") == "foreign_key":
+                target_entity = field.get("target_entity", "")
+                field_name = field.get("name", "")
+                
+                # Many-to-one relationship
+                relationships.append(
+                    f"{target_entity.lower()} = relationship('{target_entity}', back_populates='{entity_name.lower()}s')"
+                )
+        
+        return relationships
+    
+    async def _generate_migrations(self, entities: List[Dict[str, Any]], database_schema: Dict[str, Any]) -> str:
+        """Generate Alembic migration."""
+        migration_content = '''"""Initial migration
+
+Revision ID: 001
+Revises: 
+Create Date: 2024-01-01 00:00:00.000000
+
+"""
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+
+# revision identifiers, used by Alembic.
+revision = '001'
+down_revision = None
+branch_labels = None
+depends_on = None
+
+
+def upgrade():
+    """Create initial tables."""
+'''
+        
+        # Generate table creation statements
+        for entity in entities:
+            entity_name = entity.get("name", "")
+            table_name = self._to_snake_case(entity_name)
+            
+            migration_content += f"""
+    # Create {table_name} table
+    op.create_table('{table_name}',
+        sa.Column('id', sa.String(36), nullable=False),
+        sa.Column('created_at', sa.DateTime(), nullable=False),
+        sa.Column('updated_at', sa.DateTime(), nullable=False),
+        sa.Column('tenant_id', sa.String(36), nullable=False),
+"""
+            
+            # Add entity-specific columns
+            for field in entity.get("fields", []):
+                field_name = field.get("name", "")
+                field_type = field.get("type", "string")
+                column_def = self._generate_migration_column(field_name, field_type, field)
+                migration_content += f"        {column_def},\n"
+            
+            migration_content += f"""        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index('idx_{table_name}_tenant_id', '{table_name}', ['tenant_id'])
+"""
+        
+        migration_content += '''
+
+def downgrade():
+    """Drop all tables."""
+'''
+        
+        # Generate table drop statements
+        for entity in reversed(entities):
+            table_name = self._to_snake_case(entity.get("name", ""))
+            migration_content += f"    op.drop_table('{table_name}')\n"
+        
+        return migration_content
+    
+    def _generate_migration_column(self, field_name: str, field_type: str, field: Dict[str, Any]) -> str:
+        """Generate migration column definition."""
+        field_type_map = {
+            "string": "sa.String(255)",
+            "integer": "sa.Integer()",
+            "boolean": "sa.Boolean()",
+            "datetime": "sa.DateTime()",
+            "text": "sa.Text()",
+            "uuid": "sa.String(36)",
+            "decimal": "sa.Numeric(10, 2)",
+            "enum": "sa.Enum()"
+        }
+        
+        sqlalchemy_type = field_type_map.get(field_type, "sa.String(255)")
+        
+        definition = f"sa.Column('{field_name}', {sqlalchemy_type}"
+        
+        if not field.get("required", False):
+            definition += ", nullable=True"
+        
+        definition += ")"
+        return definition
+    
+    async def _generate_db_config(self, database_schema: Dict[str, Any]) -> str:
+        """Generate database configuration."""
+        return '''"""Database configuration and session management."""
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+import os
+
+from .models import Base
+
+# Database configuration
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")
+
+# Create engine
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool
+    )
+else:
+    engine = create_engine(DATABASE_URL)
+
+# Create session factory
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def get_db():
+    """Get database session."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def create_tables():
+    """Create all tables."""
+    Base.metadata.create_all(bind=engine)
+
+def drop_tables():
+    """Drop all tables."""
+    Base.metadata.drop_all(bind=engine)
+'''
+    
+    async def _generate_apis(self, spec: Dict[str, Any], plan: Dict[str, Any], workspace_path: Path) -> Dict[str, Any]:
+        """Generate API endpoints."""
+        api_endpoints = plan.get("api_endpoints", [])
+        entities = spec.get("entities", [])
+        
+        artifacts = []
+        
+        # Generate FastAPI app
+        app_content = await self._generate_fastapi_app(api_endpoints, entities)
+        app_file = workspace_path / "src" / "app.py"
+        app_file.write_text(app_content)
+        
+        artifacts.append({
+            "file_path": "src/app.py",
+            "content": app_content,
+            "type": "api",
+            "language": "python"
+        })
+        
+        # Generate API routes
+        for entity in entities:
+            route_content = await self._generate_entity_routes(entity)
+            route_file = workspace_path / "src" / "routes" / f"{self._to_snake_case(entity['name'])}.py"
+            route_file.parent.mkdir(parents=True, exist_ok=True)
+            route_file.write_text(route_content)
+            
+            artifacts.append({
+                "file_path": f"src/routes/{self._to_snake_case(entity['name'])}.py",
+                "content": route_content,
+                "type": "api",
+                "language": "python"
+            })
+        
+        # Generate schemas
+        schemas_content = await self._generate_pydantic_schemas(entities)
+        schemas_file = workspace_path / "src" / "schemas.py"
+        schemas_file.write_text(schemas_content)
+        
+        artifacts.append({
+            "file_path": "src/schemas.py",
+            "content": schemas_content,
+            "type": "schema",
+            "language": "python"
+        })
+        
+        return {"artifacts": artifacts}
+    
+    async def _generate_fastapi_app(self, api_endpoints: List[Dict[str, Any]], entities: List[Dict[str, Any]]) -> str:
+        """Generate FastAPI application."""
+        imports = [
+            "from fastapi import FastAPI, Depends, HTTPException, status",
+            "from fastapi.middleware.cors import CORSMiddleware",
+            "from sqlalchemy.orm import Session",
+            "from typing import List",
+            "import uvicorn",
+            "",
+            "from .database import get_db, create_tables",
+            "from .models import Base"
+        ]
+        
+        # Add route imports
+        for entity in entities:
+            entity_name = entity.get("name", "")
+            route_name = self._to_snake_case(entity_name)
+            imports.append(f"from .routes.{route_name} import router as {route_name}_router")
+        
+        app_content = "\n".join(imports) + '''
+
+# Create FastAPI app
+app = FastAPI(
+    title="Generated API",
+    description="Auto-generated API from specification",
+    version="1.0.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+'''
+        
+        # Add router includes
+        for entity in entities:
+            entity_name = entity.get("name", "")
+            route_name = self._to_snake_case(entity_name)
+            app_content += f"app.include_router({route_name}_router, prefix='/api/{route_name}', tags=['{entity_name}'])\n"
+        
+        app_content += '''
+
+@app.on_event("startup")
+async def startup_event():
+    """Create tables on startup."""
+    create_tables()
+
+@app.get("/")
+async def root():
+    """Root endpoint."""
+    return {"message": "Generated API is running"}
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy"}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+'''
+        
+        return app_content
+    
+    async def _generate_entity_routes(self, entity: Dict[str, Any]) -> str:
+        """Generate CRUD routes for an entity."""
+        entity_name = entity.get("name", "")
+        table_name = self._to_snake_case(entity_name)
+        
+        return f'''"""CRUD routes for {entity_name} entity."""
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+
+from ..database import get_db
+from ..models import {entity_name}
+from ..schemas import {entity_name}Create, {entity_name}Update, {entity_name}Response
+
+router = APIRouter()
+
+@router.get("/", response_model=List[{entity_name}Response])
+def list_{table_name}s(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """List {entity_name} records."""
+    {table_name}s = db.query({entity_name}).offset(skip).limit(limit).all()
+    return {table_name}s
+
+@router.post("/", response_model={entity_name}Response)
+def create_{table_name}(
+    {table_name}: {entity_name}Create,
+    db: Session = Depends(get_db)
+):
+    """Create new {entity_name}."""
+    db_{table_name} = {entity_name}(**{table_name}.dict())
+    db.add(db_{table_name})
+    db.commit()
+    db.refresh(db_{table_name})
+    return db_{table_name}
+
+@router.get("/{item_id}", response_model={entity_name}Response)
+def get_{table_name}(
+    item_id: str,
+    db: Session = Depends(get_db)
+):
+    """Get {entity_name} by ID."""
+    {table_name} = db.query({entity_name}).filter({entity_name}.id == item_id).first()
+    if {table_name} is None:
+        raise HTTPException(status_code=404, detail="{entity_name} not found")
+    return {table_name}
+
+@router.put("/{item_id}", response_model={entity_name}Response)
+def update_{table_name}(
+    item_id: str,
+    {table_name}_update: {entity_name}Update,
+    db: Session = Depends(get_db)
+):
+    """Update {entity_name}."""
+    db_{table_name} = db.query({entity_name}).filter({entity_name}.id == item_id).first()
+    if db_{table_name} is None:
+        raise HTTPException(status_code=404, detail="{entity_name} not found")
+    
+    for field, value in {table_name}_update.dict(exclude_unset=True).items():
+        setattr(db_{table_name}, field, value)
+    
+    db.commit()
+    db.refresh(db_{table_name})
+    return db_{table_name}
+
+@router.delete("/{item_id}")
+def delete_{table_name}(
+    item_id: str,
+    db: Session = Depends(get_db)
+):
+    """Delete {entity_name}."""
+    {table_name} = db.query({entity_name}).filter({entity_name}.id == item_id).first()
+    if {table_name} is None:
+        raise HTTPException(status_code=404, detail="{entity_name} not found")
+    
+    db.delete({table_name})
+    db.commit()
+    return {"message": "{entity_name} deleted"}
+'''
+    
+    async def _generate_pydantic_schemas(self, entities: List[Dict[str, Any]]) -> str:
+        """Generate Pydantic schemas."""
+        imports = [
+            "from pydantic import BaseModel",
+            "from typing import Optional",
+            "from datetime import datetime"
+        ]
+        
+        schemas = []
+        
+        for entity in entities:
+            entity_name = entity.get("name", "")
+            fields = entity.get("fields", [])
+            
+            # Base schema
+            base_fields = [
+                "id: Optional[str] = None",
+                "created_at: Optional[datetime] = None",
+                "updated_at: Optional[datetime] = None",
+                "tenant_id: str"
+            ]
+            
+            # Entity-specific fields
+            for field in fields:
+                field_name = field.get("name", "")
+                field_type = field.get("type", "string")
+                pydantic_type = self._get_pydantic_type(field_type)
+                
+                if not field.get("required", False):
+                    pydantic_type = f"Optional[{pydantic_type}] = None"
+                
+                base_fields.append(f"{field_name}: {pydantic_type}")
+            
+            base_schema = f"""
+class {entity_name}Base(BaseModel):
+    tenant_id: str
+"""
+            
+            # Add entity-specific fields to base
+            for field in fields:
+                field_name = field.get("name", "")
+                field_type = field.get("type", "string")
+                pydantic_type = self._get_pydantic_type(field_type)
+                
+                if field.get("required", False):
+                    base_schema += f"    {field_name}: {pydantic_type}\n"
+                else:
+                    base_schema += f"    {field_name}: Optional[{pydantic_type}] = None\n"
+            
+            # Create schema
+            create_schema = f"""
+class {entity_name}Create({entity_name}Base):
+    pass
+"""
+            
+            # Update schema
+            update_schema = f"""
+class {entity_name}Update(BaseModel):
+"""
+            for field in fields:
+                field_name = field.get("name", "")
+                field_type = field.get("type", "string")
+                pydantic_type = self._get_pydantic_type(field_type)
+                update_schema += f"    {field_name}: Optional[{pydantic_type}] = None\n"
+            
+            # Response schema
+            response_schema = f"""
+class {entity_name}Response({entity_name}Base):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+"""
+            
+            schemas.extend([base_schema, create_schema, update_schema, response_schema])
+        
+        return "\n".join(imports) + "\n" + "\n".join(schemas)
+    
+    def _get_pydantic_type(self, field_type: str) -> str:
+        """Get Pydantic type for field type."""
+        type_map = {
+            "string": "str",
+            "integer": "int",
+            "boolean": "bool",
+            "datetime": "datetime",
+            "text": "str",
+            "uuid": "str",
+            "decimal": "float",
+            "enum": "str"
+        }
+        return type_map.get(field_type, "str")
+    
+    async def _generate_ui_components(self, spec: Dict[str, Any], plan: Dict[str, Any], workspace_path: Path) -> Dict[str, Any]:
+        """Generate UI components."""
+        ui_pages = plan.get("ui_pages", {}).get("pages", [])
+        
+        artifacts = []
+        
+        # Generate React components
+        for page in ui_pages:
+            component_content = await self._generate_react_component(page)
+            component_file = workspace_path / "frontend" / "src" / "components" / f"{page['name']}.tsx"
+            component_file.parent.mkdir(parents=True, exist_ok=True)
+            component_file.write_text(component_content)
+            
+            artifacts.append({
+                "file_path": f"frontend/src/components/{page['name']}.tsx",
+                "content": component_content,
+                "type": "ui",
+                "language": "typescript"
+            })
+        
+        return {"artifacts": artifacts}
+    
+    async def _generate_react_component(self, page: Dict[str, Any]) -> str:
+        """Generate React component for a page."""
+        page_name = page.get("name", "")
+        page_type = page.get("type", "")
+        entity = page.get("entity", "")
+        
+        if page_type == "list":
+            return f'''import React, { useState, useEffect } from 'react';
+import { Table, Button, Space, Input, Select } from 'antd';
+import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+
+interface {entity} {{
+  id: string;
+  // Add entity fields here
+}}
+
+const {page_name}: React.FC = () => {
+  const [{entity.lower()}s, set{entity}s] = useState<{entity}[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchText, setSearchText] = useState('');
+
+  useEffect(() => {{
+    fetch{entity}s();
+  }}, []);
+
+  const fetch{entity}s = async () => {{
+    setLoading(true);
+    try {{
+      const response = await fetch('/api/{entity.lower()}');
+      const data = await response.json();
+      set{entity}s(data);
+    }} catch (error) {{
+      console.error('Error fetching {entity.lower()}s:', error);
+    }} finally {{
+      setLoading(false);
+    }}
+  }};
+
+  const columns = [
+    {{
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+    }},
+    // Add more columns based on entity fields
+    {{
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space size="middle">
+          <Button type="link" onClick={() => handleEdit(record.id)}>
+            Edit
+          </Button>
+          <Button type="link" danger onClick={() => handleDelete(record.id)}>
+            Delete
+          </Button>
+        </Space>
+      ),
+    }},
+  ];
+
+  const handleEdit = (id: string) => {{
+    // Navigate to edit page
+    window.location.href = `/{entity.lower()}/${id}`;
+  }};
+
+  const handleDelete = async (id: string) => {{
+    if (confirm('Are you sure you want to delete this {entity.lower()}?')) {{
+      try {{
+        await fetch(`/api/{entity.lower()}/${id}`, {{ method: 'DELETE' }});
+        fetch{entity}s();
+      }} catch (error) {{
+        console.error('Error deleting {entity.lower()}:', error);
+      }}
+    }}
+  }};
+
+  return (
+    <div style={{ padding: "24px" }}>
+      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
+        <Input
+          placeholder="Search {entity.lower()}s"
+          prefix={{<SearchOutlined />}}
+          value={{searchText}}
+          onChange={{e => setSearchText(e.target.value)}}
+          style={{ width: '300px' }}
+        />
+        <Button type="primary" icon={{<PlusOutlined />}}>
+          Add {entity}
+        </Button>
+      </div>
+      <Table
+        columns={{{columns}}}
+        dataSource={{entity.lower()}s}
+        loading={{{loading}}}
+        rowKey="id"
+      />
+    </div>
+  );
+}};
+
+export default {page_name};
+'''
+        else:
+            return f'''import React from 'react';
+
+const {page_name}: React.FC = () => {
+  return (
+    <div>
+      <h1>{page_name}</h1>
+      <p>This is a {page_type} page.</p>
+    </div>
+  );
+}};
+
+export default {page_name};
+'''
+    
+    async def _generate_configs(self, spec: Dict[str, Any], plan: Dict[str, Any], workspace_path: Path) -> Dict[str, Any]:
+        """Generate configuration files."""
+        artifacts = []
+        
+        # Generate requirements.txt
+        requirements_content = '''fastapi==0.104.1
+uvicorn==0.24.0
+sqlalchemy==2.0.23
+alembic==1.12.1
+psycopg2-binary==2.9.9
+pydantic==2.5.0
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+'''
+        
+        requirements_file = workspace_path / "requirements.txt"
+        requirements_file.write_text(requirements_content)
+        
+        artifacts.append({
+            "file_path": "requirements.txt",
+            "content": requirements_content,
+            "type": "config",
+            "language": "text"
+        })
+        
+        # Generate Dockerfile
+        dockerfile_content = '''FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000"]
+'''
+        
+        dockerfile_file = workspace_path / "Dockerfile"
+        dockerfile_file.write_text(dockerfile_content)
+        
+        artifacts.append({
+            "file_path": "Dockerfile",
+            "content": dockerfile_content,
+            "type": "config",
+            "language": "dockerfile"
+        })
+        
+        return {"artifacts": artifacts}
+    
+    async def _generate_tests(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate test files."""
+        spec = inputs.get("spec", {})
+        entities = spec.get("entities", [])
+        
+        artifacts = []
+        
+        # Generate test configuration
+        test_config_content = '''import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from src.app import app
+from src.database import get_db
+from src.models import Base
+
+# Test database
+SQLALCHEMY_DATABASE_URL = "sqlite://"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base.metadata.create_all(bind=engine)
+
+def override_get_db():
+    try:
+        db = TestingSessionLocal()
+        yield db
+    finally:
+        db.close()
+
+app.dependency_overrides[get_db] = override_get_db
+
+client = TestClient(app)
+'''
+        
+        artifacts.append({
+            "file_path": "tests/conftest.py",
+            "content": test_config_content,
+            "type": "test",
+            "language": "python"
+        })
+        
+        # Generate entity tests
+        for entity in entities:
+            test_content = await self._generate_entity_tests(entity)
+            test_file = f"tests/test_{self._to_snake_case(entity['name'])}.py"
+            
+            artifacts.append({
+                "file_path": test_file,
+                "content": test_content,
+                "type": "test",
+                "language": "python"
+            })
+        
+        return {"artifacts": artifacts}
+    
+    async def _generate_entity_tests(self, entity: Dict[str, Any]) -> str:
+        """Generate tests for an entity."""
+        entity_name = entity.get("name", "")
+        table_name = self._to_snake_case(entity_name)
+        
+        return f'''import pytest
+from fastapi.testclient import TestClient
+from tests.conftest import client
+
+def test_create_{table_name}():
+    """Test creating a {entity_name}."""
+    {table_name}_data = {{
+        "tenant_id": "test-tenant",
+        # Add required fields here
+    }}
+    
+    response = client.post("/api/{table_name}/", json={table_name}_data)
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert data["tenant_id"] == {table_name}_data["tenant_id"]
+    assert "id" in data
+
+def test_get_{table_name}():
+    """Test getting a {entity_name}."""
+    # First create a {entity_name}
+    {table_name}_data = {{
+        "tenant_id": "test-tenant",
+        # Add required fields here
+    }}
+    
+    create_response = client.post("/api/{table_name}/", json={table_name}_data)
+    {table_name}_id = create_response.json()["id"]
+    
+    # Then get it
+    response = client.get(f"/api/{table_name}/${table_name}_id")
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert data["id"] == {table_name}_id
+
+def test_update_{table_name}():
+    """Test updating a {entity_name}."""
+    # First create a {entity_name}
+    {table_name}_data = {{
+        "tenant_id": "test-tenant",
+        # Add required fields here
+    }}
+    
+    create_response = client.post("/api/{table_name}/", json={table_name}_data)
+    {table_name}_id = create_response.json()["id"]
+    
+    # Then update it
+    update_data = {{
+        # Add fields to update
+    }}
+    
+    response = client.put(f"/api/{table_name}/${table_name}_id", json=update_data)
+    assert response.status_code == 200
+
+def test_delete_{table_name}():
+    """Test deleting a {entity_name}."""
+    # First create a {entity_name}
+    {table_name}_data = {{
+        "tenant_id": "test-tenant",
+        # Add required fields here
+    }}
+    
+    create_response = client.post("/api/{table_name}/", json={table_name}_data)
+    {table_name}_id = create_response.json()["id"]
+    
+    # Then delete it
+    response = client.delete(f"/api/{table_name}/${table_name}_id")
+    assert response.status_code == 200
+'''
+    
+    async def _generate_documentation(self, spec: Dict[str, Any], plan: Dict[str, Any], workspace_path: Path) -> Dict[str, Any]:
+        """Generate documentation."""
+        artifacts = []
+        
+        # Generate README
+        readme_content = f'''# {spec.get("name", "Generated System")}
+
+This is an auto-generated system based on the specification.
+
+## Features
+
+- {len(spec.get("entities", []))} entities
+- {len(plan.get("api_endpoints", []))} API endpoints
+- {len(plan.get("ui_pages", {}).get("pages", []))} UI pages
+
+## Quick Start
+
+1. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. Set up the database:
+   ```bash
+   alembic upgrade head
+   ```
+
+3. Run the application:
+   ```bash
+   uvicorn src.app:app --reload
+   ```
+
+4. Access the API at http://localhost:8000
+
+## API Documentation
+
+Visit http://localhost:8000/docs for interactive API documentation.
+
+## Development
+
+- Backend: FastAPI + SQLAlchemy
+- Database: PostgreSQL (or SQLite for development)
+- Frontend: React + TypeScript (if generated)
+'''
+        
+        readme_file = workspace_path / "README.md"
+        readme_file.write_text(readme_content)
+        
+        artifacts.append({
+            "file_path": "README.md",
+            "content": readme_content,
+            "type": "documentation",
+            "language": "markdown"
+        })
+        
+        return {"artifacts": artifacts}
+    
+    async def _create_unified_diff(self, workspace_path: Path, base_path: Optional[str] = None) -> Dict[str, Any]:
+        """Create unified diff from workspace."""
+        import subprocess
+        
+        try:
+            # If base path is provided, create diff against it
+            if base_path and os.path.exists(base_path):
+                cmd = ["git", "diff", "--no-index", base_path, str(workspace_path)]
+            else:
+                # Create diff from empty state
+                cmd = ["git", "diff", "--no-index", "/dev/null", str(workspace_path)]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=workspace_path)
+            
+            if result.returncode == 0 or result.returncode == 1:  # 1 is normal for git diff
+                diff_content = result.stdout
+                files_changed = len([line for line in diff_content.split('\n') if line.startswith('+++')])
+                
+                return {
+                    "unified_diff": diff_content,
+                    "files_changed": files_changed,
+                    "summary": f"Generated {files_changed} files"
+                }
+            else:
+                logger.error(f"Git diff failed: {result.stderr}")
+                return {
+                    "unified_diff": "",
+                    "files_changed": 0,
+                    "summary": "Failed to generate diff"
+                }
+                
+        except Exception as e:
+            logger.error(f"Error creating diff: {e}")
+            return {
+                "unified_diff": "",
+                "files_changed": 0,
+                "summary": f"Error: {str(e)}"
+            }
+    
+    async def _create_diff(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """Create unified diff from artifacts."""
+        artifacts = inputs.get("artifacts", [])
+        base_path = inputs.get("base_path")
+        
+        # Create temporary workspace with artifacts
+        with tempfile.TemporaryDirectory() as workspace:
+            workspace_path = Path(workspace)
+            
+            # Write artifacts to workspace
+            for artifact in artifacts:
+                file_path = workspace_path / artifact["file_path"]
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                file_path.write_text(artifact["content"])
+            
+            # Create diff
+            diff = await self._create_unified_diff(workspace_path, base_path)
+            
+            return {
+                "diff": diff,
+                "artifacts": artifacts
+            }
+    
+    async def _apply_changes(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """Apply changes to target repository."""
+        diff = inputs.get("diff", {})
+        target_path = inputs.get("target_path")
+        
+        if not target_path or not os.path.exists(target_path):
+            raise ValueError("Target path does not exist")
+        
+        # Apply the diff
+        import subprocess
+        
+        try:
+            # Write diff to temporary file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.patch', delete=False) as f:
+                f.write(diff.get("unified_diff", ""))
+                patch_file = f.name
+            
+            # Apply patch
+            cmd = ["git", "apply", "--reject", patch_file]
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=target_path)
+            
+            # Clean up
+            os.unlink(patch_file)
+            
+            if result.returncode == 0:
+                return {
+                    "success": True,
+                    "message": "Changes applied successfully",
+                    "files_modified": diff.get("files_changed", 0)
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"Failed to apply changes: {result.stderr}",
+                    "error": result.stderr
+                }
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Error applying changes: {str(e)}",
+                "error": str(e)
+            }
+    
+    def _to_snake_case(self, text: str) -> str:
+        """Convert text to snake_case."""
+        import re
+        return re.sub(r'(?<!^)(?=[A-Z])', '_', text).lower()

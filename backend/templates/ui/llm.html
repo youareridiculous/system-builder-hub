@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Playground - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .nav-tabs .nav-link {
+            color: #6c757d;
+        }
+        .nav-tabs .nav-link.active {
+            color: #495057;
+            font-weight: 500;
+        }
+        .playground-container {
+            height: calc(100vh - 200px);
+            overflow: hidden;
+        }
+        .template-selector {
+            border-right: 1px solid #dee2e6;
+            height: 100%;
+            overflow-y: auto;
+        }
+        .prompt-editor {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .response-panel {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            background-color: #f8f9fa;
+        }
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+        }
+        .message.system {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        .message.user {
+            background-color: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+        }
+        .message.assistant {
+            background-color: #e8f5e8;
+            border-left: 4px solid #4caf50;
+        }
+        .guided-form {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .usage-stats {
+            background: #e9ecef;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        .cache-badge {
+            background-color: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-left: 10px;
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .response-actions {
+            margin-top: 10px;
+        }
+        .response-actions .btn {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/dashboard">
+                                <i class="bi bi-house"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/domains">
+                                <i class="bi bi-globe"></i> Custom Domains
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/integrations">
+                                <i class="bi bi-plug"></i> Integrations
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/analytics">
+                                <i class="bi bi-graph-up"></i> Analytics
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/market">
+                                <i class="bi bi-shop"></i> Marketplace
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/export">
+                                <i class="bi bi-download"></i> Export
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/ui/llm">
+                                <i class="bi bi-robot"></i> LLM Playground
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/ui/builder">
+                                <i class="bi bi-puzzle"></i> Visual Builder
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">LLM Playground</h1>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="refreshPlayground()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="showStatus()">
+                            <i class="bi bi-info-circle"></i> Status
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Playground Container -->
+                <div class="playground-container">
+                    <div class="row h-100">
+                        <!-- Left Panel: Template Selection and Guided Input -->
+                        <div class="col-md-6">
+                            <div class="template-selector">
+                                <!-- Template Selection -->
+                                <div class="mb-3">
+                                    <label for="templateSelect" class="form-label">Prompt Template</label>
+                                    <select class="form-select" id="templateSelect" onchange="loadTemplate()">
+                                        <option value="">Choose a template...</option>
+                                    </select>
+                                </div>
+
+                                <!-- Guided Input Form -->
+                                <div id="guidedForm" class="guided-form" style="display: none;">
+                                    <h6>Guided Input</h6>
+                                    
+                                    <div class="mb-3">
+                                        <label for="roleInput" class="form-label">Role</label>
+                                        <input type="text" class="form-control" id="roleInput" placeholder="e.g., Customer Support Representative">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="contextInput" class="form-label">Context</label>
+                                        <textarea class="form-control" id="contextInput" rows="2" placeholder="e.g., Responding to customer inquiry"></textarea>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="taskInput" class="form-label">Task</label>
+                                        <textarea class="form-control" id="taskInput" rows="2" placeholder="e.g., Write a helpful and professional email response"></textarea>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="audienceInput" class="form-label">Audience</label>
+                                        <input type="text" class="form-control" id="audienceInput" placeholder="e.g., Customer">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="outputInput" class="form-label">Output</label>
+                                        <input type="text" class="form-control" id="outputInput" placeholder="e.g., Professional email response">
+                                    </div>
+                                    
+                                    <!-- Custom Fields -->
+                                    <div id="customFields">
+                                        <!-- Custom fields will be dynamically added here -->
+                                    </div>
+                                </div>
+
+                                <!-- Options -->
+                                <div class="mb-3">
+                                    <h6>Options</h6>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="cotEnabled">
+                                                <label class="form-check-label" for="cotEnabled">
+                                                    Chain of Thought
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="jsonMode">
+                                                <label class="form-check-label" for="jsonMode">
+                                                    JSON Mode
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mt-2">
+                                        <div class="col-md-6">
+                                            <label for="providerSelect" class="form-label">Provider</label>
+                                            <select class="form-select" id="providerSelect">
+                                                <option value="openai">OpenAI</option>
+                                                <option value="anthropic">Anthropic</option>
+                                                <option value="local-stub">Local Stub</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="modelSelect" class="form-label">Model</label>
+                                            <select class="form-select" id="modelSelect">
+                                                <option value="gpt-4o-mini">GPT-4o Mini</option>
+                                                <option value="gpt-4">GPT-4</option>
+                                                <option value="claude-3-haiku">Claude 3 Haiku</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mt-2">
+                                        <div class="col-md-6">
+                                            <label for="temperatureInput" class="form-label">Temperature</label>
+                                            <input type="range" class="form-range" id="temperatureInput" min="0" max="2" step="0.1" value="0.7">
+                                            <small class="text-muted">Value: <span id="temperatureValue">0.7</span></small>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="maxTokensInput" class="form-label">Max Tokens</label>
+                                            <input type="number" class="form-control" id="maxTokensInput" value="500" min="1" max="4000">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary" onclick="renderPrompt()" id="renderBtn">
+                                        <i class="bi bi-eye"></i> Render Prompt
+                                    </button>
+                                    <button class="btn btn-success" onclick="runPrompt()" id="runBtn" disabled>
+                                        <i class="bi bi-play"></i> Run Prompt
+                                    </button>
+                                    <button class="btn btn-outline-secondary" onclick="saveAsTemplate()" id="saveBtn" disabled>
+                                        <i class="bi bi-save"></i> Save as Template
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: Messages and Response -->
+                        <div class="col-md-6">
+                            <div class="response-panel">
+                                <!-- Messages Preview -->
+                                <div class="mb-3">
+                                    <h6>Messages Preview</h6>
+                                    <div id="messagesContainer" class="messages-container">
+                                        <div class="text-muted text-center">
+                                            <i class="bi bi-chat-dots"></i>
+                                            <p>Select a template and click "Render Prompt" to see messages</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Response -->
+                                <div class="mb-3">
+                                    <h6>Response</h6>
+                                    <div id="responseContainer">
+                                        <div class="text-muted text-center">
+                                            <i class="bi bi-robot"></i>
+                                            <p>Click "Run Prompt" to get a response</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Usage Stats -->
+                                <div id="usageStats" class="usage-stats" style="display: none;">
+                                    <!-- Usage statistics will be shown here -->
+                                </div>
+
+                                <!-- Response Actions -->
+                                <div id="responseActions" class="response-actions" style="display: none;">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="copyResponse()">
+                                        <i class="bi bi-clipboard"></i> Copy Text
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="copyResponseJSON()">
+                                        <i class="bi bi-code-slash"></i> Copy JSON
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loadingSpinner" class="loading-spinner text-center py-4">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Status Modal -->
+    <div class="modal fade" id="statusModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">LLM System Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="statusContent">
+                        <!-- Status content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/llm.js"></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🧠 Memory Browser</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f9f9f9; }
+    .session { margin-bottom: 2rem; padding: 1rem; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    h2 { margin-top: 0; }
+    h3 { margin-bottom: 0.25rem; }
+    ul { margin-top: 0; }
+    .label { font-weight: bold; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>🧠 Memory Browser</h1>
+  {% for session in sessions %}
+    <div class="session">
+      <h2>{{ session.name }}</h2>
+      {% for key, items in session.sections.items() %}
+        <div class="label">{{ key }}</div>
+        <ul>
+          {% for item in items %}
+            <li>{{ item }}</li>
+          {% else %}
+            <li><em>None found</em></li>
+          {% endfor %}
+        </ul>
+      {% endfor %}
+    </div>
+  {% endfor %}
+</body>
+</html>

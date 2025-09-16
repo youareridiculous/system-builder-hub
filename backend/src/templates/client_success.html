@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Success Engine - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .client-card {
+            transition: transform 0.2s;
+            border-left: 4px solid #007bff;
+        }
+        .client-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .stage-not-launched { border-left-color: #6c757d; }
+        .stage-live-underused { border-left-color: #ffc107; }
+        .stage-power-user { border-left-color: #28a745; }
+        .stage-at-risk { border-left-color: #fd7e14; }
+        .stage-churned { border-left-color: #dc3545; }
+        .stage-expanding { border-left-color: #17a2b8; }
+        
+        .churn-risk-low { background-color: #d4edda; }
+        .churn-risk-medium { background-color: #fff3cd; }
+        .churn-risk-high { background-color: #f8d7da; }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .stats-card-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        .stats-card-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .stats-card-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .nudge-card {
+            border-left: 4px solid #007bff;
+            transition: all 0.2s;
+        }
+        .nudge-card:hover {
+            transform: translateX(5px);
+        }
+        .nudge-onboarding { border-left-color: #28a745; }
+        .nudge-feature-discovery { border-left-color: #17a2b8; }
+        .nudge-best-practices { border-left-color: #ffc107; }
+        .nudge-upgrade { border-left-color: #fd7e14; }
+        .nudge-engagement { border-left-color: #dc3545; }
+        .nudge-support { border-left-color: #6f42c1; }
+        
+        .activity-timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        .activity-timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #dee2e6;
+        }
+        .activity-item {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+        .activity-item::before {
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #007bff;
+        }
+        
+        .funnel-chart {
+            height: 300px;
+            background-color: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 1rem;
+        }
+        
+        .email-campaign-card {
+            border-left: 4px solid #007bff;
+        }
+        .email-sent { border-left-color: #28a745; }
+        .email-opened { border-left-color: #17a2b8; }
+        .email-clicked { border-left-color: #ffc107; }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-md-9">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-chart-line"></i> Client Success Engine</h2>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="showOverview()">
+                            <i class="fas fa-tachometer-alt"></i> Overview
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showClients()">
+                            <i class="fas fa-users"></i> Clients
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showNudges()">
+                            <i class="fas fa-bell"></i> Nudges
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showCampaigns()">
+                            <i class="fas fa-envelope"></i> Campaigns
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Overview Interface -->
+                <div id="overview-interface">
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card stats-card">
+                                <div class="card-body text-center">
+                                    <h4 id="total-clients">0</h4>
+                                    <small>Total Clients</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-success">
+                                <div class="card-body text-center">
+                                    <h4 id="deployment-rate">0%</h4>
+                                    <small>Deployment Rate</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-info">
+                                <div class="card-body text-center">
+                                    <h4 id="avg-satisfaction">0</h4>
+                                    <small>Avg Satisfaction</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-warning">
+                                <div class="card-body text-center">
+                                    <h4 id="total-revenue">$0</h4>
+                                    <small>Total Revenue</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stage Distribution -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-pie"></i> Client Stage Distribution</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="stageChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-funnel"></i> Client Funnel</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="funnel-chart">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>Not Launched</span>
+                                            <span id="not-launched-count">0</span>
+                                        </div>
+                                        <div class="progress mb-3">
+                                            <div class="progress-bar" id="not-launched-bar" style="width: 0%"></div>
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>Live Underused</span>
+                                            <span id="live-underused-count">0</span>
+                                        </div>
+                                        <div class="progress mb-3">
+                                            <div class="progress-bar bg-warning" id="live-underused-bar" style="width: 0%"></div>
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>Power Users</span>
+                                            <span id="power-user-count">0</span>
+                                        </div>
+                                        <div class="progress mb-3">
+                                            <div class="progress-bar bg-success" id="power-user-bar" style="width: 0%"></div>
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>At Risk</span>
+                                            <span id="at-risk-count">0</span>
+                                        </div>
+                                        <div class="progress mb-3">
+                                            <div class="progress-bar bg-danger" id="at-risk-bar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-clock"></i> Recent Client Activity</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="activity-timeline" id="recent-activity">
+                                        <!-- Activity items will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clients Interface -->
+                <div id="clients-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Client Management</h4>
+                        <div class="d-flex gap-2">
+                            <select class="form-select" id="stage-filter" onchange="filterClients()">
+                                <option value="">All Stages</option>
+                                <option value="not_launched">Not Launched</option>
+                                <option value="live_underused">Live Underused</option>
+                                <option value="power_user">Power User</option>
+                                <option value="at_risk">At Risk</option>
+                                <option value="churned">Churned</option>
+                                <option value="expanding">Expanding</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="createClientProfile()">
+                                <i class="fas fa-plus"></i> New Client
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="clients-list">
+                        <!-- Client cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Nudges Interface -->
+                <div id="nudges-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Client Nudges</h4>
+                        <button class="btn btn-primary" onclick="createNudge()">
+                            <i class="fas fa-plus"></i> Create Nudge
+                        </button>
+                    </div>
+                    
+                    <div class="row" id="nudges-list">
+                        <!-- Nudge cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Campaigns Interface -->
+                <div id="campaigns-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Email Campaigns</h4>
+                        <button class="btn btn-primary" onclick="createCampaign()">
+                            <i class="fas fa-plus"></i> New Campaign
+                        </button>
+                    </div>
+                    
+                    <div class="row" id="campaigns-list">
+                        <!-- Campaign cards will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-bar"></i> Quick Stats</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Churn Risk Overview -->
+                        <h6>Churn Risk Overview</h6>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Low Risk</span>
+                                <span id="low-risk-count">0</span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" id="low-risk-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Medium Risk</span>
+                                <span id="medium-risk-count">0</span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-warning" id="medium-risk-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>High Risk</span>
+                                <span id="high-risk-count">0</span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-danger" id="high-risk-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Quick Actions -->
+                        <h6>Quick Actions</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="triggerEmailCampaign()">
+                                <i class="fas fa-envelope"></i> Send Email Campaign
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" onclick="generateNudges()">
+                                <i class="fas fa-bell"></i> Generate Nudges
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="analyzeChurnRisk()">
+                                <i class="fas fa-chart-line"></i> Analyze Churn Risk
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="exportClientData()">
+                                <i class="fas fa-download"></i> Export Data
+                            </button>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Alerts -->
+                        <h6>Recent Alerts</h6>
+                        <div id="alerts-list">
+                            <!-- Alerts will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Client Profile Modal -->
+    <div class="modal fade" id="clientModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Client Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Basic Information</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Client ID</label>
+                                <input type="text" class="form-control" id="client-id" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Stage</label>
+                                <select class="form-select" id="client-stage">
+                                    <option value="not_launched">Not Launched</option>
+                                    <option value="live_underused">Live Underused</option>
+                                    <option value="power_user">Power User</option>
+                                    <option value="at_risk">At Risk</option>
+                                    <option value="churned">Churned</option>
+                                    <option value="expanding">Expanding</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Churn Risk Score</label>
+                                <div class="progress">
+                                    <div class="progress-bar" id="churn-risk-progress" style="width: 0%"></div>
+                                </div>
+                                <small class="text-muted" id="churn-risk-text">0%</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Activity Metrics</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Total Logins</label>
+                                <input type="number" class="form-control" id="total-logins" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Total Usage Time (minutes)</label>
+                                <input type="number" class="form-control" id="total-usage-time" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Systems Created</label>
+                                <input type="number" class="form-control" id="systems-created" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Systems Deployed</label>
+                                <input type="number" class="form-control" id="systems-deployed" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6>Recent Activity</h6>
+                    <div class="activity-timeline" id="client-activity">
+                        <!-- Client activity will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="saveClientProfile()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nudge Modal -->
+    <div class="modal fade" id="nudgeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Client Nudge</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="nudge-form">
+                        <div class="mb-3">
+                            <label for="nudge-client" class="form-label">Client</label>
+                            <select class="form-select" id="nudge-client" required>
+                                <!-- Clients will be loaded here -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nudge-type" class="form-label">Nudge Type</label>
+                            <select class="form-select" id="nudge-type" required>
+                                <option value="onboarding">Onboarding</option>
+                                <option value="feature_discovery">Feature Discovery</option>
+                                <option value="best_practices">Best Practices</option>
+                                <option value="upgrade">Upgrade</option>
+                                <option value="engagement">Engagement</option>
+                                <option value="support">Support</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nudge-title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="nudge-title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nudge-message" class="form-label">Message</label>
+                            <textarea class="form-control" id="nudge-message" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nudge-priority" class="form-label">Priority</label>
+                            <select class="form-select" id="nudge-priority" required>
+                                <option value="1">High</option>
+                                <option value="2" selected>Medium</option>
+                                <option value="3">Low</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitNudge()">Create Nudge</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Campaign Modal -->
+    <div class="modal fade" id="campaignModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Email Campaign</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="campaign-form">
+                        <div class="mb-3">
+                            <label for="campaign-trigger" class="form-label">Trigger Type</label>
+                            <select class="form-select" id="campaign-trigger" required>
+                                <option value="welcome">Welcome</option>
+                                <option value="onboarding_reminder">Onboarding Reminder</option>
+                                <option value="feature_spotlight">Feature Spotlight</option>
+                                <option value="usage_report">Usage Report</option>
+                                <option value="churn_warning">Churn Warning</option>
+                                <option value="success_story">Success Story</option>
+                                <option value="upgrade_offer">Upgrade Offer</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="campaign-subject" class="form-label">Subject</label>
+                            <input type="text" class="form-control" id="campaign-subject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="campaign-content" class="form-label">Content</label>
+                            <textarea class="form-control" id="campaign-content" rows="8" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="campaign-clients" class="form-label">Target Clients</label>
+                            <select class="form-select" id="campaign-clients" multiple>
+                                <!-- Clients will be loaded here -->
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitCampaign()">Create Campaign</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let stageChart = null;
+        let currentClientId = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadClientSuccessStatistics();
+            loadStageDistribution();
+            loadRecentActivity();
+            loadAlerts();
+        });
+
+        // Interface Functions
+        function showOverview() {
+            document.getElementById('overview-interface').style.display = 'block';
+            document.getElementById('clients-interface').style.display = 'none';
+            document.getElementById('nudges-interface').style.display = 'none';
+            document.getElementById('campaigns-interface').style.display = 'none';
+        }
+
+        function showClients() {
+            document.getElementById('overview-interface').style.display = 'none';
+            document.getElementById('clients-interface').style.display = 'block';
+            document.getElementById('nudges-interface').style.display = 'none';
+            document.getElementById('campaigns-interface').style.display = 'none';
+            loadClients();
+        }
+
+        function showNudges() {
+            document.getElementById('overview-interface').style.display = 'none';
+            document.getElementById('clients-interface').style.display = 'none';
+            document.getElementById('nudges-interface').style.display = 'block';
+            document.getElementById('campaigns-interface').style.display = 'none';
+            loadNudges();
+        }
+
+        function showCampaigns() {
+            document.getElementById('overview-interface').style.display = 'none';
+            document.getElementById('clients-interface').style.display = 'none';
+            document.getElementById('nudges-interface').style.display = 'none';
+            document.getElementById('campaigns-interface').style.display = 'block';
+            loadCampaigns();
+        }
+
+        // Statistics Functions
+        function loadClientSuccessStatistics() {
+            fetch('/api/success/statistics')
+            .then(response => response.json())
+            .then(stats => {
+                document.getElementById('total-clients').textContent = stats.total_clients;
+                document.getElementById('deployment-rate').textContent = stats.deployment_rate.toFixed(1) + '%';
+                document.getElementById('avg-satisfaction').textContent = stats.average_satisfaction.toFixed(1);
+                document.getElementById('total-revenue').textContent = '$' + stats.total_revenue.toLocaleString();
+                
+                // Update funnel counts
+                document.getElementById('not-launched-count').textContent = stats.stage_distribution.not_launched || 0;
+                document.getElementById('live-underused-count').textContent = stats.stage_distribution.live_underused || 0;
+                document.getElementById('power-user-count').textContent = stats.stage_distribution.power_user || 0;
+                document.getElementById('at-risk-count').textContent = stats.stage_distribution.at_risk || 0;
+                
+                // Update funnel bars
+                const total = stats.total_clients || 1;
+                document.getElementById('not-launched-bar').style.width = ((stats.stage_distribution.not_launched || 0) / total * 100) + '%';
+                document.getElementById('live-underused-bar').style.width = ((stats.stage_distribution.live_underused || 0) / total * 100) + '%';
+                document.getElementById('power-user-bar').style.width = ((stats.stage_distribution.power_user || 0) / total * 100) + '%';
+                document.getElementById('at-risk-bar').style.width = ((stats.stage_distribution.at_risk || 0) / total * 100) + '%';
+            })
+            .catch(error => console.error('Error loading statistics:', error));
+        }
+
+        function loadStageDistribution() {
+            fetch('/api/success/statistics')
+            .then(response => response.json())
+            .then(stats => {
+                const ctx = document.getElementById('stageChart').getContext('2d');
+                
+                if (stageChart) {
+                    stageChart.destroy();
+                }
+                
+                stageChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Not Launched', 'Live Underused', 'Power User', 'At Risk', 'Churned', 'Expanding'],
+                        datasets: [{
+                            data: [
+                                stats.stage_distribution.not_launched || 0,
+                                stats.stage_distribution.live_underused || 0,
+                                stats.stage_distribution.power_user || 0,
+                                stats.stage_distribution.at_risk || 0,
+                                stats.stage_distribution.churned || 0,
+                                stats.stage_distribution.expanding || 0
+                            ],
+                            backgroundColor: [
+                                '#6c757d',
+                                '#ffc107',
+                                '#28a745',
+                                '#fd7e14',
+                                '#dc3545',
+                                '#17a2b8'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => console.error('Error loading stage distribution:', error));
+        }
+
+        function loadRecentActivity() {
+            fetch('/api/success/activity')
+            .then(response => response.json())
+            .then(activities => {
+                const activityContainer = document.getElementById('recent-activity');
+                activityContainer.innerHTML = '';
+                
+                activities.slice(0, 10).forEach(activity => {
+                    const activityDiv = document.createElement('div');
+                    activityDiv.className = 'activity-item';
+                    activityDiv.innerHTML = `
+                        <div class="d-flex justify-content-between">
+                            <strong>${activity.client_id}</strong>
+                            <small class="text-muted">${new Date(activity.timestamp).toLocaleString()}</small>
+                        </div>
+                        <p class="mb-0">${activity.activity_type}: ${activity.description}</p>
+                    `;
+                    activityContainer.appendChild(activityDiv);
+                });
+            })
+            .catch(error => console.error('Error loading recent activity:', error));
+        }
+
+        function loadAlerts() {
+            const alertsList = document.getElementById('alerts-list');
+            alertsList.innerHTML = `
+                <div class="alert alert-warning alert-sm">
+                    <small><i class="fas fa-exclamation-triangle"></i> 3 clients at high churn risk</small>
+                </div>
+                <div class="alert alert-info alert-sm">
+                    <small><i class="fas fa-info-circle"></i> 5 new clients this week</small>
+                </div>
+                <div class="alert alert-success alert-sm">
+                    <small><i class="fas fa-check-circle"></i> 2 clients upgraded to power users</small>
+                </div>
+            `;
+        }
+
+        // Client Functions
+        function loadClients() {
+            fetch('/api/success/clients')
+            .then(response => response.json())
+            .then(clients => {
+                const clientsList = document.getElementById('clients-list');
+                clientsList.innerHTML = '';
+                
+                clients.forEach(client => {
+                    const clientCard = createClientCard(client);
+                    clientsList.appendChild(clientCard);
+                });
+            })
+            .catch(error => console.error('Error loading clients:', error));
+        }
+
+        function createClientCard(client) {
+            const col = document.createElement('div');
+            col.className = 'col-md-6 mb-3';
+            
+            const stageClass = `stage-${client.stage.replace('_', '-')}`;
+            const churnRiskClass = getChurnRiskClass(client.churn_risk_score);
+            
+            col.innerHTML = `
+                <div class="card client-card ${stageClass} ${churnRiskClass}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title">${client.user_id}</h6>
+                            <span class="badge bg-${getStageColor(client.stage)}">${client.stage.replace('_', ' ')}</span>
+                        </div>
+                        <p class="card-text text-muted">Systems: ${client.systems_created} created, ${client.systems_deployed} deployed</p>
+                        <div class="row text-center mb-2">
+                            <div class="col-4">
+                                <small class="text-muted">Logins</small>
+                                <div><strong>${client.total_logins}</strong></div>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted">Usage (hrs)</small>
+                                <div><strong>${(client.total_usage_time / 60).toFixed(1)}</strong></div>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted">Churn Risk</small>
+                                <div><strong>${(client.churn_risk_score * 100).toFixed(0)}%</strong></div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Last login: ${new Date(client.last_login).toLocaleDateString()}</small>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewClient('${client.client_id}')">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return col;
+        }
+
+        function getStageColor(stage) {
+            const colors = {
+                'not_launched': 'secondary',
+                'live_underused': 'warning',
+                'power_user': 'success',
+                'at_risk': 'danger',
+                'churned': 'dark',
+                'expanding': 'info'
+            };
+            return colors[stage] || 'secondary';
+        }
+
+        function getChurnRiskClass(score) {
+            if (score < 0.3) return 'churn-risk-low';
+            if (score < 0.7) return 'churn-risk-medium';
+            return 'churn-risk-high';
+        }
+
+        function viewClient(clientId) {
+            currentClientId = clientId;
+            
+            fetch(`/api/success/status/${clientId}`)
+            .then(response => response.json())
+            .then(client => {
+                document.getElementById('client-id').value = client.client_id;
+                document.getElementById('client-stage').value = client.stage;
+                document.getElementById('total-logins').value = client.total_logins;
+                document.getElementById('total-usage-time').value = client.total_usage_time;
+                document.getElementById('systems-created').value = client.systems_created;
+                document.getElementById('systems-deployed').value = client.systems_deployed;
+                
+                // Update churn risk progress
+                const riskPercent = client.churn_risk_score * 100;
+                document.getElementById('churn-risk-progress').style.width = riskPercent + '%';
+                document.getElementById('churn-risk-text').textContent = riskPercent.toFixed(1) + '%';
+                
+                if (riskPercent > 70) {
+                    document.getElementById('churn-risk-progress').className = 'progress-bar bg-danger';
+                } else if (riskPercent > 30) {
+                    document.getElementById('churn-risk-progress').className = 'progress-bar bg-warning';
+                } else {
+                    document.getElementById('churn-risk-progress').className = 'progress-bar bg-success';
+                }
+                
+                // Load client activity
+                loadClientActivity(clientId);
+                
+                const modal = new bootstrap.Modal(document.getElementById('clientModal'));
+                modal.show();
+            })
+            .catch(error => console.error('Error loading client:', error));
+        }
+
+        function loadClientActivity(clientId) {
+            fetch(`/api/success/activity/${clientId}`)
+            .then(response => response.json())
+            .then(activities => {
+                const activityContainer = document.getElementById('client-activity');
+                activityContainer.innerHTML = '';
+                
+                activities.slice(0, 10).forEach(activity => {
+                    const activityDiv = document.createElement('div');
+                    activityDiv.className = 'activity-item';
+                    activityDiv.innerHTML = `
+                        <div class="d-flex justify-content-between">
+                            <strong>${activity.activity_type}</strong>
+                            <small class="text-muted">${new Date(activity.timestamp).toLocaleString()}</small>
+                        </div>
+                        <p class="mb-0">${activity.description}</p>
+                    `;
+                    activityContainer.appendChild(activityDiv);
+                });
+            })
+            .catch(error => console.error('Error loading client activity:', error));
+        }
+
+        function saveClientProfile() {
+            const clientData = {
+                client_id: currentClientId,
+                stage: document.getElementById('client-stage').value
+            };
+            
+            fetch(`/api/success/update/${currentClientId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(clientData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                bootstrap.Modal.getInstance(document.getElementById('clientModal')).hide();
+                loadClients();
+            })
+            .catch(error => console.error('Error updating client:', error));
+        }
+
+        function filterClients() {
+            const stageFilter = document.getElementById('stage-filter').value;
+            // Implement client filtering
+            console.log('Filtering by stage:', stageFilter);
+        }
+
+        // Nudge Functions
+        function loadNudges() {
+            fetch('/api/success/nudges')
+            .then(response => response.json())
+            .then(nudges => {
+                const nudgesList = document.getElementById('nudges-list');
+                nudgesList.innerHTML = '';
+                
+                nudges.forEach(nudge => {
+                    const nudgeCard = createNudgeCard(nudge);
+                    nudgesList.appendChild(nudgeCard);
+                });
+            })
+            .catch(error => console.error('Error loading nudges:', error));
+        }
+
+        function createNudgeCard(nudge) {
+            const col = document.createElement('div');
+            col.className = 'col-md-6 mb-3';
+            
+            const nudgeClass = `nudge-${nudge.nudge_type.replace('_', '-')}`;
+            
+            col.innerHTML = `
+                <div class="card nudge-card ${nudgeClass}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title">${nudge.title}</h6>
+                            <span class="badge bg-primary">${nudge.nudge_type.replace('_', ' ')}</span>
+                        </div>
+                        <p class="card-text">${nudge.message}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Priority: ${nudge.priority}</small>
+                            <div>
+                                <button class="btn btn-sm btn-outline-success" onclick="sendNudge('${nudge.nudge_id}')">
+                                    <i class="fas fa-paper-plane"></i> Send
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteNudge('${nudge.nudge_id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return col;
+        }
+
+        function createNudge() {
+            const modal = new bootstrap.Modal(document.getElementById('nudgeModal'));
+            modal.show();
+        }
+
+        function submitNudge() {
+            const nudgeData = {
+                client_id: document.getElementById('nudge-client').value,
+                nudge_type: document.getElementById('nudge-type').value,
+                title: document.getElementById('nudge-title').value,
+                message: document.getElementById('nudge-message').value,
+                priority: parseInt(document.getElementById('nudge-priority').value)
+            };
+            
+            fetch('/api/success/nudges', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(nudgeData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                bootstrap.Modal.getInstance(document.getElementById('nudgeModal')).hide();
+                document.getElementById('nudge-form').reset();
+                loadNudges();
+            })
+            .catch(error => console.error('Error creating nudge:', error));
+        }
+
+        // Campaign Functions
+        function loadCampaigns() {
+            fetch('/api/success/campaigns')
+            .then(response => response.json())
+            .then(campaigns => {
+                const campaignsList = document.getElementById('campaigns-list');
+                campaignsList.innerHTML = '';
+                
+                campaigns.forEach(campaign => {
+                    const campaignCard = createCampaignCard(campaign);
+                    campaignsList.appendChild(campaignCard);
+                });
+            })
+            .catch(error => console.error('Error loading campaigns:', error));
+        }
+
+        function createCampaignCard(campaign) {
+            const col = document.createElement('div');
+            col.className = 'col-md-6 mb-3';
+            
+            const statusClass = campaign.is_sent ? 'email-sent' : 'email-campaign-card';
+            
+            col.innerHTML = `
+                <div class="card ${statusClass}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title">${campaign.subject}</h6>
+                            <span class="badge bg-primary">${campaign.trigger_type.replace('_', ' ')}</span>
+                        </div>
+                        <p class="card-text text-muted">${campaign.content.substring(0, 100)}...</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Created: ${new Date(campaign.created_at).toLocaleDateString()}</small>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewCampaign('${campaign.campaign_id}')">
+                                    View
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="sendCampaign('${campaign.campaign_id}')">
+                                    Send
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return col;
+        }
+
+        function createCampaign() {
+            const modal = new bootstrap.Modal(document.getElementById('campaignModal'));
+            modal.show();
+        }
+
+        function submitCampaign() {
+            const campaignData = {
+                trigger_type: document.getElementById('campaign-trigger').value,
+                subject: document.getElementById('campaign-subject').value,
+                content: document.getElementById('campaign-content').value,
+                client_ids: Array.from(document.getElementById('campaign-clients').selectedOptions).map(option => option.value)
+            };
+            
+            fetch('/api/success/campaigns', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(campaignData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                bootstrap.Modal.getInstance(document.getElementById('campaignModal')).hide();
+                document.getElementById('campaign-form').reset();
+                loadCampaigns();
+            })
+            .catch(error => console.error('Error creating campaign:', error));
+        }
+
+        // Utility Functions
+        function triggerEmailCampaign() {
+            const triggerType = prompt('Enter trigger type (welcome, onboarding_reminder, etc.):');
+            if (triggerType) {
+                fetch('/api/success/email_trigger', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        trigger_type: triggerType,
+                        client_ids: ['all']
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Email campaign triggered successfully');
+                    } else {
+                        alert('Failed to trigger email campaign');
+                    }
+                })
+                .catch(error => console.error('Error triggering email campaign:', error));
+            }
+        }
+
+        function generateNudges() {
+            fetch('/api/success/generate-nudges', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(`Generated ${data.count} new nudges`);
+                loadNudges();
+            })
+            .catch(error => console.error('Error generating nudges:', error));
+        }
+
+        function analyzeChurnRisk() {
+            fetch('/api/success/analyze-churn')
+            .then(response => response.json())
+            .then(data => {
+                alert(`Analysis complete. Found ${data.high_risk_count} clients at high risk.`);
+                loadClients();
+            })
+            .catch(error => console.error('Error analyzing churn risk:', error));
+        }
+
+        function exportClientData() {
+            fetch('/api/success/export')
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'client_data.csv';
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => console.error('Error exporting data:', error));
+        }
+    </script>
+</body>
+</html>

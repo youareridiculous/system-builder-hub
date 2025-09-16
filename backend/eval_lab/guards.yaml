@@ -1,0 +1,206 @@
+# Evaluation Lab Guards Configuration
+# Defines KPI thresholds and regression gates for evaluation runs
+
+# Global KPI Guards
+global_kpi_guards:
+  - name: "overall_pass_rate_minimum"
+    metric: "pass_rate"
+    threshold: 0.90
+    operator: ">="
+    description: "Minimum 90% pass rate required across all tests"
+    severity: "error"
+    applies_to: ["golden_cases", "scenario_bundles"]
+
+  - name: "golden_case_pass_rate_minimum"
+    metric: "golden_case_pass_rate"
+    threshold: 0.85
+    operator: ">="
+    description: "Minimum 85% pass rate for golden cases"
+    severity: "error"
+    applies_to: ["golden_cases"]
+
+  - name: "scenario_bundle_pass_rate_minimum"
+    metric: "scenario_bundle_pass_rate"
+    threshold: 0.80
+    operator: ">="
+    description: "Minimum 80% pass rate for scenario bundles"
+    severity: "error"
+    applies_to: ["scenario_bundles"]
+
+  - name: "p95_latency_max"
+    metric: "p95_latency_ms"
+    threshold: 30000
+    operator: "<="
+    description: "P95 latency should be under 30 seconds"
+    severity: "warning"
+    applies_to: ["golden_cases", "scenario_bundles"]
+
+  - name: "p99_latency_max"
+    metric: "p99_latency_ms"
+    threshold: 60000
+    operator: "<="
+    description: "P99 latency should be under 60 seconds"
+    severity: "warning"
+    applies_to: ["golden_cases", "scenario_bundles"]
+
+  - name: "cost_per_case_max"
+    metric: "cost_per_case_usd"
+    threshold: 0.50
+    operator: "<="
+    description: "Cost per case should be under $0.50"
+    severity: "warning"
+    applies_to: ["golden_cases", "scenario_bundles"]
+
+  - name: "total_cost_max"
+    metric: "total_cost_usd"
+    threshold: 50.0
+    operator: "<="
+    description: "Total cost should be under $50.00"
+    severity: "warning"
+    applies_to: ["golden_cases", "scenario_bundles"]
+
+# SLA-specific KPI Guards
+sla_kpi_guards:
+  fast:
+    - name: "fast_sla_latency_max"
+      metric: "avg_latency_ms"
+      threshold: 5000
+      operator: "<="
+      description: "Fast SLA cases should complete within 5 seconds"
+      severity: "error"
+
+  normal:
+    - name: "normal_sla_latency_max"
+      metric: "avg_latency_ms"
+      threshold: 15000
+      operator: "<="
+      description: "Normal SLA cases should complete within 15 seconds"
+      severity: "error"
+
+  thorough:
+    - name: "thorough_sla_latency_max"
+      metric: "avg_latency_ms"
+      threshold: 30000
+      operator: "<="
+      description: "Thorough SLA cases should complete within 30 seconds"
+      severity: "error"
+
+# Regression Gates
+regression_gates:
+  - name: "pass_rate_regression"
+    metric: "pass_rate"
+    threshold: 0.05
+    operator: ">="
+    description: "Pass rate should not regress by more than 5%"
+    severity: "error"
+    comparison: "baseline"
+
+  - name: "latency_regression"
+    metric: "avg_latency_ms"
+    threshold: 0.20
+    operator: "<="
+    description: "Latency should not increase by more than 20%"
+    severity: "warning"
+    comparison: "baseline"
+
+  - name: "cost_regression"
+    metric: "total_cost_usd"
+    threshold: 0.30
+    operator: "<="
+    description: "Cost should not increase by more than 30%"
+    severity: "warning"
+    comparison: "baseline"
+
+# Privacy Mode Guards
+privacy_guards:
+  local_only:
+    - name: "local_only_skip"
+      condition: "privacy_mode == 'local_only'"
+      action: "skip"
+      description: "Skip evaluation for local_only privacy mode"
+      severity: "info"
+
+  byo_keys:
+    - name: "byo_keys_skip"
+      condition: "privacy_mode == 'byo_keys'"
+      action: "skip"
+      description: "Skip evaluation for byo_keys privacy mode"
+      severity: "info"
+
+  private_cloud:
+    - name: "private_cloud_continue"
+      condition: "privacy_mode == 'private_cloud'"
+      action: "continue"
+      description: "Continue evaluation for private_cloud privacy mode"
+      severity: "info"
+
+# Meta-Builder Version Guards
+meta_builder_guards:
+  v2:
+    - name: "v2_compatibility"
+      condition: "meta_builder_version == 'v2'"
+      action: "continue"
+      description: "Continue evaluation for Meta-Builder v2"
+      severity: "info"
+
+  v3:
+    - name: "v3_compatibility"
+      condition: "meta_builder_version == 'v3'"
+      action: "continue"
+      description: "Continue evaluation for Meta-Builder v3"
+      severity: "info"
+
+  v4:
+    - name: "v4_compatibility"
+      condition: "meta_builder_version == 'v4'"
+      action: "continue"
+      description: "Continue evaluation for Meta-Builder v4"
+      severity: "info"
+
+# Notification Settings
+notifications:
+  slack:
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    channel: "#eval-lab"
+    enabled: true
+
+  email:
+    smtp_server: "${SMTP_SERVER}"
+    smtp_port: "${SMTP_PORT}"
+    username: "${SMTP_USERNAME}"
+    password: "${SMTP_PASSWORD}"
+    from_address: "eval-lab@systembuilderhub.com"
+    to_addresses: ["team@systembuilderhub.com"]
+    enabled: false
+
+  github:
+    enabled: true
+    comment_on_pr: true
+    create_issue_on_failure: false
+
+# Alert Thresholds
+alerts:
+  critical:
+    pass_rate_threshold: 0.70
+    latency_threshold_ms: 60000
+    cost_threshold_usd: 100.0
+
+  warning:
+    pass_rate_threshold: 0.85
+    latency_threshold_ms: 30000
+    cost_threshold_usd: 50.0
+
+# Retention Settings
+retention:
+  eval_runs_days: 30
+  eval_artifacts_days: 7
+  eval_metrics_days: 90
+  regression_data_days: 180
+
+# Performance Settings
+performance:
+  max_concurrent_runs: 5
+  max_runtime_minutes: 60
+  timeout_seconds: 300
+  retry_attempts: 3
+  backoff_seconds: 10

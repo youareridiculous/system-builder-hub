@@ -1,0 +1,280 @@
+{% extends "settings/layout.html" %}
+
+{% block content %}
+<div x-data="securitySettings()" x-init="init()">
+    <!-- Two-Factor Authentication -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Two-Factor Authentication</h3>
+        <div class="bg-gray-50 rounded-lg p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 class="text-sm font-medium text-gray-900">2FA Status</h4>
+                    <p class="text-sm text-gray-600 mt-1">
+                        <span x-show="twoFactorEnabled" class="text-green-600">Enabled</span>
+                        <span x-show="!twoFactorEnabled" class="text-red-600">Disabled</span>
+                    </p>
+                </div>
+                <div class="flex space-x-3">
+                    <button x-show="!twoFactorEnabled" 
+                            @click="enable2FA()"
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                        Enable 2FA
+                    </button>
+                    <button x-show="twoFactorEnabled" 
+                            @click="disable2FA()"
+                            class="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50">
+                        Disable 2FA
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 2FA Setup Modal -->
+            <div x-show="show2FAModal" 
+                 class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                    <div class="mt-3">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Set Up Two-Factor Authentication</h3>
+                        
+                        <div x-show="step === 'qr'" class="space-y-4">
+                            <p class="text-sm text-gray-600">Scan this QR code with your authenticator app:</p>
+                            <div class="bg-gray-100 p-4 rounded-lg text-center">
+                                <div class="w-48 h-48 mx-auto bg-white border-2 border-gray-300 flex items-center justify-center">
+                                    <span class="text-gray-500">QR Code Placeholder</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600">Or enter this code manually: <code class="bg-gray-100 px-2 py-1 rounded" x-text="totpSecret"></code></p>
+                            <button @click="step = 'verify'" 
+                                    class="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                                Next: Verify Code
+                            </button>
+                        </div>
+                        
+                        <div x-show="step === 'verify'" class="space-y-4">
+                            <p class="text-sm text-gray-600">Enter the 6-digit code from your authenticator app:</p>
+                            <input type="text" 
+                                   x-model="verificationCode"
+                                   maxlength="6"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="000000">
+                            <div class="flex space-x-3">
+                                <button @click="step = 'qr'" 
+                                        class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
+                                    Back
+                                </button>
+                                <button @click="verify2FA()" 
+                                        class="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                                    Verify
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div x-show="step === 'recovery'" class="space-y-4">
+                            <p class="text-sm text-gray-600">Save these recovery codes in a secure location:</p>
+                            <div class="bg-gray-100 p-4 rounded-lg">
+                                <div class="grid grid-cols-2 gap-2 text-sm font-mono">
+                                    <template x-for="code in recoveryCodes" :key="code">
+                                        <div class="bg-white px-3 py-2 rounded border" x-text="code"></div>
+                                    </template>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600">You can use these codes to access your account if you lose your authenticator device.</p>
+                            <button @click="complete2FASetup()" 
+                                    class="w-full px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
+                                Complete Setup
+                            </button>
+                        </div>
+                        
+                        <button @click="close2FAModal()" 
+                                class="mt-4 w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recovery Codes -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Recovery Codes</h3>
+        <div class="bg-gray-50 rounded-lg p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 class="text-sm font-medium text-gray-900">Backup Codes</h4>
+                    <p class="text-sm text-gray-600 mt-1">
+                        <span x-show="hasRecoveryCodes" class="text-green-600">Generated</span>
+                        <span x-show="!hasRecoveryCodes" class="text-red-600">Not generated</span>
+                    </p>
+                </div>
+                <button @click="generateRecoveryCodes()"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                    Generate New Codes
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Active Sessions -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Active Sessions</h3>
+        <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Active</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <template x-for="session in sessions" :key="session.id">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900" x-text="session.device_fingerprint || 'Unknown Device'"></div>
+                                    <div class="text-sm text-gray-500" x-text="session.user_agent"></div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="session.ip_address || 'Unknown'"></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(session.last_seen_at)"></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <button @click="revokeSession(session.id)"
+                                            class="text-red-600 hover:text-red-900">
+                                        Revoke
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function securitySettings() {
+    return {
+        twoFactorEnabled: false,
+        hasRecoveryCodes: false,
+        sessions: [],
+        show2FAModal: false,
+        step: 'qr',
+        totpSecret: '',
+        verificationCode: '',
+        recoveryCodes: [],
+        
+        async init() {
+            this.setPageInfo('Security', 'Manage your account security settings', 'Account Security');
+            await this.loadSecurityData();
+        },
+        
+        async loadSecurityData() {
+            try {
+                const response = await fetch('/api/settings/account/security');
+                const data = await response.json();
+                
+                this.twoFactorEnabled = data.data.two_factor_enabled;
+                this.hasRecoveryCodes = data.data.has_recovery_codes;
+                
+                const sessionsResponse = await fetch('/api/settings/account/sessions');
+                const sessionsData = await sessionsResponse.json();
+                this.sessions = sessionsData.data.filter(s => s.is_active);
+            } catch (error) {
+                console.error('Failed to load security data:', error);
+            }
+        },
+        
+        async enable2FA() {
+            try {
+                const response = await fetch('/api/settings/account/security/2fa/enable', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                
+                this.totpSecret = data.data.totp_secret;
+                this.recoveryCodes = data.data.recovery_codes;
+                this.show2FAModal = true;
+                this.step = 'qr';
+            } catch (error) {
+                console.error('Failed to enable 2FA:', error);
+            }
+        },
+        
+        async verify2FA() {
+            // TODO: Implement verification
+            this.step = 'recovery';
+        },
+        
+        async complete2FASetup() {
+            this.twoFactorEnabled = true;
+            this.hasRecoveryCodes = true;
+            this.show2FAModal = false;
+            this.showToast('success', 'Success', 'Two-factor authentication enabled successfully');
+        },
+        
+        async disable2FA() {
+            if (confirm('Are you sure you want to disable two-factor authentication? This will make your account less secure.')) {
+                try {
+                    await fetch('/api/settings/account/security/2fa/disable', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    this.twoFactorEnabled = false;
+                    this.hasRecoveryCodes = false;
+                    this.showToast('success', 'Success', 'Two-factor authentication disabled');
+                } catch (error) {
+                    console.error('Failed to disable 2FA:', error);
+                }
+            }
+        },
+        
+        async generateRecoveryCodes() {
+            try {
+                const response = await fetch('/api/settings/account/security/recovery-codes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                
+                this.recoveryCodes = data.data.recovery_codes;
+                this.hasRecoveryCodes = true;
+                this.show2FAModal = true;
+                this.step = 'recovery';
+            } catch (error) {
+                console.error('Failed to generate recovery codes:', error);
+            }
+        },
+        
+        async revokeSession(sessionId) {
+            if (confirm('Are you sure you want to revoke this session?')) {
+                try {
+                    await fetch(`/api/settings/account/sessions/${sessionId}/revoke`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    this.sessions = this.sessions.filter(s => s.id !== sessionId);
+                    this.showToast('success', 'Success', 'Session revoked successfully');
+                } catch (error) {
+                    console.error('Failed to revoke session:', error);
+                }
+            }
+        },
+        
+        close2FAModal() {
+            this.show2FAModal = false;
+            this.step = 'qr';
+            this.verificationCode = '';
+        },
+        
+        formatDate(dateString) {
+            if (!dateString) return 'Unknown';
+            return new Date(dateString).toLocaleString();
+        }
+    };
+}
+</script>
+{% endblock %}

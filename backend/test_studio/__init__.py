@@ -1,0 +1,1 @@
+# Test studio directory

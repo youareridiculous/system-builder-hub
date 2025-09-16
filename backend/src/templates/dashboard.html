@@ -1,0 +1,2043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 System Builder Hub - Dashboard</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(180deg, #5a66ff 0%, #6a4cd9 50%, #7a3cc4 100%);
+            --surface: rgba(255, 255, 255, 0.06);
+            --surface-hover: rgba(255, 255, 255, 0.1);
+            --radius: 16px;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.25);
+            --gutter: 24px;
+            --gutter-tablet: 16px;
+            --gutter-mobile: 12px;
+            --text: #e9ecf1;
+            --text-muted: #b8bfd1;
+            --accent: #8b5cf6;
+            --accent-hover: #a78bfa;
+            --focus: 2px solid #a78bfa;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --header-height: 64px;
+            --sidebar-width: 280px;
+            --sidebar-collapsed: 60px;
+            
+            /* Dark theme menu tokens */
+            --menu-bg: #1d2030;
+            --menu-elev: 0 12px 28px rgba(0,0,0,.25);
+            --menu-border: rgba(255,255,255,.08);
+            --menu-text: #e6e9f3;
+            --menu-muted: #a7aec0;
+            --menu-hover: rgba(255,255,255,.06);
+            --menu-focus: 0 0 0 2px #a78bfa;
+            
+            /* Sidebar pill tokens */
+            --sidebar-pill-bg: #24273a;
+            --sidebar-pill-text: #e7e9f7;
+            --sidebar-pill-border: rgba(255,255,255,.08);
+            --sidebar-pill-hover: rgba(255,255,255,.06);
+            --sidebar-pill-focus: 0 0 0 2px #a78bfa;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Global Layout */
+        .app-container {
+            display: grid;
+            grid-template-areas: 
+                "header header"
+                "sidebar main"
+                "footer footer";
+            grid-template-columns: var(--sidebar-width) 1fr;
+            grid-template-rows: var(--header-height) 1fr auto;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            grid-area: header;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0 var(--gutter);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .quick-action {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .quick-action:hover,
+        .quick-action:focus {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            outline: var(--focus);
+        }
+
+        .user-menu {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s ease;
+        }
+
+        .user-menu:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* Role switcher */
+        .role-switcher {
+            display: flex;
+            align-items: center;
+        }
+
+        .role-switcher select {
+            background: var(--menu-bg);
+            border: 1px solid var(--menu-border);
+            color: var(--menu-text);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            box-shadow: var(--menu-elev);
+        }
+
+        .role-switcher select:focus {
+            outline: var(--menu-focus);
+            border-color: var(--accent);
+        }
+
+        .role-switcher select:hover {
+            background: var(--menu-hover);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            grid-area: sidebar;
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: var(--gutter) 0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+
+        .sidebar-section-header {
+            padding: 0 var(--gutter);
+            margin-bottom: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-group {
+            margin-bottom: 16px;
+        }
+
+        .sidebar-group-header {
+            padding: 8px var(--gutter);
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--sidebar-pill-text);
+            background: var(--sidebar-pill-bg);
+            border: 1px solid var(--sidebar-pill-border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            margin: 4px 8px;
+            width: calc(100% - 16px);
+        }
+
+        .sidebar-group-header:hover {
+            background: var(--sidebar-pill-hover);
+        }
+
+        .sidebar-group-header:focus-visible {
+            outline: none;
+            box-shadow: var(--sidebar-pill-focus);
+        }
+
+        .sidebar-group-header[aria-expanded="false"] .group-icon {
+            transform: rotate(-90deg);
+        }
+
+        .group-icon {
+            transition: transform 0.2s ease;
+            color: var(--sidebar-pill-text);
+        }
+
+        .sidebar-group-content {
+            overflow: hidden;
+            transition: max-height 0.2s ease;
+            background: var(--menu-bg);
+            border: 1px solid var(--menu-border);
+            border-radius: 8px;
+            margin: 4px 8px;
+            box-shadow: var(--menu-elev);
+        }
+
+        .sidebar-group-content[aria-hidden="true"] {
+            max-height: 0;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px var(--gutter);
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            border-radius: 0 8px 8px 0;
+            margin-right: 8px;
+            position: relative;
+        }
+
+        .sidebar-item:hover,
+        .sidebar-item:focus {
+            background: var(--surface-hover);
+            color: var(--text);
+            outline: var(--focus);
+        }
+
+        .sidebar-item.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .sidebar-item-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pinned-section {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+        }
+
+        /* Main Content */
+        .main-content {
+            grid-area: main;
+            padding: var(--gutter);
+            overflow-y: auto;
+        }
+
+        .welcome-section {
+            margin-bottom: 32px;
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .welcome-subtitle {
+            font-size: 1.125rem;
+            color: var(--text-muted);
+            max-width: 600px;
+        }
+
+        /* Hero Row */
+        .hero-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--gutter);
+            margin-bottom: 32px;
+        }
+
+        .hero-card {
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            padding: 24px;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .hero-card:hover::before,
+        .hero-card:focus::before {
+            transform: scaleX(1);
+        }
+
+        .hero-card:hover,
+        .hero-card:focus {
+            background: var(--surface-hover);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            outline: var(--focus);
+        }
+
+        .hero-card-icon {
+            font-size: 2rem;
+            margin-bottom: 16px;
+        }
+
+        .hero-card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .hero-card-description {
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .hero-card-cta {
+            color: var(--accent);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Feature Grid */
+        .features-section {
+            margin-bottom: 32px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--gutter);
+        }
+
+        .feature-card {
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            padding: 20px;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.3s ease;
+            position: relative;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feature-card:hover,
+        .feature-card:focus {
+            background: var(--surface-hover);
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: var(--shadow-hover);
+            outline: var(--focus);
+        }
+
+        .feature-status {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .feature-status.core {
+            background: var(--success);
+            color: white;
+        }
+
+        .feature-status.beta {
+            background: var(--warning);
+            color: white;
+        }
+
+        .feature-status.security {
+            background: var(--error);
+            color: white;
+        }
+
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+
+        .feature-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .feature-description {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            line-height: 1.4;
+            flex-grow: 1;
+            margin-bottom: 12px;
+        }
+
+        .feature-cta {
+            color: var(--accent);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-top: auto;
+        }
+
+        /* Recommended Grid */
+        .recommended-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--gutter);
+            margin-bottom: 32px;
+        }
+
+        /* Show All Features Button */
+        .btn-show-all {
+            background: var(--surface);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            padding: 12px 24px;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-show-all:hover,
+        .btn-show-all:focus {
+            background: var(--surface-hover);
+            transform: translateY(-2px);
+            outline: var(--focus);
+        }
+
+        .btn-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .btn-show-all.expanded .btn-icon {
+            transform: rotate(180deg);
+        }
+
+        /* All Features Grid */
+        .all-features-grid {
+            margin-top: 24px;
+        }
+
+        .all-features-controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .search-input,
+        .filter-select {
+            background: var(--surface);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-input:focus,
+        .filter-select:focus {
+            outline: var(--focus);
+            border-color: var(--accent);
+        }
+
+        .all-features-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .all-features-cards .feature-card {
+            height: 160px;
+            padding: 16px;
+        }
+
+        .all-features-cards .feature-description {
+            font-size: 0.8rem;
+            line-height: 1.3;
+        }
+
+        /* Pin functionality */
+        .pin-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border: none;
+            color: var(--text-muted);
+            padding: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0;
+        }
+
+        .feature-card:hover .pin-button {
+            opacity: 1;
+        }
+
+        .pin-button:hover,
+        .pin-button.pinned {
+            color: var(--accent);
+        }
+
+        /* My Workspace */
+        .my-workspace-section {
+            margin-bottom: 32px;
+        }
+
+        .my-workspace-section .feature-card {
+            position: relative;
+        }
+
+        /* Disabled state */
+        .feature-card.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .feature-card.disabled::after {
+            content: "Disabled by admin";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            pointer-events: none;
+        }
+
+        /* Footer */
+        .footer {
+            grid-area: footer;
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px var(--gutter);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 16px;
+        }
+
+        .footer-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer-link:hover,
+        .footer-link:focus {
+            color: var(--text);
+            outline: var(--focus);
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .status-indicator.degraded {
+            background: var(--warning);
+        }
+
+        .status-indicator.down {
+            background: var(--error);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1199px) {
+            .app-container {
+                grid-template-columns: var(--sidebar-collapsed) 1fr;
+            }
+
+            .sidebar-item span {
+                display: none;
+            }
+
+            .sidebar-group-header span {
+                display: none;
+            }
+
+            .sidebar-section-header {
+                display: none;
+            }
+        }
+
+        @media (max-width: 1023px) {
+            .app-container {
+                grid-template-areas: 
+                    "header"
+                    "main"
+                    "footer";
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 767px) {
+            :root {
+                --gutter: var(--gutter-mobile);
+            }
+
+            .app-container {
+                grid-template-areas: 
+                    "header"
+                    "main"
+                    "footer";
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .header {
+                padding: 0 var(--gutter-mobile);
+            }
+
+            .header-actions {
+                gap: 8px;
+            }
+
+            .quick-action {
+                padding: 6px 12px;
+                font-size: 0.875rem;
+            }
+
+            .welcome-title {
+                font-size: 2rem;
+            }
+
+            .hero-row {
+                grid-template-columns: 1fr;
+                gap: var(--gutter-mobile);
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: var(--gutter-mobile);
+            }
+
+            .footer {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Focus styles */
+        *:focus {
+            outline: var(--focus);
+            outline-offset: 2px;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--menu-bg);
+            border: 1px solid var(--menu-border);
+            border-radius: var(--radius);
+            box-shadow: var(--menu-elev);
+            max-width: 720px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 24px 24px 16px;
+            border-bottom: 1px solid var(--menu-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--menu-text);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--menu-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover,
+        .modal-close:focus {
+            color: var(--menu-text);
+            background: var(--menu-hover);
+            outline: var(--menu-focus);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .modal-search {
+            flex: 1;
+            min-width: 200px;
+            background: var(--surface);
+            border: 1px solid var(--menu-border);
+            color: var(--menu-text);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+        .modal-search:focus {
+            outline: var(--menu-focus);
+            border-color: var(--accent);
+        }
+
+        .modal-filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            background: var(--surface);
+            border: 1px solid var(--menu-border);
+            color: var(--menu-text);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-chip:hover,
+        .filter-chip:focus {
+            background: var(--menu-hover);
+            outline: var(--menu-focus);
+        }
+
+        .filter-chip.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .modal-card {
+            background: var(--surface);
+            border: 1px solid var(--menu-border);
+            border-radius: 12px;
+            padding: 16px;
+            text-decoration: none;
+            color: var(--menu-text);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .modal-card:hover,
+        .modal-card:focus {
+            background: var(--menu-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--menu-elev);
+            outline: var(--menu-focus);
+        }
+
+        .modal-card-icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .modal-card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--menu-text);
+        }
+
+        .modal-card-description {
+            font-size: 0.875rem;
+            color: var(--menu-muted);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .modal-card-status {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .modal-card-status.core {
+            background: var(--success);
+            color: white;
+        }
+
+        .modal-card-status.beta {
+            background: var(--warning);
+            color: white;
+        }
+
+        .modal-card-status.security {
+            background: var(--error);
+            color: white;
+        }
+
+        .modal-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 16px 0;
+            border-top: 1px solid var(--menu-border);
+        }
+
+        .pagination-btn {
+            background: var(--surface);
+            border: 1px solid var(--menu-border);
+            color: var(--menu-text);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .pagination-btn:hover,
+        .pagination-btn:focus {
+            background: var(--menu-hover);
+            outline: var(--menu-focus);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-info {
+            color: var(--menu-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Browse All Features Button */
+        .btn-browse-all {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-browse-all:hover,
+        .btn-browse-all:focus {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-hover);
+            outline: var(--focus);
+        }
+
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--menu-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--menu-text);
+        }
+
+        .empty-state-description {
+            margin-bottom: 24px;
+        }
+
+        .clear-filters-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        /* Skeleton Loading */
+        .skeleton {
+            background: linear-gradient(90deg, var(--surface) 25%, var(--menu-hover) 50%, var(--surface) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .skeleton-card {
+            height: 120px;
+            border-radius: 12px;
+        }
+
+        /* Skip link */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 6px;
+            background: var(--accent);
+            color: white;
+            padding: 8px;
+            text-decoration: none;
+            border-radius: 4px;
+            z-index: 1000;
+        }
+
+        .skip-link:focus {
+            top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header" role="banner">
+            <a href="/" class="header-brand" data-testid="header-brand">
+                🧠 System Builder Hub
+            </a>
+            
+            <div class="header-actions">
+                <a href="/prompt-builder" class="quick-action" data-testid="header-build-new">
+                    🚀 Build New System
+                </a>
+                <a href="/preview" class="quick-action" data-testid="header-open-preview">
+                    👁️ Open Preview
+                </a>
+                <a href="/openapi.json" class="quick-action" data-testid="header-docs">
+                    📚 Docs
+                </a>
+                
+                <!-- Dev mode role switcher -->
+                <div class="role-switcher" data-testid="role-switcher">
+                    <select id="role-select" onchange="switchRole(this.value)" title="Switch role (dev mode)">
+                        <option value="viewer" ${currentUser.role === 'viewer' ? 'selected' : ''}>👁️ Viewer</option>
+                        <option value="developer" ${currentUser.role === 'developer' ? 'selected' : ''}>👨‍💻 Developer</option>
+                        <option value="admin" ${currentUser.role === 'admin' ? 'selected' : ''}>⚙️ Admin</option>
+                        <option value="owner" ${currentUser.role === 'owner' ? 'selected' : ''}>👑 Owner</option>
+                    </select>
+                </div>
+                
+                <div class="user-menu" data-testid="user-menu">
+                    <div class="user-avatar">U</div>
+                    <span class="sr-only">User menu</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <nav class="sidebar" role="navigation" aria-label="Main navigation" data-testid="sidebar-fixed">
+            <!-- Pinned Section -->
+            <div class="sidebar-section pinned-section">
+                <div class="sidebar-section-header">
+                    📌 Pinned
+                </div>
+                <div class="sidebar-group-content" aria-hidden="false">
+                    <a href="/prompt-builder" class="sidebar-item" data-testid="sidebar-prompt-builder">
+                        <span class="sidebar-item-icon">🚀</span>
+                        <span>Prompt Builder</span>
+                    </a>
+                    <a href="/preview" class="sidebar-item" data-testid="sidebar-preview">
+                        <span class="sidebar-item-icon">👁️</span>
+                        <span>Preview</span>
+                    </a>
+                    <a href="/memory-browser" class="sidebar-item" data-testid="sidebar-memory">
+                        <span class="sidebar-item-icon">🧠</span>
+                        <span>Memory Browser</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Core Build -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    🔨 Core Build
+                </div>
+                <div class="sidebar-group">
+                    <button class="sidebar-group-header" aria-expanded="true" aria-controls="core-build-group" data-testid="sidebar-group-core-build-toggle">
+                        <span>Build Tools</span>
+                        <span class="group-icon">▼</span>
+                    </button>
+                    <div class="sidebar-group-content" id="core-build-group" aria-hidden="false">
+                        <a href="/project-loader" class="sidebar-item" data-testid="sidebar-project-loader">
+                            <span class="sidebar-item-icon">📂</span>
+                            <span>Project Loader</span>
+                        </a>
+                        <a href="/autonomous-builder" class="sidebar-item" data-testid="sidebar-autonomous-builder">
+                            <span class="sidebar-item-icon">🔄</span>
+                            <span>Autonomous Builder</span>
+                        </a>
+                        <a href="/visual-builder" class="sidebar-item" data-testid="sidebar-visual-builder">
+                            <span class="sidebar-item-icon">🎨</span>
+                            <span>Visual Builder</span>
+                        </a>
+                        <a href="/template-launcher" class="sidebar-item" data-testid="sidebar-template-launcher">
+                            <span class="sidebar-item-icon">📋</span>
+                            <span>Template Launcher</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Intelligence -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    🧠 Intelligence
+                </div>
+                <div class="sidebar-group">
+                    <button class="sidebar-group-header" aria-expanded="true" aria-controls="intelligence-group" data-testid="sidebar-group-intelligence-toggle">
+                        <span>AI & Agents</span>
+                        <span class="group-icon">▼</span>
+                    </button>
+                    <div class="sidebar-group-content" id="intelligence-group" aria-hidden="false">
+                        <a href="/fastpath-agent" class="sidebar-item" data-testid="sidebar-fastpath-agent">
+                            <span class="sidebar-item-icon">🚀</span>
+                            <span>FastPath Agent</span>
+                        </a>
+                        <a href="/agent-ecosystem" class="sidebar-item" data-testid="sidebar-agent-ecosystem">
+                            <span class="sidebar-item-icon">🤖</span>
+                            <span>Agent Ecosystem</span>
+                        </a>
+                        <a href="/agent-training" class="sidebar-item" data-testid="sidebar-agent-training">
+                            <span class="sidebar-item-icon">🎓</span>
+                            <span>Agent Training</span>
+                        </a>
+                        <a href="/predictive-dashboard" class="sidebar-item" data-testid="sidebar-predictive">
+                            <span class="sidebar-item-icon">🔮</span>
+                            <span>Predictive Intelligence</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    📊 Data
+                </div>
+                <div class="sidebar-group">
+                    <button class="sidebar-group-header" aria-expanded="true" aria-controls="data-group" data-testid="sidebar-group-data-toggle">
+                        <span>Data Management</span>
+                        <span class="group-icon">▼</span>
+                    </button>
+                    <div class="sidebar-group-content" id="data-group" aria-hidden="false">
+                        <a href="/data-refinery" class="sidebar-item" data-testid="sidebar-data-refinery">
+                            <span class="sidebar-item-icon">⚙️</span>
+                            <span>Data Refinery</span>
+                        </a>
+                        <a href="/memory-upload" class="sidebar-item" data-testid="sidebar-memory-upload">
+                            <span class="sidebar-item-icon">📤</span>
+                            <span>Memory Upload</span>
+                        </a>
+                        <a href="/quality-gates" class="sidebar-item" data-testid="sidebar-quality-gates">
+                            <span class="sidebar-item-icon">✅</span>
+                            <span>Quality Gates</span>
+                        </a>
+                        <a href="/residency-router" class="sidebar-item" data-testid="sidebar-residency">
+                            <span class="sidebar-item-icon">🌍</span>
+                            <span>Data Residency</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security & Governance -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    🛡️ Security & Governance
+                </div>
+                <div class="sidebar-group">
+                    <button class="sidebar-group-header" aria-expanded="true" aria-controls="security-group" data-testid="sidebar-group-security-toggle">
+                        <span>Security</span>
+                        <span class="group-icon">▼</span>
+                    </button>
+                    <div class="sidebar-group-content" id="security-group" aria-hidden="false">
+                        <a href="/access-control" class="sidebar-item" data-testid="sidebar-access-control">
+                            <span class="sidebar-item-icon">🔐</span>
+                            <span>Access Control</span>
+                        </a>
+                        <a href="/security-dashboard" class="sidebar-item" data-testid="sidebar-security-dashboard">
+                            <span class="sidebar-item-icon">🛡️</span>
+                            <span>Security Dashboard</span>
+                        </a>
+                        <a href="/compliance-dashboard" class="sidebar-item" data-testid="sidebar-compliance">
+                            <span class="sidebar-item-icon">📋</span>
+                            <span>Compliance</span>
+                        </a>
+                        <a href="/supply-chain" class="sidebar-item" data-testid="sidebar-supply-chain">
+                            <span class="sidebar-item-icon">🔗</span>
+                            <span>Supply Chain</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deploy -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    🚀 Deploy
+                </div>
+                <div class="sidebar-group">
+                    <button class="sidebar-group-header" aria-expanded="true" aria-controls="deploy-group" data-testid="sidebar-group-deploy-toggle">
+                        <span>Deployment</span>
+                        <span class="group-icon">▼</span>
+                    </button>
+                    <div class="sidebar-group-content" id="deploy-group" aria-hidden="false">
+                        <a href="/system-delivery" class="sidebar-item" data-testid="sidebar-system-delivery">
+                            <span class="sidebar-item-icon">📦</span>
+                            <span>System Delivery</span>
+                        </a>
+                        <a href="/sovereign-deploy" class="sidebar-item" data-testid="sidebar-sovereign">
+                            <span class="sidebar-item-icon">🏛️</span>
+                            <span>Sovereign Deploy</span>
+                        </a>
+                        <a href="/backups" class="sidebar-item" data-testid="sidebar-backups">
+                            <span class="sidebar-item-icon">💾</span>
+                            <span>Backups</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Business -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    �� Business
+                </div>
+                <div class="sidebar-group">
+                    <button class="sidebar-group-header" aria-expanded="true" aria-controls="business-group" data-testid="sidebar-group-business-toggle">
+                        <span>Business Tools</span>
+                        <span class="group-icon">▼</span>
+                    </button>
+                    <div class="sidebar-group-content" id="business-group" aria-hidden="false">
+                        <a href="/go-to-market" class="sidebar-item" data-testid="sidebar-gtm">
+                            <span class="sidebar-item-icon">🚀</span>
+                            <span>GTM Engine</span>
+                        </a>
+                        <a href="/investor-pack" class="sidebar-item" data-testid="sidebar-investor">
+                            <span class="sidebar-item-icon">📊</span>
+                            <span>Investor Pack</span>
+                        </a>
+                        <a href="/access-hub" class="sidebar-item" data-testid="sidebar-access-hub">
+                            <span class="sidebar-item-icon">🔑</span>
+                            <span>Access Hub</span>
+                        </a>
+                        <a href="/billing" class="sidebar-item" data-testid="sidebar-billing">
+                            <span class="sidebar-item-icon">💳</span>
+                            <span>Billing</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Console (Admin/Owner only) -->
+            <div class="sidebar-section admin-only" style="display: none;">
+                <div class="sidebar-section-header">
+                    ⚙️ Admin Console
+                </div>
+                <div class="sidebar-group">
+                    <button class="sidebar-group-header" aria-expanded="true" aria-controls="admin-group" data-testid="sidebar-group-admin-toggle">
+                        <span>Administration</span>
+                        <span class="group-icon">▼</span>
+                    </button>
+                    <div class="sidebar-group-content" id="admin-group" aria-hidden="false">
+                        <a href="/residency-router" class="sidebar-item" data-testid="sidebar-residency">
+                            <span class="sidebar-item-icon">🌍</span>
+                            <span>Residency Policies</span>
+                        </a>
+                        <a href="/supply-chain" class="sidebar-item" data-testid="sidebar-supply-chain">
+                            <span class="sidebar-item-icon">🔗</span>
+                            <span>Supply Chain & SBOM</span>
+                        </a>
+                        <a href="/compliance-evidence" class="sidebar-item" data-testid="sidebar-compliance-evidence">
+                            <span class="sidebar-item-icon">📋</span>
+                            <span>Compliance Evidence</span>
+                        </a>
+                        <a href="/sovereign-deploy" class="sidebar-item" data-testid="sidebar-sovereign">
+                            <span class="sidebar-item-icon">🏛️</span>
+                            <span>Sovereign Deploy</span>
+                        </a>
+                        <a href="/backups" class="sidebar-item" data-testid="sidebar-backups">
+                            <span class="sidebar-item-icon">💾</span>
+                            <span>Backups</span>
+                        </a>
+                        <a href="/security-dashboard" class="sidebar-item" data-testid="sidebar-security-dashboard">
+                            <span class="sidebar-item-icon">🛡️</span>
+                            <span>Security Dashboard</span>
+                        </a>
+                        <a href="/access-control" class="sidebar-item" data-testid="sidebar-access-control">
+                            <span class="sidebar-item-icon">🔐</span>
+                            <span>Access Control</span>
+                        </a>
+                        <a href="/billing" class="sidebar-item" data-testid="sidebar-billing-admin">
+                            <span class="sidebar-item-icon">💳</span>
+                            <span>Billing & Ownership</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content" role="main">
+            <!-- Welcome Section -->
+            <section class="welcome-section">
+                <h1 class="welcome-title">Welcome to System Builder Hub</h1>
+                <p class="welcome-subtitle">Build, preview, and govern your systems from one place.</p>
+            </section>
+
+            <!-- Hero Row -->
+            <section class="hero-row">
+                <a href="/feature/start-build" class="hero-card" data-testid="hero-start-build" aria-label="Start a Build: Open Prompt Builder">
+                    <div class="hero-card-icon">🚀</div>
+                    <h2 class="hero-card-title">Start a Build</h2>
+                    <p class="hero-card-description">Create complete systems with natural language commands using AI-powered orchestration.</p>
+                    <span class="hero-card-cta">Start Building →</span>
+                </a>
+
+                <a href="/feature/open-preview" class="hero-card" data-testid="hero-open-preview" aria-label="Open Preview: Launch system preview">
+                    <div class="hero-card-icon">👁️</div>
+                    <h2 class="hero-card-title">Open Preview</h2>
+                    <p class="hero-card-description">Test and validate your systems in a secure preview environment with real-time feedback.</p>
+                    <span class="hero-card-cta">Launch Preview →</span>
+                </a>
+
+                <a href="/feature/create-brain" class="hero-card" data-testid="hero-create-brain" aria-label="Create Brain: Open FastPath Agent">
+                    <div class="hero-card-icon">🧠</div>
+                    <h2 class="hero-card-title">Create Brain</h2>
+                    <p class="hero-card-description">Build intelligent agents that optimize your development workflow and automate complex tasks.</p>
+                    <span class="hero-card-cta">Create Agent →</span>
+                </a>
+            </section>
+
+            <!-- My Workspace (Pinned Items) -->
+            <section id="my-workspace-section" class="my-workspace-section" style="display: none;">
+                <div class="section-header">
+                    <h2 class="section-title">My Workspace</h2>
+                </div>
+                <div id="my-workspace-grid" class="recommended-grid">
+                    <!-- Pinned items will be populated here -->
+                </div>
+            </section>
+
+            <!-- Recommended Features -->
+            <section class="recommended-section">
+                <div class="section-header">
+                    <h2 class="section-title">Recommended</h2>
+                </div>
+                
+                <div id="recommended-grid" class="recommended-grid">
+                    <!-- User-facing features only - populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Browse All Features Button -->
+            <section class="browse-features-section">
+                <div class="section-header">
+                    <button id="btn-browse-all" class="btn-browse-all" data-testid="btn-browse-all">
+                        <span>🔍 Browse All Features</span>
+                    </button>
+                </div>
+            </section>
+
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer" role="contentinfo">
+            <div class="footer-links">
+                <a href="/openapi.json" class="footer-link" data-testid="footer-docs">Docs</a>
+                <a href="/support" class="footer-link" data-testid="footer-support">Support</a>
+                <a href="/changelog" class="footer-link" data-testid="footer-changelog">Changelog</a>
+            </div>
+            
+            <div class="system-status" data-testid="system-status">
+                <div class="status-indicator" title="System Healthy"></div>
+                <span>System Healthy</span>
+                <span>•</span>
+                <span>v3.0.0</span>
+                <span>•</span>
+                <span>Tenant: default</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Features Modal Overlay -->
+    <div id="features-overlay" class="modal-overlay" role="dialog" aria-labelledby="modal-title" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title" class="modal-title">Browse All Features</h2>
+                <button class="modal-close" data-testid="modal-close" aria-label="Close modal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-controls">
+                    <input type="text" id="features-search" class="modal-search" placeholder="Search features..." data-testid="features-search" aria-label="Search features">
+                    <div class="modal-filters">
+                        <button class="filter-chip active" data-category="" data-testid="features-filter-all">All</button>
+                        <button class="filter-chip" data-category="core" data-testid="features-filter-core">Core Build</button>
+                        <button class="filter-chip" data-category="intelligence" data-testid="features-filter-intelligence">Intelligence</button>
+                        <button class="filter-chip" data-category="data" data-testid="features-filter-data">Data</button>
+                        <button class="filter-chip" data-category="business" data-testid="features-filter-business">Business</button>
+                    </div>
+                </div>
+                
+                <div id="modal-grid" class="modal-grid" data-testid="features-list">
+                    <!-- Features will be populated here -->
+                </div>
+                
+                <div class="modal-pagination">
+                    <button class="pagination-btn" id="prev-page" data-testid="features-page-prev" disabled>← Previous</button>
+                    <span class="pagination-info" id="page-info">Page 1 of 1</span>
+                    <button class="pagination-btn" id="next-page" data-testid="features-page-next">Next →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Feature definitions with explicit UI mapping
+        // Features will be loaded from API
+        let allFeatures = [];
+        
+        // Load features from API
+        async function loadFeatures() {
+            try {
+                const response = await fetch(`/ui/api/features/catalog?role=${currentUser.role}`);
+                const data = await response.json();
+                allFeatures = data.features.map(feature => ({
+                    ...feature,
+                    id: feature.slug,
+                    type: 'user' // All features in catalog are user-facing
+                }));
+                
+                // Initialize dashboard after features are loaded
+                initializeDashboard();
+            } catch (error) {
+                console.error('Failed to load features:', error);
+                // Fallback to empty array
+                allFeatures = [];
+                initializeDashboard();
+            }
+        }
+
+        // Mock user data (in real app, this would come from backend)
+        const currentUser = {
+            role: getRoleFromQueryParam() || 'developer', // 'viewer', 'developer', 'owner', 'admin'
+            tenant: 'default',
+            userId: 'user123'
+        };
+
+        // Dev mode role switcher
+        function getRoleFromQueryParam() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('role');
+        }
+
+        function switchRole(role) {
+            const url = new URL(window.location);
+            url.searchParams.set('role', role);
+            window.location.href = url.toString();
+        }
+
+        // Mock feature flags (in real app, this would come from backend)
+        const featureFlags = {
+            'gtm-engine': true,
+            'access-hub': true,
+            'quality-gates': true,
+            'growth-agent': true,
+            'investor-pack': true
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFeatures();
+        });
+
+        function initializeDashboard() {
+            // Initialize sidebar groups
+            const groupHeaders = document.querySelectorAll('.sidebar-group-header');
+            groupHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                    const content = document.getElementById(this.getAttribute('aria-controls'));
+                    
+                    this.setAttribute('aria-expanded', !isExpanded);
+                    content.setAttribute('aria-hidden', isExpanded);
+                });
+            });
+
+            // Show/hide admin console based on role
+            if (currentUser.role === 'admin' || currentUser.role === 'owner') {
+                document.querySelector('.admin-only').style.display = 'block';
+            }
+
+            // Populate recommended features
+            populateRecommendedFeatures();
+
+            // Initialize modal functionality
+            initializeModal();
+
+            // Load pinned items
+            loadPinnedItems();
+
+            // Add card click tracking
+            addCardClickTracking();
+
+            // Update role switcher
+            updateRoleSwitcher();
+
+            // Fire dashboard view event
+            fireEvent('dashboard_view', { role: currentUser.role, tenant: currentUser.tenant });
+        }
+
+        function populateRecommendedFeatures() {
+            const container = document.getElementById('recommended-grid');
+            container.innerHTML = '';
+
+            // Get recommended features (max 6)
+            const recommendedFeatures = allFeatures.filter(feature => {
+                return feature.type === 'user' && 
+                       hasAccess(feature) && 
+                       isFeatureEnabled(feature) &&
+                       isRecommendedFeature(feature.id);
+            }).slice(0, 6);
+
+            recommendedFeatures.forEach(feature => {
+                const card = createFeatureCard(feature, false);
+                card.setAttribute('data-testid', `recommended-${feature.id}`);
+                container.appendChild(card);
+            });
+        }
+
+        function isRecommendedFeature(featureId) {
+            const recommendedIds = ['project-loader', 'visual-builder', 'data-refinery', 'go-to-market', 'investor-pack', 'access-hub', 'growth-agent'];
+            return recommendedIds.includes(featureId);
+        }
+
+        function updateRoleSwitcher() {
+            const roleSelect = document.getElementById('role-select');
+            if (roleSelect) {
+                roleSelect.value = currentUser.role;
+            }
+        }
+
+        // Modal state
+        let modalState = {
+            currentPage: 1,
+            itemsPerPage: 12,
+            currentFilter: '',
+            currentSearch: '',
+            filteredFeatures: []
+        };
+
+        function initializeModal() {
+            const btnBrowseAll = document.getElementById('btn-browse-all');
+            const modalOverlay = document.getElementById('features-overlay');
+            const modalClose = document.querySelector('.modal-close');
+            const searchInput = document.getElementById('features-search');
+            const filterChips = document.querySelectorAll('.filter-chip');
+            const prevBtn = document.getElementById('prev-page');
+            const nextBtn = document.getElementById('next-page');
+
+            if (!btnBrowseAll || !modalOverlay) return;
+
+            // Open modal
+            btnBrowseAll.addEventListener('click', function() {
+                openModal();
+            });
+
+            // Close modal
+            modalClose.addEventListener('click', function() {
+                closeModal();
+            });
+
+            // Close on backdrop click
+            modalOverlay.addEventListener('click', function(e) {
+                if (e.target === modalOverlay) {
+                    closeModal();
+                }
+            });
+
+            // Close on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+                    closeModal();
+                }
+                
+                // Focus search on '/' key when modal is open
+                if (e.key === '/' && modalOverlay.classList.contains('active')) {
+                    e.preventDefault();
+                    const searchInput = document.getElementById('features-search');
+                    if (searchInput) {
+                        searchInput.focus();
+                    }
+                }
+            });
+
+            // Search functionality
+            if (searchInput) {
+                let searchTimeout;
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        modalState.currentSearch = this.value.toLowerCase();
+                        modalState.currentPage = 1;
+                        filterAndRenderModal();
+                    }, 200);
+                });
+            }
+
+            // Filter chips
+            filterChips.forEach(chip => {
+                chip.addEventListener('click', function() {
+                    filterChips.forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    modalState.currentFilter = this.getAttribute('data-category');
+                    modalState.currentPage = 1;
+                    filterAndRenderModal();
+                });
+            });
+
+            // Pagination
+            if (prevBtn) {
+                prevBtn.addEventListener('click', function() {
+                    if (modalState.currentPage > 1) {
+                        modalState.currentPage--;
+                        renderModalGrid();
+                    }
+                });
+            }
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', function() {
+                    const maxPages = Math.ceil(modalState.filteredFeatures.length / modalState.itemsPerPage);
+                    if (modalState.currentPage < maxPages) {
+                        modalState.currentPage++;
+                        renderModalGrid();
+                    }
+                });
+            }
+        }
+
+        function openModal() {
+            const modalOverlay = document.getElementById('features-overlay');
+            const btnBrowseAll = document.getElementById('btn-browse-all');
+            
+            // Show skeleton loading
+            showModalSkeleton();
+            
+            // Open modal
+            modalOverlay.classList.add('active');
+            modalOverlay.setAttribute('aria-hidden', 'false');
+            
+            // Focus trap
+            const focusableElements = modalOverlay.querySelectorAll('button, input, a');
+            const firstElement = focusableElements[0];
+            
+            if (firstElement) firstElement.focus();
+            
+            // Load content after a short delay to show skeleton
+            setTimeout(() => {
+                filterAndRenderModal();
+            }, 300);
+            
+            fireEvent('modal_open', { source: 'browse_all' });
+        }
+
+        function closeModal() {
+            const modalOverlay = document.getElementById('features-overlay');
+            const btnBrowseAll = document.getElementById('btn-browse-all');
+            
+            modalOverlay.classList.remove('active');
+            modalOverlay.setAttribute('aria-hidden', 'true');
+            
+            // Return focus to trigger button
+            if (btnBrowseAll) btnBrowseAll.focus();
+            
+            fireEvent('modal_close', { source: 'browse_all' });
+        }
+
+        function showModalSkeleton() {
+            const modalGrid = document.getElementById('modal-grid');
+            modalGrid.innerHTML = '';
+            
+            for (let i = 0; i < 6; i++) {
+                const skeletonCard = document.createElement('div');
+                skeletonCard.className = 'modal-card skeleton skeleton-card';
+                modalGrid.appendChild(skeletonCard);
+            }
+        }
+
+        function filterAndRenderModal() {
+            // Filter features based on search and category
+            modalState.filteredFeatures = allFeatures.filter(feature => {
+                const matchesSearch = !modalState.currentSearch || 
+                    feature.title.toLowerCase().includes(modalState.currentSearch) ||
+                    feature.description.toLowerCase().includes(modalState.currentSearch);
+                
+                const matchesCategory = !modalState.currentFilter || 
+                    feature.category === modalState.currentFilter;
+                
+                const hasAccess = feature.type === 'user' && 
+                    hasAccess(feature) && 
+                    isFeatureEnabled(feature);
+                
+                return matchesSearch && matchesCategory && hasAccess;
+            });
+            
+            // Fire telemetry event when catalog is loaded
+            if (modalState.filteredFeatures.length > 0) {
+                fireEvent('catalog_loaded', {
+                    count: modalState.filteredFeatures.length,
+                    role: currentUser.role,
+                    filters: {
+                        search: modalState.currentSearch,
+                        category: modalState.currentFilter
+                    }
+                });
+            }
+            
+            renderModalGrid();
+        }
+
+        function renderModalGrid() {
+            const modalGrid = document.getElementById('modal-grid');
+            const pageInfo = document.getElementById('page-info');
+            const prevBtn = document.getElementById('prev-page');
+            const nextBtn = document.getElementById('next-page');
+            
+            const startIndex = (modalState.currentPage - 1) * modalState.itemsPerPage;
+            const endIndex = startIndex + modalState.itemsPerPage;
+            const pageFeatures = modalState.filteredFeatures.slice(startIndex, endIndex);
+            
+            modalGrid.innerHTML = '';
+            
+            if (pageFeatures.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            pageFeatures.forEach(feature => {
+                const card = createModalCard(feature);
+                modalGrid.appendChild(card);
+            });
+            
+            // Update pagination
+            const totalPages = Math.ceil(modalState.filteredFeatures.length / modalState.itemsPerPage);
+            pageInfo.textContent = `Page ${modalState.currentPage} of ${totalPages}`;
+            prevBtn.disabled = modalState.currentPage <= 1;
+            nextBtn.disabled = modalState.currentPage >= totalPages;
+        }
+
+        function showEmptyState() {
+            const modalGrid = document.getElementById('modal-grid');
+            modalGrid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔍</div>
+                    <h3 class="empty-state-title">No features found</h3>
+                    <p class="empty-state-description">
+                        ${modalState.currentSearch ? 'Try adjusting your search terms' : 'Try selecting a different category'}
+                    </p>
+                    <button class="clear-filters-btn" onclick="clearModalFilters()">Clear Filters</button>
+                </div>
+            `;
+        }
+
+        function clearModalFilters() {
+            modalState.currentSearch = '';
+            modalState.currentFilter = '';
+            modalState.currentPage = 1;
+            
+            // Reset UI
+            document.getElementById('features-search').value = '';
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.classList.remove('active');
+                if (chip.getAttribute('data-category') === '') {
+                    chip.classList.add('active');
+                }
+            });
+            
+            filterAndRenderModal();
+        }
+
+        function createModalCard(feature) {
+            const card = document.createElement('a');
+            card.href = feature.route;
+            card.className = 'modal-card';
+            card.setAttribute('data-testid', `features-card-${feature.id}`);
+            card.setAttribute('aria-label', `${feature.title}: ${feature.description}`);
+            
+            const isPinned = isFeaturePinned(feature.id);
+            
+            card.innerHTML = `
+                <div class="modal-card-icon">${feature.icon}</div>
+                <h3 class="modal-card-title">${feature.title}</h3>
+                <p class="modal-card-description">${feature.description.substring(0, 60)}${feature.description.length > 60 ? '...' : ''}</p>
+                <span class="modal-card-status ${feature.status}">${feature.status}</span>
+                <button class="pin-button ${isPinned ? 'pinned' : ''}" 
+                        data-testid="${isPinned ? 'unpin' : 'pin'}-${feature.id}"
+                        onclick="event.preventDefault(); togglePin('${feature.id}'); this.classList.toggle('pinned'); this.setAttribute('data-testid', this.classList.contains('pinned') ? 'unpin-${feature.id}' : 'pin-${feature.id}');">
+                    ${isPinned ? '⭐' : '☆'}
+                </button>
+            `;
+            
+            return card;
+        }
+
+        function createFeatureCard(feature, showPin = false) {
+            const card = document.createElement('a');
+            card.href = feature.route;
+            card.className = 'feature-card';
+            card.setAttribute('data-testid', `card-${feature.id}`);
+            card.setAttribute('aria-label', `${feature.title}: ${feature.description}`);
+
+            const isPinned = isFeaturePinned(feature.id);
+            if (isPinned) {
+                card.classList.add('pinned');
+            }
+
+            card.innerHTML = `
+                ${showPin ? `<button class="pin-button ${isPinned ? 'pinned' : ''}" data-testid="pin-${feature.id}" onclick="event.preventDefault(); togglePin('${feature.id}')">⭐</button>` : ''}
+                <span class="feature-status ${feature.status}">${feature.status}</span>
+                <div class="feature-icon">${feature.icon}</div>
+                <h3 class="feature-title">${feature.title}</h3>
+                <p class="feature-description">${feature.description}</p>
+                <span class="feature-cta">Open</span>
+            `;
+
+            return card;
+        }
+
+        function hasAccess(feature) {
+            return feature.roles.includes(currentUser.role);
+        }
+
+        function isFeatureEnabled(feature) {
+            return featureFlags[feature.id] !== false;
+        }
+
+
+
+        function loadPinnedItems() {
+            const pinnedItems = getPinnedItems();
+            const workspaceSection = document.getElementById('my-workspace-section');
+            const workspaceGrid = document.getElementById('my-workspace-grid');
+            
+            if (pinnedItems.length > 0) {
+                workspaceSection.style.display = 'block';
+                workspaceGrid.innerHTML = '';
+
+                pinnedItems.forEach(itemId => {
+                    const feature = allFeatures.find(f => f.id === itemId);
+                    if (feature && hasAccess(feature) && isFeatureEnabled(feature)) {
+                        const card = createFeatureCard(feature, false);
+                        workspaceGrid.appendChild(card);
+                    }
+                });
+            } else {
+                // Show empty state for My Workspace
+                workspaceSection.style.display = 'block';
+                workspaceGrid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1; text-align: center; padding: 24px;">
+                        <div class="empty-state-icon">📌</div>
+                        <h3 class="empty-state-title">No pinned features yet</h3>
+                        <p class="empty-state-description">Pin your favorite features to access them quickly from your workspace.</p>
+                        <button class="clear-filters-btn" onclick="openModal()">Browse Features</button>
+                    </div>
+                `;
+            }
+        }
+
+        function getPinnedItems() {
+            try {
+                const pinned = localStorage.getItem(`sbh:pins:${currentUser.tenant}:${currentUser.userId}`);
+                return pinned ? JSON.parse(pinned) : [];
+            } catch (e) {
+                console.warn('Failed to load pinned items:', e);
+                return [];
+            }
+        }
+
+        function savePinnedItems(items) {
+            try {
+                localStorage.setItem(`sbh:pins:${currentUser.tenant}:${currentUser.userId}`, JSON.stringify(items));
+            } catch (e) {
+                console.warn('Failed to save pinned items:', e);
+            }
+        }
+
+        function togglePin(featureId) {
+            const pinnedItems = getPinnedItems();
+            const index = pinnedItems.indexOf(featureId);
+            
+            if (index > -1) {
+                pinnedItems.splice(index, 1);
+                fireEvent('feature_unpin', { id: featureId });
+            } else {
+                pinnedItems.push(featureId);
+                fireEvent('feature_pin', { id: featureId });
+            }
+            
+            savePinnedItems(pinnedItems);
+            loadPinnedItems();
+            
+            // Update pin button state
+            const pinButton = document.querySelector(`[data-testid="pin-${featureId}"]`);
+            if (pinButton) {
+                pinButton.classList.toggle('pinned');
+            }
+        }
+
+        function fireEvent(type, data) {
+            const event = {
+                type: type,
+                ...data,
+                ts: new Date().toISOString(),
+                role: currentUser.role,
+                tenant: currentUser.tenant
+            };
+            console.log('Dashboard Event:', event);
+        }
+
+        function isFeaturePinned(featureId) {
+            const pinnedItems = getPinnedItems();
+            return pinnedItems.includes(featureId);
+        }
+
+        function addCardClickTracking() {
+            const cards = document.querySelectorAll('.feature-card, .hero-card');
+            cards.forEach(card => {
+                card.addEventListener('click', function() {
+                    const cardId = this.getAttribute('data-testid') || this.getAttribute('aria-label');
+                    fireEvent('feature_open', { id: cardId });
+                });
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "name": "test_lms",
+  "title": "Test Learning Management System",
+  "version": "1.0.0",
+  "category": "education",
+  "features": [
+    "courses",
+    "lessons",
+    "quizzes",
+    "progress_tracking",
+    "certificates"
+  ],
+  "plans": [
+    {
+      "name": "Starter",
+      "price": "$9.99/month"
+    },
+    {
+      "name": "Professional",
+      "price": "$29.99/month"
+    },
+    {
+      "name": "Enterprise",
+      "price": "$99.99/month"
+    }
+  ],
+  "description": "A comprehensive learning management system for educational institutions and corporate training. Features include course creation, lesson management, quiz administration, progress tracking, and certificate generation.",
+  "tags": ["lms", "education", "training", "courses", "learning"]
+}

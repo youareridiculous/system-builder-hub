@@ -1,0 +1,1022 @@
+#!/usr/bin/env python3
+"""
+System Builder Hub CLI
+"""
+
+import os
+import sys
+import subprocess
+import sqlite3
+import uuid
+import time
+from datetime import datetime
+from pathlib import Path
+
+import click
+
+# Add dependency check at the very top
+try:
+    from src.dependency_check import collect_dependency_status, print_dependency_error
+except ImportError:
+    # If dependency_check itself can't be imported, we have bigger problems
+    print("❌ Critical error: Cannot import dependency_check module")
+    sys.exit(1)
+
+def preflight_check():
+    """Run preflight checks before any CLI operations."""
+    status = collect_dependency_status()
+    
+    if not status["deps"]:
+        print_dependency_error(status["required_missing"])
+        return False
+    
+    return True
+
+def _auto_discover_module_commands(cli_group):
+    """Auto-discover and register module CLI commands"""
+    import os
+    import importlib
+    from pathlib import Path
+    
+    src_path = Path("src")
+    if not src_path.exists():
+        return
+    
+    # Look for module directories
+    for module_dir in src_path.iterdir():
+        if module_dir.is_dir() and not module_dir.name.startswith("_"):
+            module_name = module_dir.name
+            cli_file = module_dir / "cli.py"
+            
+            if cli_file.exists():
+                try:
+                    # Try to import the module CLI
+                    cli_module = importlib.import_module(f"src.{module_name}.cli")
+                    
+                    # Look for click group (module name)
+                    if hasattr(cli_module, module_name):
+                        command_group = getattr(cli_module, module_name)
+                        if hasattr(command_group, "commands"):
+                            cli_group.add_command(command_group)
+                            click.echo(f"Auto-registered CLI commands for {module_name}")
+                except ImportError as e:
+                    # Module not available, skip
+                    pass
+                except Exception as e:
+                    click.echo(f"Failed to auto-register CLI for {module_name}: {e}")
+
+@click.group()
+def cli():
+    """System Builder Hub CLI"""
+    pass
+
+@cli.command()
+def check():
+    """Run dependency and environment checks"""
+    click.echo("🔍 Running System Builder Hub health checks...")
+    
+    # Check dependencies using unified status
+    status = collect_dependency_status()
+    
+    if status["deps"]:
+        click.echo("✅ All required dependencies available")
+        
+        # Show optional dependencies status
+        if status["optional_missing"]:
+            click.echo(f"ℹ️  Optional dependencies missing: {', '.join(status['optional_missing'])}")
+        else:
+            click.echo("✅ All optional dependencies available")
+    else:
+        click.echo(f"❌ Missing {len(status['required_missing'])} required dependencies:")
+        for dep in status["required_missing"]:
+            click.echo(f"   - {dep}")
+        click.echo("\n🔧 Run: pip install -r requirements.txt")
+        return 1
+    
+    # Check database
+    try:
+        import sqlite3
+        if os.path.exists('system_builder_hub.db'):
+            conn = sqlite3.connect('system_builder_hub.db')
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
+            table_count = cursor.fetchone()[0]
+            conn.close()
+            click.echo(f"✅ Database: {table_count} tables found")
+        else:
+            click.echo("ℹ️  Database: No database file found (run migrations to create)")
+    except Exception as e:
+        click.echo(f"⚠️  Database: {e}")
+    
+    # Check Redis
+    try:
+        import redis
+        r = redis.Redis(host='localhost', port=6379, db=0, socket_connect_timeout=2)
+        r.ping()
+        click.echo("✅ Redis: Connected")
+    except Exception as e:
+        click.echo(f"⚠️  Redis: {e}")
+    
+    click.echo("🎉 Health checks completed!")
+    return 0
+
+@cli.command()
+@click.option('--host', default='127.0.0.1', help='Host to bind to')
+@click.option('--port', default=5001, help='Port to bind to')
+@click.option('--debug', is_flag=True, help='Enable debug mode')
+def run(host, port, debug):
+    """Run the SBH server"""
+    # Run preflight check before starting server
+    if not preflight_check():
+        sys.exit(1)
+    
+    from src.app import create_app
+    
+    app = create_app()
+    
+    if debug:
+        app.config['DEBUG'] = True
+    
+    app.run(host=host, port=port, debug=debug)
+
+@cli.command()
+def smoke():
+    """Run smoke tests to verify core functionality"""
+    # Run preflight check before smoke tests
+    if not preflight_check():
+        sys.exit(1)
+    
+    print("🧪 Running SBH Smoke Tests...")
+    
+    # Run startup doctor
+    try:
+        doctor()
+        print("✅ Smoke tests passed")
+    except Exception as e:
+        print(f"❌ Smoke tests failed: {e}")
+        sys.exit(1)
+
+@cli.command()
+def doctor():
+    """Run startup diagnostics"""
+    # Run preflight check before diagnostics
+    if not preflight_check():
+        sys.exit(1)
+    
+    startup_doctor_path = Path(__file__).parent.parent / 'tools' / 'startup_doctor.py'
+    
+    if not startup_doctor_path.exists():
+        print("⚠️  Startup doctor not found, skipping diagnostics")
+        return
+    
+    subprocess.run([sys.executable, str(startup_doctor_path)])
+
+@cli.command()
+@click.option('--name', default='Demo Project', help='Project name')
+def demo(name: str):
+    """Create a demo project for testing"""
+    # Run preflight check before demo creation
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        click.echo(f"🎭 Creating demo project: {name}")
+        
+        # Create app context
+        from src.app import create_app
+        app = create_app()
+        with app.app_context():
+            # Create demo project
+            db_path = os.getenv('DATABASE_URL', 'sqlite:///./system_builder_hub.db')
+            if db_path.startswith('sqlite:///'):
+                db_file = db_path.replace('sqlite:///', '')
+                
+                conn = sqlite3.connect(db_file)
+                cursor = conn.cursor()
+                
+                # Create demo project
+                project_id = str(uuid.uuid4())
+                system_id = str(uuid.uuid4())
+                now = datetime.utcnow().isoformat()
+                
+                cursor.execute("""
+                    INSERT OR REPLACE INTO projects (id, name, description, tenant_id, no_llm_mode, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (project_id, name, 'Demo project for testing', 'demo_tenant', False, now, now))
+                
+                cursor.execute("""
+                    INSERT OR REPLACE INTO systems (id, project_id, name, blueprint, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (system_id, project_id, f'{name} System', '{"demo": true}', 'draft', now, now))
+                
+                conn.commit()
+                conn.close()
+                
+                click.echo(f"✅ Demo project created successfully")
+                click.echo(f"🆔 Project ID: {project_id}")
+                click.echo(f"🆔 System ID: {system_id}")
+                click.echo(f"🌐 Access at: http://localhost:5001/ui/visual-builder?project={project_id}")
+                
+    except Exception as e:
+        click.echo(f"❌ Failed to create demo project: {e}")
+        sys.exit(1)
+
+@cli.command(name="init-db")
+def init_db():
+    """Initialize database schema using Alembic migrations"""
+    # Run preflight check before database initialization
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        click.echo("🗄️  Initializing database schema...")
+        
+        # Check if Alembic is configured
+        alembic_ini_path = Path(__file__).parent.parent / 'alembic.ini'
+        if not alembic_ini_path.exists():
+            click.echo("❌ Alembic not configured. Missing alembic.ini file")
+            click.echo("💡 Make sure you're running from the backend directory")
+            return 1
+        
+        # Run Alembic upgrade head from the backend directory
+        backend_dir = Path(__file__).parent.parent
+        result = subprocess.run([
+            sys.executable, '-m', 'alembic', 'upgrade', 'head'
+        ], capture_output=True, text=True, cwd=backend_dir)
+        
+        if result.returncode == 0:
+            click.echo("✅ Database schema initialized successfully")
+            if result.stdout.strip():
+                click.echo("📋 Migration output:")
+                click.echo(result.stdout)
+            return 0
+        else:
+            click.echo("❌ Database initialization failed")
+            if result.stderr.strip():
+                click.echo("📋 Error output:")
+                click.echo(result.stderr)
+            return 1
+            
+    except Exception as e:
+        click.echo(f"❌ Database initialization error: {e}")
+        return 1
+
+@cli.command(name="seed-db")
+def seed_db():
+    """Seed database with demo data (tenant, admin user, sample project)"""
+    # Run preflight check before seeding
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        click.echo("🌱 Seeding database with demo data...")
+        
+        # Try to import seed function from reset_db
+        try:
+            from src.reset_db import seed_demo_data
+        except ImportError as e:
+            click.echo(f"❌ Cannot import seed function: {e}")
+            click.echo("💡 Make sure reset_db.py exists and is accessible")
+            return 1
+        
+        # Run seeding
+        seed_result = seed_demo_data()
+        if seed_result:
+            click.echo("✅ Demo data seeded successfully")
+            click.echo("📋 Seeded:")
+            click.echo("   - Demo tenant")
+            click.echo("   - Admin user")
+            click.echo("   - Sample project")
+            return 0
+        else:
+            click.echo("❌ Demo data seeding failed")
+            click.echo("💡 Check if database is initialized (run init-db first)")
+            return 1
+            
+    except Exception as e:
+        click.echo(f"❌ Database seeding error: {e}")
+        return 1
+
+@cli.command()
+@click.option('--with-server', is_flag=True, help='Start server and workers after reset')
+def reset_db(with_server: bool):
+    """Reset database and environment for local development"""
+    # Run preflight check before reset
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        click.echo("🔄 Starting System Builder Hub database reset...")
+        
+        # Import reset functions
+        from src.reset_db import (
+            stop_running_services, reset_redis, remove_database_file,
+            run_migrations, seed_demo_data, run_verification_checks, start_services
+        )
+        
+        # Step 1: Stop services gracefully
+        click.echo("⏹️  Stopping running services...")
+        stopped_processes = stop_running_services()
+        if stopped_processes:
+            click.echo(f"✅ Stopped {stopped_processes} running processes")
+        else:
+            click.echo("ℹ️  No running processes to stop")
+        
+        # Step 2: Reset Redis
+        click.echo("🗑️  Resetting Redis...")
+        redis_reset_result = reset_redis()
+        if redis_reset_result:
+            click.echo("✅ Redis flushed successfully")
+        else:
+            click.echo("⚠️  Redis not available (continuing without Redis reset)")
+        
+        # Step 3: Delete database file
+        click.echo("🗑️  Removing existing database...")
+        db_removed = remove_database_file()
+        if db_removed:
+            click.echo("✅ Database file removed")
+        else:
+            click.echo("ℹ️  No database file to remove")
+        
+        # Step 4: Reset Alembic migration state
+        click.echo("📦 Running database migrations...")
+        migration_result = run_migrations()
+        if migration_result:
+            click.echo(f"✅ Migrations completed successfully")
+        else:
+            click.echo("❌ Migration failed")
+            return 1
+        
+        # Step 5: Seed demo/staging data
+        click.echo("🌱 Seeding demo data...")
+        seed_result = seed_demo_data()
+        if seed_result:
+            click.echo("✅ Demo tenant + projects seeded")
+        else:
+            click.echo("❌ Demo data seeding failed")
+            return 1
+        
+        # Step 6: Run smoke verification checks
+        click.echo("🔍 Running verification checks...")
+        verification_result = run_verification_checks()
+        if verification_result:
+            click.echo("✅ Environment healthy")
+        else:
+            click.echo("❌ Verification checks failed")
+            return 1
+        
+        # Step 7: Optional auto-restart
+        if with_server:
+            click.echo("🚀 Starting services...")
+            start_result = start_services()
+            if start_result:
+                click.echo("✅ Services started successfully")
+                click.echo("\n🌐 Access URLs:")
+                click.echo("   Dashboard: http://localhost:5001/")
+                click.echo("   Builder: http://localhost:5001/builder")
+                click.echo("   Marketplace: http://localhost:5001/marketplace")
+                click.echo("   Settings: http://localhost:5001/settings")
+                click.echo("   Eval Lab: http://localhost:5001/eval-lab")
+                click.echo("   API Docs: http://localhost:5001/openapi.json")
+            else:
+                click.echo("❌ Failed to start services")
+                return 1
+        
+        click.echo("\n🎉 Database reset completed successfully!")
+        return 0
+        
+    except Exception as e:
+        click.echo(f"❌ Reset failed: {e}")
+        return 1
+
+@cli.command()
+def dump_routes():
+    """Dump all available routes"""
+    # Run preflight check before dumping routes
+    if not preflight_check():
+        sys.exit(1)
+    
+    from src.app import create_app
+    app = create_app()
+    print("Available routes:")
+    for rule in app.url_map.iter_rules():
+        print(f"{rule.endpoint:30s} {rule.methods} {rule.rule}")
+
+@cli.command()
+def db_info():
+    """Get database information (dev-only)"""
+    # Run preflight check
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        import json
+        import os
+        import sqlite3
+        
+        # Get database path from config
+        from src.app import create_app
+        app = create_app()
+        
+        with app.app_context():
+            db_path = app.config.get('DATABASE', 'system_builder_hub.db')
+            abs_db_path = os.path.abspath(db_path)
+            
+            # Connect to database
+            db = sqlite3.connect(abs_db_path)
+            db.row_factory = sqlite3.Row
+            
+            # Get tables
+            cursor = db.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+            tables = [row['name'] for row in cursor.fetchall()]
+            
+            # Get tasks preview (last 10)
+            tasks_preview = []
+            if 'tasks' in tables:
+                try:
+                    cursor = db.execute("""
+                        SELECT id, title, completed, tenant_id, created_at
+                        FROM tasks 
+                        ORDER BY id DESC 
+                        LIMIT 10
+                    """)
+                    tasks_preview = [dict(row) for row in cursor.fetchall()]
+                except Exception as e:
+                    click.echo(f"Warning: Could not fetch tasks preview: {e}")
+                    tasks_preview = []
+            
+            db.close()
+            
+            # Output JSON
+            result = {
+                "db_path": abs_db_path,
+                "tables": tables,
+                "tasks_preview": tasks_preview
+            }
+            
+            print(json.dumps(result, indent=2))
+            
+    except Exception as e:
+        click.echo(f"❌ Error getting DB info: {e}")
+        return 1
+
+# CRM Module Commands
+@cli.group()
+def crm():
+    """CRM Flagship v1.01 module commands"""
+    pass
+
+@crm.command()
+def status():
+    """Check CRM module status and health"""
+    # Run preflight check
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        click.echo("🔍 Checking CRM Flagship v1.01 module status...")
+        
+        # Check database tables
+        db_path = os.path.abspath('system_builder_hub.db')
+        if not os.path.exists(db_path):
+            click.echo("❌ Database not found. Run 'init-db' first.")
+            return 1
+        
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Check CRM tables
+        crm_tables = [
+            'contacts', 'deals', 'activities', 'projects', 
+            'tasks', 'messages', 'message_threads', 'tenant_users', 'crm_ops_audit_logs'
+        ]
+        
+        missing_tables = []
+        existing_tables = []
+        
+        for table in crm_tables:
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
+            if cursor.fetchone():
+                existing_tables.append(table)
+            else:
+                missing_tables.append(table)
+        
+        conn.close()
+        
+        # Report status
+        click.echo(f"📊 CRM Tables: {len(existing_tables)}/{len(crm_tables)} present")
+        
+        if existing_tables:
+            click.echo("✅ Present tables:")
+            for table in existing_tables:
+                click.echo(f"   - {table}")
+        
+        if missing_tables:
+            click.echo("❌ Missing tables:")
+            for table in missing_tables:
+                click.echo(f"   - {table}")
+            click.echo("💡 Run 'alembic upgrade head' to create missing tables")
+        
+        # Check API endpoints (if server is running)
+        try:
+            import requests
+            response = requests.get('http://127.0.0.1:5001/api/contacts/', timeout=2)
+            if response.status_code == 401:  # Expected: tenant context required
+                click.echo("✅ CRM API endpoints responding")
+            else:
+                click.echo(f"⚠️  CRM API endpoints: HTTP {response.status_code}")
+        except Exception:
+            click.echo("ℹ️  CRM API endpoints: Server not running (start with 'run')")
+        
+        click.echo("🎉 CRM status check completed!")
+        return 0
+        
+    except Exception as e:
+        click.echo(f"❌ CRM status check error: {e}")
+        return 1
+
+@crm.command()
+@click.option('--force', is_flag=True, help='Force reseed even if data exists')
+def seed(force):
+    """Seed CRM module with demo data"""
+    # Run preflight check
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        click.echo("🌱 Seeding CRM Flagship v1.01 with demo data...")
+        
+        # Import CRM seeding function
+        try:
+            from src.crm_ops.seed import seed_crm_demo_data
+        except ImportError:
+            click.echo("❌ CRM seeding module not found")
+            click.echo("💡 CRM seeding functionality not yet implemented")
+            return 1
+        
+        # Run seeding
+        result = seed_crm_demo_data(force=force)
+        if result:
+            click.echo("✅ CRM demo data seeded successfully")
+            click.echo("📋 Seeded:")
+            click.echo("   - Demo contacts")
+            click.echo("   - Sample deals")
+            click.echo("   - Activity records")
+            click.echo("   - Project templates")
+            click.echo("   - Task examples")
+            return 0
+        else:
+            click.echo("❌ CRM demo data seeding failed")
+            return 1
+            
+    except Exception as e:
+        click.echo(f"❌ CRM seeding error: {e}")
+        return 1
+
+@crm.command()
+@click.option('--keep-data', is_flag=True, help='Keep existing CRM data')
+def reset(keep_data):
+    """Reset CRM module (clear data and reseed)"""
+    # Run preflight check
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        click.echo("🔄 Resetting CRM Flagship v1.01 module...")
+        
+        if not keep_data:
+            click.echo("🗑️  Clearing existing CRM data...")
+            # For now, just log that clearing would happen
+            click.echo("ℹ️  CRM data clearing would be implemented here")
+        
+        # Reseed
+        click.echo("🌱 Reseeding CRM data...")
+        try:
+            from src.crm_ops.seed import seed_crm_demo_data
+            result = seed_crm_demo_data(force=True)
+            if result:
+                click.echo("✅ CRM reset completed successfully")
+                return 0
+            else:
+                click.echo("❌ CRM reseeding failed")
+                return 1
+        except ImportError:
+            click.echo("❌ CRM seeding module not found")
+            return 1
+            
+    except Exception as e:
+        click.echo(f"❌ CRM reset error: {e}")
+        return 1
+# Build Commands
+@cli.group()
+def build():
+    """Build new modules and systems"""
+    pass
+
+@build.command()
+@click.option("--name", required=True, help="Module name (e.g., lms)")
+@click.option("--title", required=True, help="Module title (e.g., LMS Core)")
+@click.option("--version", required=True, help="Module version (e.g., 1.0.0)")
+@click.option("--category", required=True, help="Module category (e.g., Education)")
+@click.option("--features", required=True, help="Comma-separated features (e.g., courses,lessons,quizzes)")
+@click.option("--plans", required=True, help="Comma-separated plans (e.g., starter,pro,enterprise)")
+@click.option("--spec", required=True, help="System specification in natural language")
+def module(name, title, version, category, features, plans, spec):
+    """Build a new module from specification"""
+    from src.builder.module_scaffolder import ModuleScaffolder
+    
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Building module: {name}")
+    
+    try:
+        scaffolder = ModuleScaffolder()
+        scaffolder.build_module(
+            name=name,
+            title=title,
+            version=version,
+            category=category,
+            features=features.split(","),
+            plans=plans.split(","),
+            spec=spec
+        )
+        logger.info(f"✅ Module {name} built successfully!")
+    except Exception as e:
+        logger.error(f"Failed to build module {name}: {e}")
+        raise click.ClickException(str(e))
+
+# Marketplace Commands
+@cli.group()
+def marketplace():
+    """Marketplace module management commands"""
+    pass
+
+@marketplace.command()
+def validate():
+    """Validate marketplace templates and configurations"""
+    # Run preflight check
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        click.echo("🔍 Validating marketplace templates...")
+        
+        # Load and validate CRM template
+        import json
+        from pathlib import Path
+        
+        crm_template_path = Path('marketplace/flagship-crm.json')
+        if not crm_template_path.exists():
+            click.echo("❌ CRM template not found: marketplace/flagship-crm.json")
+            return 1
+        
+        with open(crm_template_path, 'r') as f:
+            crm_template = json.load(f)
+        
+        # Validate required fields
+        required_fields = ['slug', 'name', 'version', 'description', 'plans']
+        missing_fields = []
+        
+        for field in required_fields:
+            if field not in crm_template:
+                missing_fields.append(field)
+        
+        if missing_fields:
+            click.echo(f"❌ CRM template missing required fields: {', '.join(missing_fields)}")
+            return 1
+        
+        # Validate version matches integrated module
+        if crm_template['version'] != '1.01':
+            click.echo(f"❌ CRM template version mismatch: expected 1.01, got {crm_template['version']}")
+            return 1
+        
+        # Validate plans structure
+        if not isinstance(crm_template['plans'], dict):
+            click.echo("❌ CRM template plans must be an object")
+            return 1
+        
+        click.echo("✅ CRM template validation passed")
+        click.echo(f"   - Name: {crm_template['name']}")
+        click.echo(f"   - Version: {crm_template['version']}")
+        click.echo(f"   - Plans: {len(crm_template['plans'])} available")
+        
+        # Check if CRM module is integrated
+        try:
+            from src.crm_ops.models import Contact, Deal, Activity
+            click.echo("✅ CRM module integration verified")
+        except ImportError:
+            click.echo("❌ CRM module not properly integrated")
+            return 1
+        
+        click.echo("🎉 Marketplace validation completed!")
+        return 0
+        
+    except Exception as e:
+        click.echo(f"❌ Marketplace validation error: {e}")
+        return 1
+
+@marketplace.command()
+@click.option('--module', required=True, help='Module to provision (e.g., crm)')
+@click.option('--tenant', required=True, help='Tenant ID to provision for')
+def provision(module, tenant):
+    """Provision a marketplace module for a tenant"""
+    # Run preflight check
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        click.echo(f"🚀 Provisioning {module} module for tenant {tenant}...")
+        
+        if module.lower() == 'crm':
+            # Check if CRM is already provisioned
+            db_path = os.path.abspath('system_builder_hub.db')
+            if not os.path.exists(db_path):
+                click.echo("❌ Database not found. Run 'init-db' first.")
+                return 1
+            
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            # Check if CRM tables exist
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='contacts'")
+            if cursor.fetchone():
+                click.echo("✅ CRM module already provisioned (tables exist)")
+                conn.close()
+                return 0
+            
+            conn.close()
+            
+            # Provision CRM module
+            click.echo("📦 Installing CRM module...")
+            
+            # Run migrations (idempotent)
+            try:
+                import subprocess
+                result = subprocess.run(['alembic', 'upgrade', 'head'], 
+                                      capture_output=True, text=True, check=True)
+                click.echo("✅ Database migrations applied")
+            except subprocess.CalledProcessError as e:
+                click.echo(f"❌ Migration failed: {e.stderr}")
+                return 1
+            
+            # Seed demo data
+            try:
+                from src.crm_ops.seed import seed_crm_demo_data
+                result = seed_crm_demo_data(force=False)
+                if result:
+                    click.echo("✅ CRM demo data seeded")
+                else:
+                    click.echo("⚠️  CRM seeding completed (may already have data)")
+            except ImportError:
+                click.echo("⚠️  CRM seeding module not available")
+            
+            click.echo(f"🎉 CRM module provisioned successfully for tenant {tenant}")
+            return 0
+        else:
+            click.echo(f"❌ Unknown module: {module}")
+            click.echo("💡 Available modules: crm")
+            return 1
+            
+    except Exception as e:
+        click.echo(f"❌ Provisioning error: {e}")
+        return 1
+
+@marketplace.command()
+@click.option('--tenant', required=True, help='Tenant ID')
+@click.option('--module', required=True, help='Module name (e.g., crm)')
+@click.option('--plan', required=True, help='Plan name (e.g., starter, pro, enterprise)')
+@click.option('--days', default=14, help='Trial duration in days')
+def trial(tenant, module, plan, days):
+    """Start a trial for a tenant/module combination"""
+    # Run preflight check
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        click.echo(f"🚀 Starting {days}-day trial for {module} module (plan: {plan})...")
+        
+        # Import billing service
+        try:
+            from src.billing.service import billing_service
+        except ImportError:
+            click.echo("❌ Billing service not available")
+            return 1
+        
+        # Start trial
+        result = billing_service.start_trial(tenant, module, plan, days)
+        
+        if result['status'] == 'started_trial':
+            click.echo(f"✅ Trial started successfully")
+            click.echo(f"   - Subscription ID: {result['subscription_id']}")
+            click.echo(f"   - Trial ends: {result['trial_ends_at']}")
+        elif result['status'] == 'already_on_trial':
+            click.echo(f"ℹ️  Tenant already on trial")
+            click.echo(f"   - Subscription ID: {result['subscription_id']}")
+            click.echo(f"   - Trial ends: {result['trial_ends_at']}")
+        else:
+            click.echo(f"⚠️  Trial status: {result['status']}")
+        
+        return 0
+        
+    except Exception as e:
+        click.echo(f"❌ Trial start error: {e}")
+        return 1
+
+@marketplace.command()
+@click.option('--tenant', required=True, help='Tenant ID')
+@click.option('--module', required=True, help='Module name (e.g., crm)')
+@click.option('--plan', required=True, help='Plan name (e.g., starter, pro, enterprise)')
+def subscribe(tenant, module, plan):
+    """Subscribe a tenant to a module plan"""
+    # Run preflight check
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        click.echo(f"💳 Subscribing {tenant} to {module} module (plan: {plan})...")
+        
+        # Import billing service
+        try:
+            from src.billing.service import billing_service
+        except ImportError:
+            click.echo("❌ Billing service not available")
+            return 1
+        
+        # Subscribe
+        result = billing_service.subscribe(tenant, module, plan)
+        
+        if result['status'] == 'subscribed':
+            click.echo(f"✅ Subscription activated successfully")
+            click.echo(f"   - Subscription ID: {result['subscription_id']}")
+        elif result['status'] == 'already_subscribed':
+            click.echo(f"ℹ️  Tenant already subscribed")
+            click.echo(f"   - Subscription ID: {result['subscription_id']}")
+        else:
+            click.echo(f"⚠️  Subscription status: {result['status']}")
+        
+        return 0
+        
+    except Exception as e:
+        click.echo(f"❌ Subscription error: {e}")
+        return 1
+
+@marketplace.command()
+@click.option('--tenant', required=True, help='Tenant ID')
+@click.option('--module', required=True, help='Module name (e.g., crm)')
+def cancel(tenant, module):
+    """Cancel a subscription"""
+    # Run preflight check
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        click.echo(f"❌ Canceling subscription for {tenant} on {module} module...")
+        
+        # Import billing service
+        try:
+            from src.billing.service import billing_service
+        except ImportError:
+            click.echo("❌ Billing service not available")
+            return 1
+        
+        # Cancel
+        result = billing_service.cancel(tenant, module)
+        
+        if result['status'] == 'canceled':
+            click.echo(f"✅ Subscription canceled successfully")
+            click.echo(f"   - Subscription ID: {result['subscription_id']}")
+        elif result['status'] == 'already_canceled':
+            click.echo(f"ℹ️  Subscription already canceled")
+            click.echo(f"   - Subscription ID: {result['subscription_id']}")
+        elif result['status'] == 'not_subscribed':
+            click.echo(f"ℹ️  No subscription found for this tenant/module")
+        else:
+            click.echo(f"⚠️  Cancel status: {result['status']}")
+        
+        return 0
+        
+    except Exception as e:
+        click.echo(f"❌ Cancel error: {e}")
+        return 1
+
+@marketplace.command()
+@click.option('--tenant', required=True, help='Tenant ID')
+@click.option('--module', required=True, help='Module name (e.g., crm)')
+def status(tenant, module):
+    """Get subscription status for a tenant/module"""
+    # Run preflight check
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        click.echo(f"📊 Checking subscription status for {tenant} on {module} module...")
+        
+        # Import billing service
+        try:
+            from src.billing.service import billing_service
+        except ImportError:
+            click.echo("❌ Billing service not available")
+            return 1
+        
+        # Get status
+        result = billing_service.status(tenant, module)
+        
+        if result['status'] == 'not_subscribed':
+            click.echo(f"ℹ️  No subscription found")
+        else:
+            click.echo(f"📋 Subscription Details:")
+            click.echo(f"   - Status: {result['status']}")
+            click.echo(f"   - Plan: {result['plan']}")
+            click.echo(f"   - Created: {result['created_at']}")
+            click.echo(f"   - Updated: {result['updated_at']}")
+            
+            if result.get('trial_ends_at'):
+                click.echo(f"   - Trial ends: {result['trial_ends_at']}")
+        
+        return 0
+        
+    except Exception as e:
+        click.echo(f"❌ Status check error: {e}")
+        return 1
+
+@cli.command()
+@click.option('--queues', default='default,high,low', help='Comma-separated list of queues to listen to')
+@click.option('--burst', is_flag=True, help='Run in burst mode (exit when no jobs)')
+@click.option('--name', help='Worker name (default: auto-generated)')
+@click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
+@click.option('--redis-url', help='Redis URL (default: redis://127.0.0.1:6379/0). BLPOP waits up to ~400s; we disable socket_timeout to avoid false timeouts.')
+def worker(queues, burst, name, verbose, redis_url):
+    """Start background worker for processing jobs"""
+    # Run preflight check before starting worker
+    if not preflight_check():
+        sys.exit(1)
+    
+    try:
+        # Import worker functionality
+        from src.jobs.worker import main as worker_main
+        from src.redis_core import redis_available
+        
+        # Set Redis URL if provided
+        if redis_url:
+            os.environ['REDIS_URL'] = redis_url
+            click.echo(f"🔗 Using Redis URL: {redis_url}")
+        
+        # Check Redis availability
+        if not redis_available():
+            click.echo("❌ Redis not available. Please start Redis first:")
+            click.echo("   brew install redis && brew services start redis")
+            click.echo("   or: docker run -d -p 6379:6379 redis:alpine")
+            click.echo("   or: specify custom Redis URL with --redis-url")
+            return 1
+        
+        # Parse queues
+        queue_list = [q.strip() for q in queues.split(',') if q.strip()]
+        if not queue_list:
+            click.echo("❌ No valid queues specified")
+            return 1
+        
+        click.echo(f"🚀 Starting RQ worker...")
+        click.echo(f"📋 Queues: {', '.join(queue_list)}")
+        if burst:
+            click.echo("⚡ Burst mode: will exit when no jobs")
+        if name:
+            click.echo(f"🏷️  Worker name: {name}")
+        if verbose:
+            click.echo("🔍 Verbose logging enabled")
+        
+        # Set environment variables for the worker
+        if name:
+            os.environ['RQ_WORKER_NAME'] = name
+        if burst:
+            os.environ['RQ_BURST_MODE'] = 'true'
+        if verbose:
+            os.environ['RQ_VERBOSE'] = 'true'
+        
+        # Set queue configuration
+        os.environ['RQ_QUEUES'] = queues
+        
+        # Start the worker
+        worker_main()
+        
+    except ImportError as e:
+        click.echo(f"❌ Failed to import worker module: {e}")
+        click.echo("💡 Make sure all dependencies are installed: pip install -r requirements.txt")
+        return 1
+    except KeyboardInterrupt:
+        click.echo("\n⏹️  Worker stopped by user")
+    except Exception as e:
+        click.echo(f"❌ Worker error: {e}")
+        return 1
+
+# Register ERP Core commands
+try:
+    from src.erp_core.cli import erp
+    cli.add_command(erp)
+except ImportError as e:
+    # ERP Core not available, skip registration
+    pass
+# Auto-discover module CLI commands
+_auto_discover_module_commands(cli)
+
+if __name__ == '__main__':
+    cli()

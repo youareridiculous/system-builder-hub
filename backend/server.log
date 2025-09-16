@@ -1,0 +1,32 @@
+🔑 Loaded env from: /Users/ericlarson/Downloads/system-builder-hub/backend/.env
+Auto-registered CLI commands for demo_analytics
+Auto-registered CLI commands for crm_lite
+Auto-registered CLI commands for test
+Auto-registered CLI commands for lms
+Auto-registered CLI commands for test_helpdesk
+Auto-registered CLI commands for test_project
+ * Serving Flask app 'src.app'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+[33mPress CTRL+C to quit[0m
+OpenAI client not available, using adapter: ImportError("cannot import name 'openai_client' from 'src.llm' (/Users/ericlarson/Downloads/system-builder-hub/backend/src/llm/__init__.py)")
+127.0.0.1 - - [03/Sep/2025 16:35:22] "POST /api/cobuilder/ask HTTP/1.1" 200 -
+127.0.0.1 - - [03/Sep/2025 16:56:31] "GET /ui/cobuilder/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Sep/2025 16:56:31] "GET /static/cobuilder.css HTTP/1.1" 200 -
+127.0.0.1 - - [03/Sep/2025 16:56:31] "GET /static/cobuilder.js HTTP/1.1" 200 -
+127.0.0.1 - - [03/Sep/2025 16:56:31] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 204 -
+OpenAI client not available, using adapter: ImportError("cannot import name 'openai_client' from 'src.llm' (/Users/ericlarson/Downloads/system-builder-hub/backend/src/llm/__init__.py)")
+127.0.0.1 - - [03/Sep/2025 16:56:54] "POST /api/cobuilder/ask HTTP/1.1" 200 -
+OpenAI client not available, using adapter: ImportError("cannot import name 'openai_client' from 'src.llm' (/Users/ericlarson/Downloads/system-builder-hub/backend/src/llm/__init__.py)")
+127.0.0.1 - - [03/Sep/2025 16:57:52] "POST /api/cobuilder/ask HTTP/1.1" 200 -
+127.0.0.1 - - [03/Sep/2025 16:57:52] "GET /api/cobuilder/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Sep/2025 16:57:52] "GET /api/cobuilder/status HTTP/1.1" 200 -
+OpenAI client not available, using adapter: ImportError("cannot import name 'openai_client' from 'src.llm' (/Users/ericlarson/Downloads/system-builder-hub/backend/src/llm/__init__.py)")
+127.0.0.1 - - [03/Sep/2025 16:57:52] "POST /api/cobuilder/ask HTTP/1.1" 200 -
+OpenAI client not available, using adapter: ImportError("cannot import name 'openai_client' from 'src.llm' (/Users/ericlarson/Downloads/system-builder-hub/backend/src/llm/__init__.py)")
+127.0.0.1 - - [03/Sep/2025 16:58:14] "POST /api/cobuilder/ask HTTP/1.1" 200 -
+127.0.0.1 - - [03/Sep/2025 17:02:39] "GET /ui/cobuilder/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Sep/2025 17:02:39] "GET /static/cobuilder.js HTTP/1.1" 200 -
+127.0.0.1 - - [03/Sep/2025 17:02:39] "GET /static/cobuilder.css HTTP/1.1" 200 -
+127.0.0.1 - - [03/Sep/2025 17:02:39] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 204 -

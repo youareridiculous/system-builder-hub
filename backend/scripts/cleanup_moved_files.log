@@ -1,0 +1,23 @@
+# Cleanup started 2025-09-05T07:26:09-07:00
+[plan] Will move files from src/src -> src
+Transfer starting: 10 files
+./
+.DS_Store
+server.py
+venture_os/
+venture_os/.DS_Store
+venture_os/__init__.py
+venture_os/http/
+venture_os/http/api.py
+venture_os/rbac/
+venture_os/rbac/model.py
+
+sent 511 bytes  received 80 bytes  190645 bytes/sec
+total size is 16355  speedup is 27.67
+[move] src/src -> src
+[merge:newer->dst] server.py (kept BAD_ROOT, backed up old at src/server.py.bak.20250905-072648)
+[merge:newer->dst] .DS_Store (kept BAD_ROOT, backed up old at src/.DS_Store.bak.20250905-072648)
+[copy] venture_os/rbac/model.py
+[merge:keep-dst] venture_os/.DS_Store (kept existing dst; BAD_ROOT older, left .bak in src/src)
+[merge:newer->dst] venture_os/__init__.py (kept BAD_ROOT, backed up old at src/venture_os/__init__.py.bak.20250905-072648)
+[merge:newer->dst] venture_os/http/api.py (kept BAD_ROOT, backed up old at src/venture_os/http/api.py.bak.20250905-072648)

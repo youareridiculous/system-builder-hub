@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Simple Flask server for AI Website Builder Studio"""
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import json
+import os
+
+app = Flask(__name__)
+CORS(app)
+
+@app.route('/')
+def index():
+    return jsonify({
+        "name": "AI Website Builder Backend",
+        "status": "running",
+        "version": "1.0.0"
+    })
+
+@app.route('/api/cobuilder/compile', methods=['POST'])
+def compile_spec():
+    """Compile a specification into a website"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No JSON data provided'}), 400
+        
+        spec = data.get('spec')
+        if not spec:
+            return jsonify({'error': 'No spec provided'}), 400
+        
+        build_id = data.get('build_id')
+        if not build_id:
+            return jsonify({'error': 'No build_id provided'}), 400
+        
+        # Simulate compilation - generate some files
+        writes = []
+        diffs = []
+        
+        # Create a simple spec.json file
+        spec_data = {
+            "company": "Eric Larson Consulting",
+            "tagline": "Applied AI systems that actually ship",
+            "description": "Eric Larson Consulting helps teams turn AI ideas into production-ready systems.",
+            "pages": [
+                {
+                    "id": "home",
+                    "title": "Home",
+                    "sections": ["hero", "services", "about"]
+                },
+                {
+                    "id": "services", 
+                    "title": "Services",
+                    "sections": ["service-list", "pricing"]
+                },
+                {
+                    "id": "about",
+                    "title": "About", 
+                    "sections": ["company-story", "team"]
+                },
+                {
+                    "id": "contact",
+                    "title": "Contact",
+                    "sections": ["contact-form", "contact-info"]
+                }
+            ],
+            "sections": [
+                {
+                    "id": "hero",
+                    "type": "hero",
+                    "title": "Build production AI systems that ship",
+                    "subtitle": "Strategy, architecture, and hands-on engineering to deliver real business impact with AI."
+                },
+                {
+                    "id": "services",
+                    "type": "services",
+                    "title": "What we do",
+                    "items": ["AI Strategy Sprint", "Full-Stack AI Product", "LLM Routing & Eval", "Data & MLOps"]
+                }
+            ]
+        }
+        
+        writes.append({
+            'path': 'apps/site/gen/spec.json',
+            'sha256': 'abc123...'
+        })
+        
+        writes.append({
+            'path': 'apps/site/app/page.tsx',
+            'sha256': 'def456...'
+        })
+        
+        writes.append({
+            'path': 'apps/site/components/Hero.tsx',
+            'sha256': 'ghi789...'
+        })
+        
+        # Create diffs
+        for write in writes:
+            diffs.append({
+                'path': write['path'],
+                'type': 'added',
+                'content': write['sha256'][:8] + '...'
+            })
+        
+        return jsonify({
+            'success': True,
+            'result': {
+                'writes': writes,
+                'diffs': diffs
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/cobuilder/deploy', methods=['POST'])
+def deploy_website():
+    """Deploy a compiled website to hosting provider"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No JSON data provided'}), 400
+        
+        build_id = data.get('build_id')
+        provider = data.get('provider', 'vercel')
+        domain = data.get('domain', 'auto')
+        
+        if not build_id:
+            return jsonify({'error': 'No build_id provided'}), 400
+        
+        # Simulate deployment
+        import random
+        import string
+        
+        if domain == 'auto':
+            random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+            domain = f"ai-website-{random_suffix}"
+        
+        if provider == 'vercel':
+            url = f"https://{domain}.vercel.app"
+        elif provider == 'netlify':
+            url = f"https://{domain}.netlify.app"
+        else:
+            url = f"https://{domain}.example.com"
+        
+        return jsonify({
+            'success': True,
+            'url': url,
+            'provider': provider,
+            'domain': domain
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    print("🚀 Starting AI Website Builder Backend on port 5001...")
+    app.run(host='127.0.0.1', port=5001, debug=True)

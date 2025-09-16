@@ -1,0 +1,122 @@
+name: "CRM Template Suite"
+description: "Comprehensive evaluation suite for CRM template functionality"
+
+golden_cases:
+  - name: "Contact CRUD Operations"
+    description: "Test basic contact create, read, update, delete operations"
+    prompt: "Create a contact management system with CRUD operations for contacts including name, email, phone, and company fields"
+    sla_class: "normal"
+    assertions:
+      - name: "contact_created"
+        type: "contains"
+        expected: "contact"
+        description: "Should create contact functionality"
+      - name: "crud_operations"
+        type: "contains"
+        expected: "CRUD"
+        description: "Should include CRUD operations"
+
+  - name: "Authentication System"
+    description: "Test user authentication and authorization"
+    prompt: "Implement user authentication with login, logout, and password reset functionality"
+    sla_class: "normal"
+    assertions:
+      - name: "authentication"
+        type: "contains"
+        expected: "auth"
+        description: "Should include authentication"
+      - name: "login_logout"
+        type: "contains"
+        expected: "login"
+        description: "Should include login functionality"
+
+  - name: "Role-Based Access Control"
+    description: "Test RBAC implementation"
+    prompt: "Create role-based access control with admin, manager, and user roles with different permissions"
+    sla_class: "thorough"
+    assertions:
+      - name: "rbac_roles"
+        type: "contains"
+        expected: "role"
+        description: "Should include role-based access"
+      - name: "permissions"
+        type: "contains"
+        expected: "permission"
+        description: "Should include permissions system"
+
+  - name: "Analytics Dashboard"
+    description: "Test analytics and reporting functionality"
+    prompt: "Build an analytics dashboard showing contact growth, deal pipeline, and sales metrics"
+    sla_class: "normal"
+    assertions:
+      - name: "analytics"
+        type: "contains"
+        expected: "analytics"
+        description: "Should include analytics"
+      - name: "dashboard"
+        type: "contains"
+        expected: "dashboard"
+        description: "Should include dashboard"
+
+scenario_bundles:
+  - name: "CRM Template Smoke Test"
+    description: "End-to-end smoke test for CRM template"
+    natural_language: "Launch a complete CRM system with contact management, deal tracking, and user authentication"
+    sla_class: "thorough"
+    steps:
+      - name: "Template Launch"
+        description: "Launch the CRM template"
+        action: "launch"
+        inputs:
+          template: "crm_complete"
+        assertions:
+          - name: "template_launched"
+            type: "contains"
+            expected: "success"
+            description: "Template should launch successfully"
+
+      - name: "Database Setup"
+        description: "Verify database schema and migrations"
+        action: "validate"
+        inputs:
+          check_tables: ["contacts", "deals", "users", "roles"]
+        assertions:
+          - name: "database_schema"
+            type: "contains"
+            expected: "contacts"
+            description: "Should have contacts table"
+
+      - name: "API Endpoints"
+        description: "Test core API endpoints"
+        action: "test"
+        inputs:
+          endpoints: ["/api/contacts", "/api/deals", "/api/auth"]
+        assertions:
+          - name: "api_endpoints"
+            type: "contains"
+            expected: "200"
+            description: "API endpoints should respond"
+
+kpi_guards:
+  - name: "crm_pass_rate"
+    metric: "pass_rate"
+    threshold: 0.90
+    operator: ">="
+    description: "CRM template should have 90% pass rate"
+    severity: "error"
+
+  - name: "crm_latency"
+    metric: "avg_latency_ms"
+    threshold: 15000
+    operator: "<="
+    description: "CRM template should complete within 15 seconds"
+    severity: "warning"
+
+metadata:
+  tags: ["crm", "template", "enterprise"]
+  priority: "high"
+  estimated_duration_minutes: 20
+  enable_canary: false
+  enable_chaos: false
+  max_reruns_on_flake: 2
+  min_stable_passes: 2

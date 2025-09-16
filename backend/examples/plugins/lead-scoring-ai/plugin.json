@@ -1,0 +1,30 @@
+{
+  "slug": "lead-scoring-ai",
+  "name": "Lead Scoring AI",
+  "version": "1.0.0",
+  "description": "Uses AI to automatically score leads and add tags based on contact information",
+  "author": "SBH Team",
+  "entry": "main.py",
+  "permissions": [
+    "llm.use",
+    "read_contacts",
+    "update_contacts",
+    "emit_webhook"
+  ],
+  "routes": true,
+  "events": [
+    "contact.created",
+    "contact.updated"
+  ],
+  "jobs": [
+    {
+      "name": "batch_lead_scoring",
+      "schedule": "0 2 * * *",
+      "description": "Re-score all leads nightly"
+    }
+  ],
+  "secrets": [
+    "LEAD_SCORING_PROMPT",
+    "SCORE_THRESHOLDS"
+  ]
+}

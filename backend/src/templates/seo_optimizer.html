@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Optimizer - System Builder Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .listing-card {
+            border-left: 4px solid #6f42c1;
+            transition: transform 0.2s;
+        }
+        .listing-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .listing-card.public { border-left-color: #28a745; }
+        .listing-card.private { border-left-color: #6c757d; }
+        .listing-card.indexed { border-left-color: #17a2b8; }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .stats-card-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        .stats-card-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .stats-card-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .seo-preview {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 20px;
+            background: #f8f9fa;
+            min-height: 200px;
+        }
+        
+        .meta-tag {
+            font-family: 'Courier New', monospace;
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            margin: 5px 0;
+        }
+        
+        .search-preview {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            background: white;
+            margin: 10px 0;
+        }
+        
+        .search-preview .title {
+            color: #1a0dab;
+            font-size: 18px;
+            font-weight: normal;
+            margin: 0;
+        }
+        
+        .search-preview .url {
+            color: #006621;
+            font-size: 14px;
+            margin: 4px 0;
+        }
+        
+        .search-preview .description {
+            color: #545454;
+            font-size: 14px;
+            margin: 0;
+        }
+        
+        .seo-score {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            color: white;
+        }
+        
+        .seo-score.excellent { background: #28a745; }
+        .seo-score.good { background: #17a2b8; }
+        .seo-score.fair { background: #ffc107; color: #212529; }
+        .seo-score.poor { background: #dc3545; }
+        
+        .content-type-badge {
+            font-size: 0.8em;
+            padding: 0.25em 0.5em;
+        }
+        
+        .indexing-status-badge {
+            font-size: 0.8em;
+            padding: 0.25em 0.5em;
+        }
+        
+        .seo-chart {
+            height: 300px;
+            position: relative;
+        }
+        
+        .keyword-density {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-md-9">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-search"></i> SEO Optimizer</h2>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="showDashboard()">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showListings()">
+                            <i class="fas fa-list"></i> Public Listings
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showMetadata()">
+                            <i class="fas fa-tags"></i> SEO Metadata
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showSitemap()">
+                            <i class="fas fa-sitemap"></i> Sitemap
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dashboard Interface -->
+                <div id="dashboard-interface">
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card stats-card">
+                                <div class="card-body text-center">
+                                    <h4 id="total-listings">0</h4>
+                                    <small>Total Listings</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-success">
+                                <div class="card-body text-center">
+                                    <h4 id="indexed-listings">0</h4>
+                                    <small>Indexed</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-info">
+                                <div class="card-body text-center">
+                                    <h4 id="avg-seo-score">0</h4>
+                                    <small>Avg SEO Score</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stats-card stats-card-warning">
+                                <div class="card-body text-center">
+                                    <h4 id="monthly-views">0</h4>
+                                    <small>Monthly Views</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-plus"></i> Generate SEO Metadata</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="seo-form">
+                                        <div class="mb-3">
+                                            <label for="content-id" class="form-label">Content ID</label>
+                                            <input type="text" class="form-control" id="content-id" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="content-type" class="form-label">Content Type</label>
+                                            <select class="form-select" id="content-type" required>
+                                                <option value="system">System</option>
+                                                <option value="agent">Agent</option>
+                                                <option value="template">Template</option>
+                                                <option value="bundle">Bundle</option>
+                                                <option value="article">Article</option>
+                                                <option value="tutorial">Tutorial</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="seo-title" class="form-label">Title</label>
+                                            <input type="text" class="form-control" id="seo-title" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="seo-description" class="form-label">Description</label>
+                                            <textarea class="form-control" id="seo-description" rows="3" required></textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="seo-tags" class="form-label">Tags (comma-separated)</label>
+                                            <input type="text" class="form-control" id="seo-tags" placeholder="ai, automation, productivity">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="seo-image-url" class="form-label">Image URL (optional)</label>
+                                            <input type="url" class="form-control" id="seo-image-url">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-magic"></i> Generate Metadata
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-line"></i> SEO Performance</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center mb-3">
+                                        <div class="col-4">
+                                            <h6>Public</h6>
+                                            <span class="badge bg-success" id="public-listings">0</span>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6>Private</h6>
+                                            <span class="badge bg-secondary" id="private-listings">0</span>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6>Needs Review</h6>
+                                            <span class="badge bg-warning" id="needs-review">0</span>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <small class="text-muted">Organic Traffic</small>
+                                            <div><strong id="organic-traffic">0</strong></div>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Click-Through Rate</small>
+                                            <div><strong id="ctr">0%</strong></div>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="seo-chart">
+                                        <canvas id="seoChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SEO Preview -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-eye"></i> SEO Preview</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="seo-preview">
+                                        <div class="search-preview">
+                                            <h3 class="title" id="preview-title">Your content title will appear here</h3>
+                                            <div class="url" id="preview-url">https://example.com/your-content</div>
+                                            <p class="description" id="preview-description">Your content description will appear here. This should be compelling and include relevant keywords.</p>
+                                        </div>
+                                        <div class="row mt-3">
+                                            <div class="col-md-6">
+                                                <h6>Meta Tags:</h6>
+                                                <div class="meta-tag" id="preview-meta-title"></div>
+                                                <div class="meta-tag" id="preview-meta-description"></div>
+                                                <div class="meta-tag" id="preview-meta-keywords"></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Open Graph:</h6>
+                                                <div class="meta-tag" id="preview-og-title"></div>
+                                                <div class="meta-tag" id="preview-og-description"></div>
+                                                <div class="meta-tag" id="preview-og-image"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Listings Interface -->
+                <div id="listings-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Public Listings</h4>
+                        <button class="btn btn-primary" onclick="showDashboard()">
+                            <i class="fas fa-plus"></i> Create Listing
+                        </button>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <select class="form-select" id="listing-category-filter" onchange="filterListings()">
+                                <option value="">All Categories</option>
+                                <option value="ai">AI & Automation</option>
+                                <option value="productivity">Productivity</option>
+                                <option value="development">Development</option>
+                                <option value="marketing">Marketing</option>
+                                <option value="business">Business</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="listing-status-filter" onchange="filterListings()">
+                                <option value="">All Status</option>
+                                <option value="public">Public</option>
+                                <option value="private">Private</option>
+                                <option value="indexed">Indexed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="listing-sort" onchange="sortListings()">
+                                <option value="popularity">Sort by Popularity</option>
+                                <option value="recent">Sort by Recent</option>
+                                <option value="alphabetical">Sort Alphabetically</option>
+                                <option value="seo_score">Sort by SEO Score</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" id="listing-search" placeholder="Search listings..." onkeyup="searchListings()">
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="listings-list">
+                        <!-- Listing cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Metadata Interface -->
+                <div id="metadata-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>SEO Metadata</h4>
+                        <button class="btn btn-primary" onclick="showDashboard()">
+                            <i class="fas fa-plus"></i> Generate Metadata
+                        </button>
+                    </div>
+                    
+                    <div class="row" id="metadata-list">
+                        <!-- Metadata items will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Sitemap Interface -->
+                <div id="sitemap-interface" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Sitemap Management</h4>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary" onclick="generateSitemap()">
+                                <i class="fas fa-sync"></i> Generate Sitemap
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="downloadSitemap()">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="submitToSearchEngines()">
+                                <i class="fas fa-paper-plane"></i> Submit
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="sitemap-data">
+                        <!-- Sitemap data will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cog"></i> SEO Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- SEO Score Info -->
+                        <h6>SEO Score Guide</h6>
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="seo-score excellent me-2">90+</div>
+                                <span>Excellent</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="seo-score good me-2">70-89</div>
+                                <span>Good</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="seo-score fair me-2">50-69</div>
+                                <span>Fair</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="seo-score poor me-2">0-49</div>
+                                <span>Poor</span>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Quick Stats -->
+                        <h6>Quick Stats</h6>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Indexed Pages</span>
+                                <span id="sidebar-indexed">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Avg SEO Score</span>
+                                <span id="sidebar-avg-score">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Organic Keywords</span>
+                                <span id="sidebar-keywords">0</span>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Quick Actions -->
+                        <h6>Quick Actions</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="analyzeSEO()">
+                                <i class="fas fa-search"></i> Analyze SEO
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="optimizeContent()">
+                                <i class="fas fa-magic"></i> Optimize Content
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="trackKeywords()">
+                                <i class="fas fa-chart-line"></i> Track Keywords
+                            </button>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Tips -->
+                        <h6>SEO Tips</h6>
+                        <div class="alert alert-info alert-sm">
+                            <small><i class="fas fa-lightbulb"></i> Use descriptive titles under 60 characters</small>
+                        </div>
+                        <div class="alert alert-info alert-sm">
+                            <small><i class="fas fa-lightbulb"></i> Include target keywords in first 100 words</small>
+                        </div>
+                        <div class="alert alert-info alert-sm">
+                            <small><i class="fas fa-lightbulb"></i> Optimize images with alt text and compression</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Listing Details Modal -->
+    <div class="modal fade" id="listingDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Listing Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4 id="modal-listing-title"></h4>
+                            <p id="modal-listing-description"></p>
+                            <div class="mb-3">
+                                <span class="badge bg-primary content-type-badge" id="modal-content-type"></span>
+                                <span class="badge bg-success indexing-status-badge" id="modal-indexing-status"></span>
+                            </div>
+                            
+                            <!-- SEO Score -->
+                            <div class="mb-3">
+                                <h6>SEO Score:</h6>
+                                <div class="seo-score excellent" id="modal-seo-score">85</div>
+                            </div>
+                            
+                            <!-- Tags -->
+                            <div class="mb-3">
+                                <h6>Tags:</h6>
+                                <div id="modal-listing-tags"></div>
+                            </div>
+                            
+                            <!-- Search Preview -->
+                            <div class="mb-3">
+                                <h6>Search Preview:</h6>
+                                <div class="search-preview">
+                                    <h3 class="title" id="modal-search-title"></h3>
+                                    <div class="url" id="modal-search-url"></div>
+                                    <p class="description" id="modal-search-description"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6>Analytics</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <small>Views</small>
+                                        <div><strong id="modal-views">0</strong></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small>Clicks</small>
+                                        <div><strong id="modal-clicks">0</strong></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small>CTR</small>
+                                        <div><strong id="modal-ctr">0%</strong></div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small>Ranking</small>
+                                        <div><strong id="modal-ranking">-</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h6>Quick Actions</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-primary btn-sm" onclick="editListing()">
+                                            <i class="fas fa-edit"></i> Edit Listing
+                                        </button>
+                                        <button class="btn btn-info btn-sm" onclick="optimizeListing()">
+                                            <i class="fas fa-magic"></i> Optimize
+                                        </button>
+                                        <button class="btn btn-success btn-sm" onclick="toggleIndexing()">
+                                            <i class="fas fa-eye"></i> Toggle Indexing
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="shareListing()">
+                        <i class="fas fa-share"></i> Share
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let currentUserId = "user123"; // This would come from authentication
+        let currentOrganizationId = "org456"; // This would come from authentication
+        let seoChart = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSEOStatistics();
+            setupEventListeners();
+            initializeSEOChart();
+            updateSEOPreview();
+        });
+
+        // Interface Functions
+        function showDashboard() {
+            document.getElementById('dashboard-interface').style.display = 'block';
+            document.getElementById('listings-interface').style.display = 'none';
+            document.getElementById('metadata-interface').style.display = 'none';
+            document.getElementById('sitemap-interface').style.display = 'none';
+        }
+
+        function showListings() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('listings-interface').style.display = 'block';
+            document.getElementById('metadata-interface').style.display = 'none';
+            document.getElementById('sitemap-interface').style.display = 'none';
+            loadListings();
+        }
+
+        function showMetadata() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('listings-interface').style.display = 'none';
+            document.getElementById('metadata-interface').style.display = 'block';
+            document.getElementById('sitemap-interface').style.display = 'none';
+            loadMetadata();
+        }
+
+        function showSitemap() {
+            document.getElementById('dashboard-interface').style.display = 'none';
+            document.getElementById('listings-interface').style.display = 'none';
+            document.getElementById('metadata-interface').style.display = 'none';
+            document.getElementById('sitemap-interface').style.display = 'block';
+            loadSitemap();
+        }
+
+        // Statistics Functions
+        function loadSEOStatistics() {
+            fetch('/api/seo/statistics')
+            .then(response => response.json())
+            .then(stats => {
+                document.getElementById('total-listings').textContent = stats.total_listings;
+                document.getElementById('indexed-listings').textContent = stats.indexed_listings;
+                document.getElementById('avg-seo-score').textContent = stats.average_seo_score;
+                document.getElementById('monthly-views').textContent = stats.monthly_views;
+                
+                document.getElementById('public-listings').textContent = stats.public_listings;
+                document.getElementById('private-listings').textContent = stats.private_listings;
+                document.getElementById('needs-review').textContent = stats.needs_review;
+                
+                document.getElementById('organic-traffic').textContent = stats.organic_traffic;
+                document.getElementById('ctr').textContent = stats.click_through_rate.toFixed(1) + '%';
+                
+                // Update sidebar
+                document.getElementById('sidebar-indexed').textContent = stats.indexed_listings;
+                document.getElementById('sidebar-avg-score').textContent = stats.average_seo_score;
+                document.getElementById('sidebar-keywords').textContent = stats.organic_keywords;
+            })
+            .catch(error => console.error('Error loading SEO statistics:', error));
+        }
+
+        function initializeSEOChart() {
+            const ctx = document.getElementById('seoChart').getContext('2d');
+            seoChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'SEO Score',
+                        data: [65, 70, 75, 80, 85, 88],
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Organic Traffic',
+                        data: [100, 150, 200, 250, 300, 350],
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // SEO Functions
+        function setupEventListeners() {
+            document.getElementById('seo-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                generateSEOMetadata();
+            });
+            
+            // Update preview on form changes
+            document.getElementById('seo-title').addEventListener('input', updateSEOPreview);
+            document.getElementById('seo-description').addEventListener('input', updateSEOPreview);
+        }
+
+        function generateSEOMetadata() {
+            const formData = {
+                content_id: document.getElementById('content-id').value,
+                content_type: document.getElementById('content-type').value,
+                title: document.getElementById('seo-title').value,
+                description: document.getElementById('seo-description').value,
+                tags: document.getElementById('seo-tags').value.split(',').map(tag => tag.trim()),
+                image_url: document.getElementById('seo-image-url').value
+            };
+
+            fetch('/api/seo/generate-metadata', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert('SEO metadata generated successfully!');
+                    document.getElementById('seo-form').reset();
+                    loadMetadata();
+                    loadSEOStatistics();
+                }
+            })
+            .catch(error => console.error('Error generating SEO metadata:', error));
+        }
+
+        function updateSEOPreview() {
+            const title = document.getElementById('seo-title').value || 'Your content title will appear here';
+            const description = document.getElementById('seo-description').value || 'Your content description will appear here. This should be compelling and include relevant keywords.';
+            
+            document.getElementById('preview-title').textContent = title;
+            document.getElementById('preview-description').textContent = description;
+            document.getElementById('preview-meta-title').textContent = `<title>${title}</title>`;
+            document.getElementById('preview-meta-description').textContent = `<meta name="description" content="${description}">`;
+            document.getElementById('preview-og-title').textContent = `<meta property="og:title" content="${title}">`;
+            document.getElementById('preview-og-description').textContent = `<meta property="og:description" content="${description}">`;
+        }
+
+        function loadListings() {
+            // This would load public listings
+            const listingsList = document.getElementById('listings-list');
+            listingsList.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Public listings will be displayed here
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadMetadata() {
+            // This would load SEO metadata
+            const metadataList = document.getElementById('metadata-list');
+            metadataList.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> SEO metadata will be displayed here
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadSitemap() {
+            // This would load sitemap data
+            const sitemapData = document.getElementById('sitemap-data');
+            sitemapData.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Sitemap data will be displayed here
+                    </div>
+                </div>
+            `;
+        }
+
+        // Utility Functions
+        function filterListings() {
+            const categoryFilter = document.getElementById('listing-category-filter').value;
+            const statusFilter = document.getElementById('listing-status-filter').value;
+            // Implement listing filtering
+            console.log('Filtering by category:', categoryFilter, 'status:', statusFilter);
+        }
+
+        function sortListings() {
+            const sortBy = document.getElementById('listing-sort').value;
+            // Implement listing sorting
+            console.log('Sorting by:', sortBy);
+        }
+
+        function searchListings() {
+            const searchTerm = document.getElementById('listing-search').value;
+            // Implement listing search
+            console.log('Searching for:', searchTerm);
+        }
+
+        function generateSitemap() {
+            // This would generate sitemap
+            alert('Sitemap generation would be implemented here');
+        }
+
+        function downloadSitemap() {
+            // This would download sitemap
+            alert('Sitemap download would be implemented here');
+        }
+
+        function submitToSearchEngines() {
+            // This would submit sitemap to search engines
+            alert('Search engine submission would be implemented here');
+        }
+
+        function analyzeSEO() {
+            // This would analyze SEO
+            alert('SEO analysis would be implemented here');
+        }
+
+        function optimizeContent() {
+            // This would optimize content
+            alert('Content optimization would be implemented here');
+        }
+
+        function trackKeywords() {
+            // This would track keywords
+            alert('Keyword tracking would be implemented here');
+        }
+
+        function editListing() {
+            // This would edit listing
+            alert('Edit functionality would be implemented here');
+        }
+
+        function optimizeListing() {
+            // This would optimize listing
+            alert('Optimize functionality would be implemented here');
+        }
+
+        function toggleIndexing() {
+            // This would toggle indexing
+            alert('Toggle indexing would be implemented here');
+        }
+
+        function shareListing() {
+            // This would share listing
+            alert('Share functionality would be implemented here');
+        }
+    </script>
+</body>
+</html>

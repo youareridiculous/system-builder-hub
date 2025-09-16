@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🧠 Memory Upload</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #e9ecef;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e3f2fd;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+        
+        .upload-text {
+            font-size: 1.2rem;
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        
+        .upload-subtext {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .supported-files {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .supported-files h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .file-types {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .file-type {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        
+        .flash-message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .flash-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .flash-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .upload-area {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Memory Upload</h1>
+            <p>Upload files to generate structured memory summaries</p>
+        </div>
+        
+        <div class="content">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash-message flash-{{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Drop your file here or click to browse</div>
+                    <div class="upload-subtext">Supports various file formats for memory extraction</div>
+                    <input type="file" name="file" id="fileInput" class="file-input" accept=".txt,.md,.json,.pdf,.csv,.rtf,.docx,.mdx">
+                </div>
+                
+                <div class="form-group">
+                    <label for="systemName" class="form-label">Session Name</label>
+                    <input type="text" id="systemName" name="system_name" class="form-input" 
+                           placeholder="Enter a name for this memory session" required>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                    🚀 Process File & Generate Memory
+                </button>
+                
+                <div class="progress-bar" id="progressBar" style="display: none;">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </form>
+            
+            <div class="supported-files">
+                <h3>📋 Supported File Types</h3>
+                <div class="file-types">
+                    {% for ext in supported_extensions %}
+                        <span class="file-type">{{ ext }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        
+        // Drag and drop functionality
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        });
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                uploadArea.innerHTML = `
+                    <div class="upload-icon">✅</div>
+                    <div class="upload-text">${file.name}</div>
+                    <div class="upload-subtext">${(file.size / 1024).toFixed(1)} KB</div>
+                `;
+                submitBtn.disabled = false;
+            }
+        }
+        
+        // Form submission with progress
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = '🔄 Processing...';
+            progressBar.style.display = 'block';
+            
+            // Simulate progress (in real implementation, you'd use XMLHttpRequest or fetch with progress)
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 20;
+                if (progress > 90) progress = 90;
+                progressFill.style.width = progress + '%';
+            }, 200);
+            
+            // Clear interval when form submits
+            setTimeout(() => clearInterval(interval), 5000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "AWSEBDockerrunVersion": 2,
+  "containerDefinitions": [
+    {
+      "name": "sbh-worker",
+      "image": "public.ecr.aws/____/sbh:latest",
+      "essential": true,
+      "memory": 512,
+      "portMappings": [],
+      "environment": [
+        { "name": "ENV", "value": "production" },
+        { "name": "FEATURE_BG_JOBS", "value": "true" }
+      ],
+      "command": ["python", "-m", "src.jobs.worker"],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "ps aux | grep 'python.*worker' | grep -v grep || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 30
+      }
+    }
+  ]
+}

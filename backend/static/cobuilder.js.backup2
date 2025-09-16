@@ -1,0 +1,309 @@
+(function(){
+  const ta = document.getElementById('cb-input');
+  const send = document.getElementById('cb-send');
+  const cancelBtn = document.getElementById('cb-cancel');
+  const metaCt = document.getElementById('cb-counter');
+  const metaTk = document.getElementById('cb-tokens');
+  const transcript = document.getElementById('cb-transcript');
+  const errorDiv = document.getElementById('cb-error');
+  const root = document.getElementById('cb-root');
+
+  // Configuration
+  const DRAFT_KEY = 'cb_draft';
+  const MAX_CHARS = parseInt(ta.getAttribute('maxlength') || '10000', 10);
+  const WARN_AT = Math.floor(MAX_CHARS * 0.9);  // 90%
+  const HARD_AT = MAX_CHARS;                    // 100%
+
+  // Get tenant ID from data attribute or fallback to "demo"
+  const tenantId = root?.dataset?.tenant || 'demo';
+
+  // Load chat history on page load
+  loadChatHistory();
+  
+  // Restore draft on page load
+  const saved = localStorage.getItem(DRAFT_KEY);
+  if (saved) { 
+    ta.value = saved; 
+    updateCounters();
+  }
+
+  async function loadChatHistory() {
+    try {
+      const response = await fetch('/api/cobuilder/history', {
+        headers: { 'X-Tenant-ID': tenantId }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && data.data.messages) {
+          // Clear existing transcript
+          transcript.innerHTML = '';
+          
+          // Add each message to transcript
+          data.data.messages.forEach(msg => {
+            addMessage(msg.content, msg.role === 'user', msg.id);
+          });
+          
+          // Scroll to bottom
+          transcript.scrollTop = transcript.scrollHeight;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load chat history:', error);
+      // Don't block the UI if history fails
+    }
+  }
+
+  // Auto-size textarea
+  function autoSize(){
+    ta.style.height = 'auto';
+    const maxH = Math.floor(window.innerHeight * 0.40);
+    ta.style.height = Math.min(ta.scrollHeight, maxH) + 'px';
+  }
+
+  // Update character and token counters
+  function updateCounters(){
+    const len = ta.value.length;
+    metaCt.textContent = `${len.toLocaleString()} / ${MAX_CHARS.toLocaleString()}`;
+
+    // Simple token estimate ~4 chars/token
+    const estTokens = Math.ceil(len / 4);
+    metaTk.textContent = `~${estTokens.toLocaleString()} tokens`;
+
+    // Soft/hard styling
+    metaCt.classList.toggle('cb-warn', len >= WARN_AT && len < HARD_AT);
+    metaTk.classList.toggle('cb-warn', len >= WARN_AT && len < HARD_AT);
+    metaCt.classList.toggle('cb-hard', len >= HARD_AT);
+    metaTk.classList.toggle('cb-hard', len >= HARD_AT);
+  }
+
+  // Persist draft to localStorage
+  function persistDraft(){
+    localStorage.setItem(DRAFT_KEY, ta.value);
+  }
+
+  // Clear draft and reset UI
+  function clearDraft(){
+    ta.value = '';
+    localStorage.removeItem(DRAFT_KEY);
+    autoSize();
+    updateCounters();
+    ta.focus();
+  }
+
+  // Show error message
+  function showError(message){
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      errorDiv.style.display = 'none';
+    }, 5000);
+  }
+
+  // Hide error message
+  function hideError(){
+    errorDiv.style.display = 'none';
+  }
+
+  // Add message to transcript
+  function addMessage(content, isUser = false, messageId = null){
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+    if (messageId) messageDiv.id = messageId;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.innerHTML = content;
+    
+    messageDiv.appendChild(contentDiv);
+    transcript.appendChild(messageDiv);
+    transcript.scrollTop = transcript.scrollHeight;
+    
+    return messageDiv;
+  }
+
+  // Update existing message
+  function updateMessage(messageId, content){
+    const messageDiv = document.getElementById(messageId);
+    if (messageDiv) {
+      const contentDiv = messageDiv.querySelector('.message-content');
+      if (contentDiv) {
+        contentDiv.innerHTML = content;
+      }
+    }
+  }
+
+  // Track one in-flight operation
+  let inflight = null;
+
+  // Main send function
+  async function cobuilderSend(){
+    const text = ta.value.trim();
+    if (!text) return;
+    
+    // Guard against double-send
+    if (inflight) {
+      cancelBtn.focus();
+      return;
+    }
+
+    // Disable send button and show sending state
+    send.disabled = true;
+    send.classList.add('sending');
+    cancelBtn.disabled = false;
+    hideError();
+
+    // Add user message immediately
+    addMessage(text, true);
+
+    // Add "Thinking..." placeholder
+    const thinkingId = 'thinking-' + Date.now();
+    addMessage('🤔 Thinking...', false, thinkingId);
+
+    // Create abort controller and track in-flight request
+    const controller = new AbortController();
+    inflight = { controller, thinkingId, sentText: text };
+
+    let response, data;
+    
+    try {
+      // Make API request (no artificial timeout)
+      response = await fetch('/api/cobuilder/ask', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Tenant-ID': tenantId
+        },
+        body: JSON.stringify({ 
+          message: text, 
+          tenant_id: tenantId, 
+          dry_run: false 
+        }),
+        signal: controller.signal
+      });
+
+      // Parse response data
+      try {
+        data = await response.json();
+      } catch (e) {
+        data = null;
+      }
+
+      // Log compact response info
+      console.log('ask:', {
+        ok: response.ok,
+        status: response.status,
+        requestId: data?.data?.request_id,
+        canceled: false
+      });
+
+      if (!response.ok) {
+        addMessage('Request failed — please try again.', false);
+        return; // Keep draft unchanged
+      }
+
+      // Success - defensive response handling
+      const responseText = 
+        data?.data?.response ?? 
+        data?.data?.message ?? 
+        data?.response ?? 
+        data?.message ?? 
+        'I received your message but have no response to show.';
+      
+      addMessage(responseText, false);
+      
+      // Clear draft on success
+      clearDraft();
+
+    } catch (error) {
+      const canceled = error?.name === 'AbortError';
+      
+      // Log compact error info
+      console.log('ask:', { 
+        ok: false, 
+        status: response?.status, 
+        requestId: data?.data?.request_id, 
+        canceled 
+      });
+      
+      // Show appropriate error message
+      if (canceled) {
+        addMessage('Request canceled.', false);
+      } else {
+        addMessage('Request failed — please try again.', false);
+      }
+      // Keep draft unchanged
+    } finally {
+      // Always cleanup (idempotent)
+      try {
+        // Remove thinking placeholder if it still exists
+        const thinkingDiv = document.getElementById(thinkingId);
+        if (thinkingDiv) thinkingDiv.remove();
+      } catch (cleanupError) {
+        console.warn('Cleanup error:', cleanupError);
+      }
+      
+      // Re-enable send button and disable cancel
+      send.disabled = false;
+      send.classList.remove('sending');
+      cancelBtn.disabled = true;
+      cancelBtn.classList.remove('canceling');
+      
+      // Clear in-flight tracking
+      inflight = null;
+    }
+  }
+
+  // Event listeners
+  ta.addEventListener('input', () => {
+    autoSize();
+    updateCounters();
+    persistDraft();
+  });
+
+  ta.addEventListener('keydown', (e) => {
+    // Shift+Enter = newline (default behavior)
+    if (e.key === 'Enter' && e.shiftKey) {
+      return; // Allow default newline behavior
+    }
+    
+    // Enter or Cmd/Ctrl+Enter = send
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      cobuilderSend();
+    }
+    
+    // Cmd/Ctrl+Enter also sends
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      cobuilderSend();
+    }
+  });
+
+  send.addEventListener('click', cobuilderSend);
+
+  // Cancel button event handler
+  cancelBtn.addEventListener('click', () => {
+    if (!inflight) return;
+    
+    // Show canceling state
+    cancelBtn.classList.add('canceling');
+    
+    try {
+      inflight.controller.abort();
+    } catch (e) {
+      console.warn('Error aborting request:', e);
+    }
+  });
+
+  // Initial setup
+  autoSize();
+  updateCounters();
+
+  // Handle window resize for mobile keyboards
+  window.addEventListener('resize', autoSize);
+
+  // Expose the send function globally for the UI template to use
+  window.cobuilderSend = cobuilderSend;
+})();

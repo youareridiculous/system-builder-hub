@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SBH Meta-Builder v2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app" class="min-h-screen">
+        <!-- Header -->
+        <header class="gradient-bg text-white shadow-lg">
+            <div class="container mx-auto px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <h1 class="text-2xl font-bold">SBH Meta-Builder v2</h1>
+                        <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm">Multi-Agent System</span>
+                    </div>
+                    <nav class="flex space-x-6">
+                        <a href="/ui/meta/v2/" class="hover:text-blue-200 transition-colors">Portal</a>
+                        <a href="/ui/meta/v2/playground" class="hover:text-blue-200 transition-colors">Playground</a>
+                        <a href="/ui/meta/v2/runs" class="hover:text-blue-200 transition-colors">Runs</a>
+                        <a href="/ui/meta/v2/history" class="hover:text-blue-200 transition-colors">History</a>
+                    </nav>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-6 py-8">
+            <!-- Welcome Section -->
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">Welcome to Meta-Builder v2</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    The next-generation scaffold builder with multi-agent orchestration, 
+                    iterative refinement, and human approval gates.
+                </p>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold ml-3">New Run</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Start a new meta-builder run with natural language specification.</p>
+                    <button @click="startNewRun" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                        Create Run
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold ml-3">Playground</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Experiment with the interactive playground and real-time feedback.</p>
+                    <a href="/ui/meta/v2/playground" class="block w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-center">
+                        Open Playground
+                    </a>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold ml-3">Analytics</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">View detailed analytics and performance metrics.</p>
+                    <a href="/ui/meta/v2/history" class="block w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors text-center">
+                        View Analytics
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Runs -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-semibold text-gray-800">Recent Runs</h3>
+                    <a href="/ui/meta/v2/runs" class="text-blue-600 hover:text-blue-800 transition-colors">View All</a>
+                </div>
+                
+                <div v-if="loading" class="text-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p class="text-gray-600 mt-2">Loading recent runs...</p>
+                </div>
+                
+                <div v-else-if="recentRuns.length === 0" class="text-center py-8">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p class="text-gray-600">No runs yet. Start your first meta-builder run!</p>
+                </div>
+                
+                <div v-else class="space-y-4">
+                    <div v-for="run in recentRuns" :key="run.id" class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-800">{{ run.name }}</h4>
+                                <p class="text-sm text-gray-600 mt-1">{{ run.goal_text }}</p>
+                                <div class="flex items-center space-x-4 mt-2">
+                                    <span :class="getStatusClass(run.status)" class="px-2 py-1 rounded-full text-xs font-medium">
+                                        {{ run.status }}
+                                    </span>
+                                    <span class="text-sm text-gray-500">
+                                        Iteration {{ run.current_iteration }}
+                                    </span>
+                                    <span v-if="run.final_score" class="text-sm text-gray-500">
+                                        Score: {{ run.final_score.toFixed(1) }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-gray-500">{{ formatDate(run.created_at) }}</p>
+                                <a :href="'/ui/meta/v2/runs/' + run.id" class="text-blue-600 hover:text-blue-800 text-sm">
+                                    View Details →
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Overview -->
+            <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                    <h4 class="font-semibold text-gray-800 mb-2">Multi-Agent System</h4>
+                    <p class="text-sm text-gray-600">Coordinated agents with specialized roles for comprehensive scaffold generation.</p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </div>
+                    <h4 class="font-semibold text-gray-800 mb-2">Iterative Refinement</h4>
+                    <p class="text-sm text-gray-600">Self-improving system that learns from failures and automatically fixes issues.</p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h4 class="font-semibold text-gray-800 mb-2">Evaluation Driven</h4>
+                    <p class="text-sm text-gray-600">Comprehensive testing with golden tasks and automated quality assessment.</p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <h4 class="font-semibold text-gray-800 mb-2">Human Approval</h4>
+                    <p class="text-sm text-gray-600">Review gates and approval workflows for safe deployment.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    recentRuns: [],
+                    loading: true
+                }
+            },
+            mounted() {
+                this.loadRecentRuns();
+            },
+            methods: {
+                async loadRecentRuns() {
+                    try {
+                        const response = await axios.get('/ui/meta/v2/api/runs?per_page=5');
+                        this.recentRuns = response.data.data;
+                    } catch (error) {
+                        console.error('Failed to load recent runs:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                startNewRun() {
+                    window.location.href = '/ui/meta/v2/playground';
+                },
+                getStatusClass(status) {
+                    const classes = {
+                        'pending': 'bg-yellow-100 text-yellow-800',
+                        'planning': 'bg-blue-100 text-blue-800',
+                        'generating': 'bg-purple-100 text-purple-800',
+                        'evaluating': 'bg-indigo-100 text-indigo-800',
+                        'fixing': 'bg-orange-100 text-orange-800',
+                        'approval_required': 'bg-red-100 text-red-800',
+                        'approved': 'bg-green-100 text-green-800',
+                        'rejected': 'bg-red-100 text-red-800',
+                        'completed': 'bg-green-100 text-green-800',
+                        'failed': 'bg-red-100 text-red-800',
+                        'cancelled': 'bg-gray-100 text-gray-800'
+                    };
+                    return classes[status] || 'bg-gray-100 text-gray-800';
+                },
+                formatDate(dateString) {
+                    return new Date(dateString).toLocaleDateString();
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

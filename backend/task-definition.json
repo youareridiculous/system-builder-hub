@@ -1,0 +1,54 @@
+{
+    "containerDefinitions": [
+        {
+            "name": "ai-website-builder-backend",
+            "image": "776567512687.dkr.ecr.us-west-2.amazonaws.com/ai-website-builder-backend:latest",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "containerPort": 5001,
+                    "hostPort": 5001,
+                    "protocol": "tcp"
+                }
+            ],
+            "essential": true,
+            "environment": [
+                {
+                    "name": "PORT",
+                    "value": "5001"
+                },
+                {
+                    "name": "FLASK_ENV",
+                    "value": "production"
+                }
+            ],
+            "secrets": [
+                {
+                    "name": "OPENAI_API_KEY",
+                    "valueFrom": "/ai-website-builder/openai-api-key"
+                }
+            ],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/ai-website-builder-backend",
+                    "awslogs-region": "us-west-2",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "systemControls": []
+        }
+    ],
+    "family": "ai-website-builder-backend",
+    "executionRoleArn": "arn:aws:iam::776567512687:role/ecsTaskExecutionRole",
+    "networkMode": "awsvpc",
+    "volumes": [],
+    "placementConstraints": [],
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "512",
+    "memory": "1024"
+}

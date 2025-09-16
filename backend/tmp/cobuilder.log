@@ -1,0 +1,22 @@
+WARNING:__main__:⚠️ Failed to import ui: cannot import name 'require_auth' from 'security' (/Users/ericlarson/Downloads/system-builder-hub/backend/src/security/__init__.py)
+INFO:__main__:✅ Registered blueprint: ui_build
+INFO:__main__:✅ Registered blueprint: ui_project_loader
+INFO:__main__:✅ Registered blueprint: ui_visual_builder
+INFO:__main__:✅ Registered blueprint: ui_guided
+WARNING:__main__:⚠️ Failed to import llm_config_api: attempted relative import with no known parent package
+WARNING:__main__:⚠️ Failed to import cobuilder: No module named 'src'
+ * Serving Flask app 'app_minimal'
+ * Debug mode: on
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with stat
+WARNING:__main__:⚠️ Failed to import ui: cannot import name 'require_auth' from 'security' (/Users/ericlarson/Downloads/system-builder-hub/backend/src/security/__init__.py)
+INFO:__main__:✅ Registered blueprint: ui_build
+INFO:__main__:✅ Registered blueprint: ui_project_loader
+INFO:__main__:✅ Registered blueprint: ui_visual_builder
+INFO:__main__:✅ Registered blueprint: ui_guided
+WARNING:__main__:⚠️ Failed to import llm_config_api: attempted relative import with no known parent package
+WARNING:__main__:⚠️ Failed to import cobuilder: No module named 'src'
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 741-072-912

@@ -1,0 +1,167 @@
+{
+  "name": "sbh-extension",
+  "displayName": "SBH Developer Experience",
+  "description": "SBH Developer Experience Toolkit for VSCode/Cursor",
+  "version": "1.0.0",
+  "publisher": "sbh",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:sbh.scaffoldProject",
+    "onCommand:sbh.runSmokeTests",
+    "onCommand:sbh.deploy",
+    "onCommand:sbh.marketplace",
+    "onCommand:sbh.metaBuilder",
+    "onView:sbhMarketplace"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "sbh.scaffoldProject",
+        "title": "SBH: Scaffold Project",
+        "category": "SBH"
+      },
+      {
+        "command": "sbh.runSmokeTests",
+        "title": "SBH: Run Smoke Tests",
+        "category": "SBH"
+      },
+      {
+        "command": "sbh.deploy",
+        "title": "SBH: Deploy",
+        "category": "SBH"
+      },
+      {
+        "command": "sbh.marketplace",
+        "title": "SBH: Open Marketplace",
+        "category": "SBH"
+      },
+      {
+        "command": "sbh.metaBuilder",
+        "title": "SBH: Open Meta-Builder",
+        "category": "SBH"
+      },
+      {
+        "command": "sbh.login",
+        "title": "SBH: Login",
+        "category": "SBH"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "sbh-sidebar",
+          "title": "SBH",
+          "icon": "resources/sbh-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "sbh-sidebar": [
+        {
+          "id": "sbhMarketplace",
+          "name": "Marketplace",
+          "type": "webview"
+        },
+        {
+          "id": "sbhMetaBuilder",
+          "name": "Meta-Builder",
+          "type": "webview"
+        },
+        {
+          "id": "sbhProjects",
+          "name": "Projects",
+          "type": "tree"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "SBH",
+      "properties": {
+        "sbh.apiToken": {
+          "type": "string",
+          "default": "",
+          "description": "SBH API Token"
+        },
+        "sbh.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:5001",
+          "description": "SBH API URL"
+        },
+        "sbh.tenantId": {
+          "type": "string",
+          "default": "",
+          "description": "SBH Tenant ID"
+        },
+        "sbh.defaultTemplate": {
+          "type": "string",
+          "default": "flagship-crm",
+          "description": "Default template for new projects"
+        }
+      }
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "sbh.scaffoldProject",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "sbh.runSmokeTests",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "sbh.deploy",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "sbh.marketplace"
+        },
+        {
+          "command": "sbh.metaBuilder"
+        },
+        {
+          "command": "sbh.login"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "sbh.scaffoldProject",
+          "group": "navigation"
+        },
+        {
+          "command": "sbh.runSmokeTests",
+          "group": "navigation"
+        },
+        {
+          "command": "sbh.deploy",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}

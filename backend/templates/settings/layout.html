@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - System Builder Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-lg">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="mt-6">
+                <!-- My Account Section -->
+                <div class="px-6 mb-4">
+                    <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">My Account</h2>
+                </div>
+                
+                <div class="space-y-1">
+                    <a href="/settings/account/profile" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-user mr-3 text-gray-400"></i>
+                        Profile
+                    </a>
+                    <a href="/settings/account/security" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-shield-alt mr-3 text-gray-400"></i>
+                        Security
+                    </a>
+                    <a href="/settings/account/notifications" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-bell mr-3 text-gray-400"></i>
+                        Notifications
+                    </a>
+                    <a href="/settings/account/tokens" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-key mr-3 text-gray-400"></i>
+                        API Tokens
+                    </a>
+                    <a href="/settings/account/connected-apps" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-plug mr-3 text-gray-400"></i>
+                        Connected Apps
+                    </a>
+                </div>
+                
+                <!-- Workspace Section -->
+                <div class="px-6 mb-4 mt-8">
+                    <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Workspace</h2>
+                </div>
+                
+                <div class="space-y-1">
+                    <a href="/settings/workspace/overview" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-building mr-3 text-gray-400"></i>
+                        Overview
+                    </a>
+                    <a href="/settings/workspace/members" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-users mr-3 text-gray-400"></i>
+                        Members & Roles
+                    </a>
+                    <a href="/settings/workspace/privacy" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-lock mr-3 text-gray-400"></i>
+                        Privacy & Data
+                    </a>
+                    <a href="/settings/workspace/integrations" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-puzzle-piece mr-3 text-gray-400"></i>
+                        Integrations
+                    </a>
+                    <a href="/settings/workspace/developer" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-code mr-3 text-gray-400"></i>
+                        Developer
+                    </a>
+                    <a href="/settings/workspace/api-webhooks" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-webhook mr-3 text-gray-400"></i>
+                        API & Webhooks
+                    </a>
+                    <a href="/settings/workspace/billing" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-credit-card mr-3 text-gray-400"></i>
+                        Billing
+                    </a>
+                    <a href="/settings/workspace/backups" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-download mr-3 text-gray-400"></i>
+                        Backups & Export
+                    </a>
+                    <a href="/settings/workspace/diagnostics" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900">
+                        <i class="fas fa-chart-line mr-3 text-gray-400"></i>
+                        Diagnostics
+                    </a>
+                    <a href="/settings/workspace/danger" 
+                       class="flex items-center px-6 py-2 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700">
+                        <i class="fas fa-exclamation-triangle mr-3 text-red-400"></i>
+                        Danger Zone
+                    </a>
+                </div>
+            </nav>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <div class="p-8">
+                <!-- Header -->
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-900" x-text="pageTitle || 'Settings'"></h1>
+                    <p class="mt-2 text-gray-600" x-text="pageDescription || 'Manage your account and workspace settings'"></p>
+                </div>
+                
+                <!-- Content -->
+                <div class="bg-white shadow rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="text-lg font-medium text-gray-900" x-text="sectionTitle || 'Settings'"></h2>
+                    </div>
+                    <div class="p-6">
+                        {% block content %}{% endblock %}
+                    </div>
+                </div>
+                
+                <!-- Save Bar -->
+                <div x-show="showSaveBar" 
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 transform translate-y-2"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
+                    <div class="max-w-7xl mx-auto flex justify-between items-center">
+                        <div class="text-sm text-gray-600">
+                            <span x-text="saveMessage || 'You have unsaved changes'"></span>
+                        </div>
+                        <div class="flex space-x-3">
+                            <button @click="discardChanges()" 
+                                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                Discard
+                            </button>
+                            <button @click="saveChanges()" 
+                                    :disabled="saving"
+                                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50">
+                                <span x-show="!saving">Save Changes</span>
+                                <span x-show="saving">Saving...</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Toast Notifications -->
+                <div x-show="showToast" 
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 transform translate-y-2"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100 transform translate-y-0"
+                     x-transition:leave-end="opacity-0 transform translate-y-2"
+                     class="fixed top-4 right-4 z-50">
+                    <div class="bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-sm">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-check-circle text-green-400" x-show="toastType === 'success'"></i>
+                                <i class="fas fa-exclamation-circle text-red-400" x-show="toastType === 'error'"></i>
+                                <i class="fas fa-info-circle text-blue-400" x-show="toastType === 'info'"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-gray-900" x-text="toastTitle"></p>
+                                <p class="text-sm text-gray-500" x-text="toastMessage"></p>
+                            </div>
+                            <div class="ml-4 flex-shrink-0">
+                                <button @click="hideToast()" class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Alpine.js data and methods
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('settingsApp', () => ({
+                // Page state
+                pageTitle: '',
+                pageDescription: '',
+                sectionTitle: '',
+                
+                // Save bar state
+                showSaveBar: false,
+                saving: false,
+                saveMessage: '',
+                
+                // Toast state
+                showToast: false,
+                toastType: 'info',
+                toastTitle: '',
+                toastMessage: '',
+                
+                // Methods
+                setPageInfo(title, description, section) {
+                    this.pageTitle = title;
+                    this.pageDescription = description;
+                    this.sectionTitle = section;
+                },
+                
+                showSaveBar(message = 'You have unsaved changes') {
+                    this.saveMessage = message;
+                    this.showSaveBar = true;
+                },
+                
+                hideSaveBar() {
+                    this.showSaveBar = false;
+                },
+                
+                async saveChanges() {
+                    this.saving = true;
+                    try {
+                        // Override in child components
+                        await this.performSave();
+                        this.hideSaveBar();
+                        this.showToast('success', 'Success', 'Changes saved successfully');
+                    } catch (error) {
+                        this.showToast('error', 'Error', error.message || 'Failed to save changes');
+                    } finally {
+                        this.saving = false;
+                    }
+                },
+                
+                discardChanges() {
+                    this.hideSaveBar();
+                    this.showToast('info', 'Discarded', 'Changes discarded');
+                },
+                
+                showToast(type, title, message) {
+                    this.toastType = type;
+                    this.toastTitle = title;
+                    this.toastMessage = message;
+                    this.showToast = true;
+                    
+                    // Auto-hide after 5 seconds
+                    setTimeout(() => {
+                        this.hideToast();
+                    }, 5000);
+                },
+                
+                hideToast() {
+                    this.showToast = false;
+                },
+                
+                // Override in child components
+                async performSave() {
+                    throw new Error('performSave not implemented');
+                }
+            }));
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

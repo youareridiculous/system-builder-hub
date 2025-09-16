@@ -1,0 +1,33 @@
+{
+  "name": "revops_suite",
+  "version": "1.0.0",
+  "description": "Revenue Operations Suite - CRM + ERP + LMS integration",
+  "modules": [
+    "crm",
+    "erp",
+    "lms"
+  ],
+  "contracts": [
+    "contacts_sync",
+    "orders_to_deals",
+    "leads_to_opportunities",
+    "customer_profile_sync"
+  ],
+  "workflows": [
+    "new_customer_360",
+    "lead_to_cash",
+    "order_fulfillment",
+    "customer_retention"
+  ],
+  "env": {
+    "tenants": [
+      "demo"
+    ],
+    "feature_flags": [
+      "cross_module_sync",
+      "unified_dashboard"
+    ],
+    "data_retention_days": 90,
+    "sync_frequency_minutes": 15
+  }
+}
