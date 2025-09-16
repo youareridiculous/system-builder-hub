@@ -18,6 +18,7 @@ env:
   TASK_DEFINITION_FAMILY: sbh-task-dev
   APP_URL: ${{ vars.APP_URL }}
   S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME }}
+  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
 
 jobs:
   build-and-deploy:
