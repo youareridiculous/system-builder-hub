@@ -1,0 +1,222 @@
+name: Phase 3 ARM64 Build and Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'buildspec.yml'
+      - '.github/workflows/phase3-deploy.yml'
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REPOSITORY: sbh-repo-dev
+  ECS_CLUSTER: sbh-cluster-dev
+  ECS_SERVICE: sbh-service-dev
+  TASK_DEFINITION_FAMILY: sbh-task-dev
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::776567512687:role/GitHubActions-SBH-Deploy
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build, test, and push Docker image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+        TIMESTAMP: ${{ github.run_number }}
+      run: |
+        echo "🚀 Starting Phase-3 ARM64 build with guardrails..."
+        
+        cd backend
+        
+        # Guardrail 1: Check build context size and forbidden paths
+        echo "📊 Checking build context size and forbidden paths..."
+        CONTEXT_SIZE=$(du -sh . | cut -f1)
+        CONTEXT_SIZE_BYTES=$(du -sb . | cut -f1)
+        CONTEXT_FILES=$(find . -type f | wc -l)
+        
+        echo "Build context: $CONTEXT_SIZE ($CONTEXT_SIZE_BYTES bytes, $CONTEXT_FILES files)"
+        
+        # Check for forbidden paths that should never be in build context
+        FORBIDDEN_PATHS=(".venv" "node_modules" "__pycache__" ".pytest_cache" ".mypy_cache")
+        for path in "${FORBIDDEN_PATHS[@]}"; do
+          if find . -name "$path" -type d | grep -q .; then
+            echo "❌ Forbidden path found in build context: $path"
+            echo "💡 Check .dockerignore and exclude $path"
+            find . -name "$path" -type d
+            exit 1
+          fi
+        done
+        
+        # Fail if context is too large (> 50MB or > 5,000 files for backend-only)
+        MAX_SIZE_BYTES=52428800   # 50MB (reduced for backend-only)
+        MAX_FILES=5000
+        
+        if [ "$CONTEXT_SIZE_BYTES" -gt "$MAX_SIZE_BYTES" ]; then
+          echo "❌ Build context too large: $CONTEXT_SIZE_BYTES bytes (max: $MAX_SIZE_BYTES)"
+          echo "💡 Check .dockerignore and exclude unnecessary files"
+          echo "📁 Largest directories:"
+          du -sh * | sort -hr | head -10
+          exit 1
+        fi
+        
+        if [ "$CONTEXT_FILES" -gt "$MAX_FILES" ]; then
+          echo "❌ Too many files in context: $CONTEXT_FILES (max: $MAX_FILES)"
+          echo "💡 Check .dockerignore and exclude unnecessary files"
+          exit 1
+        fi
+        
+        echo "✅ Build context size check passed"
+        echo "✅ No forbidden paths (.venv, node_modules, __pycache__) found"
+        
+        # Build Docker image for ARM64
+        echo "🔨 Building Docker image for ARM64..."
+        docker buildx build \
+          --platform linux/arm64 \
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:phase3-$TIMESTAMP \
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+          --push \
+          .
+        
+        # Verify pushed image
+        echo "🔍 Verifying pushed image..."
+        IMAGE_DIGEST=$(docker inspect $ECR_REGISTRY/$ECR_REPOSITORY:phase3-$TIMESTAMP --format '{{index .RepoDigests 0}}' | cut -d'@' -f2)
+        IMAGE_FULL_URI="$ECR_REGISTRY/$ECR_REPOSITORY@$IMAGE_DIGEST"
+        
+        echo "Verifying image: $IMAGE_FULL_URI"
+        
+        # Check manifest for ARM64
+        MANIFEST=$(aws ecr batch-get-image --repository-name $ECR_REPOSITORY --image-ids imageTag=phase3-$TIMESTAMP --query 'images[0].imageManifest' --output text)
+        if ! echo "$MANIFEST" | grep -q "ARM64"; then
+          echo "❌ Image manifest does not contain ARM64 descriptor."
+          exit 1
+        fi
+        
+        # Check image size
+        ACTUAL_IMAGE_SIZE_BYTES=$(aws ecr describe-images --repository-name $ECR_REPOSITORY --image-ids imageTag=phase3-$TIMESTAMP --query 'imageDetails[0].imageSizeInBytes' --output text)
+        ACTUAL_IMAGE_SIZE_MB=$(echo "scale=2; $ACTUAL_IMAGE_SIZE_BYTES / (1024 * 1024)" | bc)
+        
+        echo "Actual image size: $ACTUAL_IMAGE_SIZE_MB MB"
+        
+        MIN_IMAGE_SIZE_MB=50
+        if (( $(echo "$ACTUAL_IMAGE_SIZE_MB < $MIN_IMAGE_SIZE_MB" | bc -l) )); then
+          echo "❌ Image size ($ACTUAL_IMAGE_SIZE_MB MB) is below minimum expected ($MIN_IMAGE_SIZE_MB MB)."
+          exit 1
+        fi
+        
+        echo "✅ Image verification passed: ARM64 platform, $ACTUAL_IMAGE_SIZE_MB MB"
+        
+        # Update ECS task definition
+        echo "📝 Updating ECS task definition..."
+        CURRENT_TD=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION_FAMILY --query 'taskDefinition')
+        NEW_TD=$(echo "$CURRENT_TD" | jq --arg image "$ECR_REGISTRY/$ECR_REPOSITORY:phase3-$TIMESTAMP" '.containerDefinitions[0].image = $image')
+        CLEAN_TD=$(echo "$NEW_TD" | jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+        echo "$CLEAN_TD" > new_task_def.json
+        NEW_REVISION=$(aws ecs register-task-definition --cli-input-json file://new_task_def.json --query 'taskDefinition.revision' --output text)
+        echo "New task definition revision: $NEW_REVISION"
+        
+        # Deploy to ECS
+        echo "🚀 Deploying to ECS..."
+        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $TASK_DEFINITION_FAMILY:$NEW_REVISION
+        
+        # Wait for deployment to stabilize
+        echo "⏳ Waiting for deployment to stabilize..."
+        aws ecs wait services-stable --cluster $ECS_CLUSTER --services $ECS_SERVICE
+        
+        echo "✅ Deployment completed successfully"
+        
+        # Check health endpoint
+        echo "🏥 Checking health endpoint..."
+        for i in {1..30}; do
+          HEALTH=$(curl -s https://sbh.umbervale.com/api/health | jq -r '.ok // false');
+          if [ "$HEALTH" = "true" ]; then
+            echo "✅ Health check passed";
+            break;
+          fi;
+          echo "Attempt $i: Health check failed, retrying in 10 seconds...";
+          sleep 10;
+        done
+        
+        if [ "$HEALTH" != "true" ]; then echo "❌ Health check failed after 30 attempts"; exit 1; fi
+        
+        # Apply database schema
+        echo "🗄️ Applying database schema..."
+        MIGRATION_RESULT=$(curl -s -X POST https://sbh.umbervale.com/api/migrate/up || echo "endpoint_not_found")
+        if [ "$MIGRATION_RESULT" = "endpoint_not_found" ]; then
+          echo "Migration endpoint not found, trying schema fix endpoint...";
+          SCHEMA_RESULT=$(curl -s -X POST https://sbh.umbervale.com/api/fix-db-schema || echo "endpoint_not_found");
+          if [ "$SCHEMA_RESULT" = "endpoint_not_found" ]; then
+            echo "❌ No migration endpoints available";
+            exit 1;
+          else
+            echo "✅ Schema fix endpoint called successfully";
+          fi;
+        else
+          echo "✅ Migration endpoint called successfully";
+        fi
+        
+        # Verify Phase-3 functionality
+        echo "🧪 Verifying Phase-3 functionality..."
+        CONV_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/memory/conversations -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"title": "Test Conversation"}' || echo "failed")
+        if [ "$CONV_RESPONSE" = "failed" ]; then echo "❌ Conversation creation failed"; exit 1; fi
+        CONV_ID=$(echo "$CONV_RESPONSE" | jq -r '.id // empty')
+        if [ -z "$CONV_ID" ]; then echo "❌ No conversation ID returned"; exit 1; fi
+        echo "✅ Conversation created with ID: $CONV_ID"
+        
+        MSG_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/memory/conversations/$CONV_ID/messages -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"role": "user", "content": {"text": "Hello, world!"}}' || echo "failed")
+        if [ "$MSG_RESPONSE" = "failed" ]; then echo "❌ Message creation failed"; exit 1; fi
+        echo "✅ Message created successfully"
+        
+        SPEC_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/specs -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"title": "Test Spec", "plan_manifest": {"type": "website"}, "repo_skeleton": {"files": []}}' || echo "failed")
+        if [ "$SPEC_RESPONSE" = "failed" ]; then echo "❌ Spec creation failed"; exit 1; fi
+        SPEC_ID=$(echo "$SPEC_RESPONSE" | jq -r '.id // empty')
+        if [ -z "$SPEC_ID" ]; then echo "❌ No spec ID returned"; exit 1; fi
+        echo "✅ Spec created with ID: $SPEC_ID"
+        
+        BUILD_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/builds -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d "{\"spec_id\": \"$SPEC_ID\"}" || echo "failed")
+        if [ "$BUILD_RESPONSE" = "failed" ]; then echo "❌ Build creation failed"; exit 1; fi
+        BUILD_ID=$(echo "$BUILD_RESPONSE" | jq -r '.build_id // empty')
+        if [ -z "$BUILD_ID" ]; then echo "❌ No build ID returned"; exit 1; fi
+        echo "✅ Build created with ID: $BUILD_ID"
+        
+        # Final health check
+        echo "🏥 Final health check..."
+        HEALTH_RESPONSE=$(curl -s https://sbh.umbervale.com/api/health)
+        echo "$HEALTH_RESPONSE" | jq .
+        DB_STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.database.status')
+        PM_STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.persistent_memory.status')
+        STORAGE_STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.storage.status')
+        if [ "$DB_STATUS" != "healthy" ] || [ "$PM_STATUS" != "healthy" ] || [ "$STORAGE_STATUS" != "healthy" ]; then
+          echo "❌ Not all subsystems are healthy:";
+          echo "  Database: $DB_STATUS";
+          echo "  Persistent Memory: $PM_STATUS";
+          echo "  Storage: $STORAGE_STATUS";
+          exit 1;
+        fi
+        echo "✅ All subsystems are healthy!"
+        
+        echo "🎉 Phase 3 deployment completed successfully!"
+        echo "📊 Summary:"
+        echo "  Image: $ECR_REGISTRY/$ECR_REPOSITORY:phase3-$TIMESTAMP"
+        echo "  Task Definition Revision: $NEW_REVISION"
+        echo "  Context Size: $CONTEXT_SIZE ($CONTEXT_FILES files)"
+        echo "  Image Size: $ACTUAL_IMAGE_SIZE_MB MB"
+        echo "  Platform: linux/arm64"
