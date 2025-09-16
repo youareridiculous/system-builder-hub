@@ -12,21 +12,34 @@ echo "🚀 Starting Phase-3 ARM64 build with guardrails..."
 echo "Tag: $TAG"
 echo "ECR Repo: $ECR_REPO"
 
-# Guardrail 1: Check build context size
-echo "📊 Checking build context size..."
+# Guardrail 1: Check build context size and forbidden paths
+echo "📊 Checking build context size and forbidden paths..."
 CONTEXT_SIZE=$(du -sh . | cut -f1)
 CONTEXT_SIZE_BYTES=$(du -sb . | cut -f1)
 CONTEXT_FILES=$(find . -type f | wc -l)
 
 echo "Build context: $CONTEXT_SIZE ($CONTEXT_SIZE_BYTES bytes, $CONTEXT_FILES files)"
 
-# Fail if context is too large (> 100MB or > 10,000 files)
-MAX_SIZE_BYTES=104857600  # 100MB
-MAX_FILES=10000
+# Check for forbidden paths that should never be in build context
+FORBIDDEN_PATHS=(".venv" "node_modules" "__pycache__" ".pytest_cache" ".mypy_cache")
+for path in "${FORBIDDEN_PATHS[@]}"; do
+    if find . -name "$path" -type d | grep -q .; then
+        echo "❌ Forbidden path found in build context: $path"
+        echo "💡 Check .dockerignore and exclude $path"
+        find . -name "$path" -type d
+        exit 1
+    fi
+done
+
+# Fail if context is too large (> 50MB or > 5,000 files for backend-only)
+MAX_SIZE_BYTES=52428800   # 50MB (reduced for backend-only)
+MAX_FILES=5000
 
 if [ "$CONTEXT_SIZE_BYTES" -gt "$MAX_SIZE_BYTES" ]; then
     echo "❌ Build context too large: $CONTEXT_SIZE_BYTES bytes (max: $MAX_SIZE_BYTES)"
     echo "💡 Check .dockerignore and exclude unnecessary files"
+    echo "📁 Largest directories:"
+    du -sh * | sort -hr | head -10
     exit 1
 fi
 
@@ -37,6 +50,7 @@ if [ "$CONTEXT_FILES" -gt "$MAX_FILES" ]; then
 fi
 
 echo "✅ Build context size check passed"
+echo "✅ No forbidden paths (.venv, node_modules, __pycache__) found"
 
 # Guardrail 2: Verify .dockerignore is present and comprehensive
 echo "🔍 Checking .dockerignore..."

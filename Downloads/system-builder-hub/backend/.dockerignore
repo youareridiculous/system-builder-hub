@@ -4,8 +4,9 @@
 .gitattributes
 .gitmodules
 
-# Python cache and compiled files
+# Python cache and compiled files (CRITICAL: exclude all caches)
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -27,9 +28,10 @@ wheels/
 *.egg
 MANIFEST
 
-# Virtual environments
+# Virtual environments (CRITICAL: exclude all Python envs)
 .env
 .venv/
+**/.venv/
 env/
 venv/
 ENV/
@@ -37,17 +39,24 @@ env.bak/
 venv.bak/
 .conda/
 conda-meta/
+**/venv/
+**/env/
+**/.env
 
-# Testing and coverage
+# Testing and coverage (CRITICAL: exclude all test artifacts)
 .tox/
 .coverage
 .coverage.*
 .cache
+**/.cache/
 nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+**/.mypy_cache/
 htmlcov/
 
 # Logs
@@ -63,8 +72,9 @@ pids/
 *.seed
 *.pid.lock
 
-# Node.js dependencies
+# Node.js dependencies (CRITICAL: exclude all node_modules)
 node_modules/
+**/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
