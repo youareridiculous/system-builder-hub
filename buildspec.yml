@@ -6,14 +6,13 @@ env:
     AWS_REGION: us-west-2
     ACCOUNT_ID: "776567512687"
     ECR_REPO: "sbh-repo-dev"
-    IMAGE_TAG: "phase3-${CODEBUILD_BUILD_NUMBER}"
+    IMAGE_TAG: "phase3-$CODEBUILD_BUILD_NUMBER"
 
 phases:
   pre_build:
     commands:
       - set -euo pipefail
       - echo "Logging in to ECR for ${AWS_REGION}"
-      - aws --version
       - REPO_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
       - aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
       - docker buildx version || true
