@@ -1,0 +1,58 @@
+{
+  "family": "sbh-task-dev",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::776567512687:role/sbh-ecs-task-execution-role-dev",
+  "taskRoleArn": "arn:aws:iam::776567512687:role/sbh-ecs-task-role-dev",
+  "containerDefinitions": [
+    {
+      "name": "sbh-backend",
+      "image": "776567512687.dkr.ecr.us-west-2.amazonaws.com/sbh-repo-dev:latest",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "AWS_REGION",
+          "value": "us-west-2"
+        },
+        {
+          "name": "DATABASE_URL",
+          "value": "postgresql://sbhadmin:BrokenWood2025!@sbh-db-dev.cbksw4k0sknh.us-west-2.rds.amazonaws.com:5432/sbh_db"
+        },
+        {
+          "name": "AWS_BUCKET_NAME",
+          "value": "sbh-workspace-dev-776567512687"
+        },
+        {
+          "name": "FLASK_ENV",
+          "value": "production"
+        },
+        {
+          "name": "SECRET_KEY",
+          "value": "sbh-secret-key-2025"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "value": "sk-proj-1234567890abcdef"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/sbh-backend",
+          "awslogs-region": "us-west-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

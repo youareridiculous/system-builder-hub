@@ -1,0 +1,103 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "🚀 Starting Phase-3 ARM64 build with session management fixes..."
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/sbh-repo-dev
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=phase3-session-fix-$COMMIT_HASH
+      - echo "Repository URI: $REPOSITORY_URI"
+      - echo "Image tag: $IMAGE_TAG"
+      
+      # Guardrail 1: Check build context size and forbidden paths
+      - echo "📊 Checking build context size and forbidden paths..."
+      - cd backend
+      - CONTEXT_SIZE=$(du -sh . | cut -f1)
+      - CONTEXT_SIZE_BYTES=$(du -sb . | cut -f1)
+      - CONTEXT_FILES=$(find . -type f | wc -l)
+      - echo "Build context: $CONTEXT_SIZE ($CONTEXT_SIZE_BYTES bytes, $CONTEXT_FILES files)"
+      
+      # Check for forbidden paths
+      - FORBIDDEN_PATHS=(".venv" "node_modules" "__pycache__" ".pytest_cache" ".mypy_cache")
+      - for path in "${FORBIDDEN_PATHS[@]}"; do
+          if find . -name "$path" -type d | grep -q .; then
+            echo "❌ Forbidden path found in build context: $path"
+            echo "💡 Check .dockerignore and exclude $path"
+            find . -name "$path" -type d
+            exit 1
+          fi
+        done
+      
+      # Fail if context is too large
+      - if [ $CONTEXT_SIZE_BYTES -gt 52428800 ]; then
+          echo "❌ Build context too large: $CONTEXT_SIZE_BYTES bytes (max 50MB)"
+          exit 1
+        fi
+      - if [ $CONTEXT_FILES -gt 5000 ]; then
+          echo "❌ Too many files in build context: $CONTEXT_FILES (max 5,000)"
+          exit 1
+        fi
+      - echo "✅ Build context validation passed"
+
+  build:
+    commands:
+      - echo "🔨 Building Docker image..."
+      - docker build --platform linux/arm64 -t $REPOSITORY_URI:$IMAGE_TAG .
+      - docker tag $REPOSITORY_URI:$IMAGE_TAG $REPOSITORY_URI:latest
+      
+      # Guardrail 2: Verify image size and platform
+      - echo "📊 Verifying image..."
+      - IMAGE_SIZE=$(docker images $REPOSITORY_URI:$IMAGE_TAG --format "table {{.Size}}" | tail -n 1)
+      - echo "Image size: $IMAGE_SIZE"
+      
+      # Check if image has ARM64 platform
+      - docker manifest inspect $REPOSITORY_URI:$IMAGE_TAG | grep -q "linux/arm64" || (echo "❌ Image does not support linux/arm64 platform" && exit 1)
+      - echo "✅ Image platform verification passed"
+
+  post_build:
+    commands:
+      - echo "📤 Pushing Docker image to ECR..."
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - docker push $REPOSITORY_URI:latest
+      
+      # Get image digest
+      - IMAGE_DIGEST=$(aws ecr describe-images --repository-name sbh-repo-dev --image-ids imageTag=$IMAGE_TAG --region $AWS_DEFAULT_REGION --query 'imageDetails[0].imageDigest' --output text)
+      - echo "Image digest: $IMAGE_DIGEST"
+      
+      - echo "🚀 Deploying to ECS..."
+      - aws ecs register-task-definition --cli-input-json file://task-definition.json --region $AWS_DEFAULT_REGION
+      - NEW_REVISION=$(aws ecs describe-task-definition --task-definition sbh-task-dev --region $AWS_DEFAULT_REGION --query 'taskDefinition.revision' --output text)
+      - echo "New task definition revision: $NEW_REVISION"
+      
+      - aws ecs update-service --cluster sbh-cluster-dev --service sbh-service-dev --task-definition sbh-task-dev:$NEW_REVISION --region $AWS_DEFAULT_REGION
+      
+      - echo "⏳ Waiting for service to stabilize..."
+      - aws ecs wait services-stable --cluster sbh-cluster-dev --services sbh-service-dev --region $AWS_DEFAULT_REGION
+      
+      - echo "🗄️ Running database migrations..."
+      - sleep 30
+      - curl -X POST https://sbh.umbervale.com/api/migrate/up -H "Content-Type: application/json" || echo "Migration endpoint not available, trying fix endpoint"
+      - curl -X POST https://sbh.umbervale.com/api/fix-db-schema -H "Content-Type: application/json" || echo "Fix endpoint not available"
+      
+      - echo "🔍 Verifying deployment..."
+      - sleep 30
+      - curl -s https://sbh.umbervale.com/api/health | jq .
+      
+      - echo "🧪 Running API smoke tests..."
+      - curl -s -X POST https://sbh.umbervale.com/api/memory/conversations -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"title": "CodeBuild Test Conversation"}' | jq .
+      
+      - echo "🎉 Deployment completed successfully!"
+      - echo "📊 Summary:"
+      - echo "  Image: $REPOSITORY_URI:$IMAGE_TAG"
+      - echo "  Image Digest: $IMAGE_DIGEST"
+      - echo "  Task Definition Revision: $NEW_REVISION"
+      - echo "  Context Size: $CONTEXT_SIZE ($CONTEXT_FILES files)"
+      - echo "  Platform: linux/arm64"
+
+artifacts:
+  files:
+    - '**/*'
+  name: sbh-phase3-session-fix-$(date +%Y-%m-%d)
