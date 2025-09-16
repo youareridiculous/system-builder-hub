@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""System Builder Hub - Stable Server Entrypoint - Phase 1 Cloud Migration"""
+"""System Builder Hub - Stable Server Entrypoint - Phase 1 Cloud Migration with Session Management Fixes"""
 import os
 import logging
 import time
