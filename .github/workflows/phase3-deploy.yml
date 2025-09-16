@@ -16,6 +16,11 @@ env:
   S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME }}
   AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
 
+permissions:
+  id-token: write      # required for OIDC assume-role
+  contents: read       # read source
+  packages: write      # if using GHCR or actions that need write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
