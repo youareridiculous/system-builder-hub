@@ -8,6 +8,9 @@ phases:
       - echo Build started on `date`
       - echo Running build script with guardrails...
       - cd backend
+      - echo "Current directory: $(pwd)"
+      - echo "Files in current directory:"
+      - ls -la
 
   build:
     commands:
