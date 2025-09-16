@@ -10,11 +10,14 @@ on:
       - '.github/workflows/phase3-deploy.yml'
 
 env:
-  AWS_REGION: us-west-2
-  ECR_REPOSITORY: sbh-repo-dev
-  ECS_CLUSTER: sbh-cluster-dev
-  ECS_SERVICE: sbh-service-dev
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+  ECR_REPOSITORY: ${{ vars.ECR_REPO }}
+  ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+  ECS_SERVICE: ${{ vars.ECS_SERVICE }}
   TASK_DEFINITION_FAMILY: sbh-task-dev
+  APP_URL: ${{ vars.APP_URL }}
+  S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME }}
 
 jobs:
   build-and-deploy:
@@ -30,7 +33,7 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::776567512687:role/sbh-github-oidc-deployer-dev
+        role-to-assume: ${{ vars.AWS_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
     - name: Login to Amazon ECR
@@ -146,7 +149,7 @@ jobs:
         # Check health endpoint
         echo "🏥 Checking health endpoint..."
         for i in {1..30}; do
-          HEALTH=$(curl -s https://sbh.umbervale.com/api/health | jq -r '.ok // false');
+          HEALTH=$(curl -s $APP_URL/api/health | jq -r '.ok // false');
           if [ "$HEALTH" = "true" ]; then
             echo "✅ Health check passed";
             break;
@@ -159,10 +162,10 @@ jobs:
         
         # Apply database schema
         echo "🗄️ Applying database schema..."
-        MIGRATION_RESULT=$(curl -s -X POST https://sbh.umbervale.com/api/migrate/up || echo "endpoint_not_found")
+        MIGRATION_RESULT=$(curl -s -X POST $APP_URL/api/migrate/up || echo "endpoint_not_found")
         if [ "$MIGRATION_RESULT" = "endpoint_not_found" ]; then
           echo "Migration endpoint not found, trying schema fix endpoint...";
-          SCHEMA_RESULT=$(curl -s -X POST https://sbh.umbervale.com/api/fix-db-schema || echo "endpoint_not_found");
+          SCHEMA_RESULT=$(curl -s -X POST $APP_URL/api/fix-db-schema || echo "endpoint_not_found");
           if [ "$SCHEMA_RESULT" = "endpoint_not_found" ]; then
             echo "❌ No migration endpoints available";
             exit 1;
@@ -175,31 +178,37 @@ jobs:
         
         # Verify Phase-3 functionality
         echo "🧪 Verifying Phase-3 functionality..."
-        CONV_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/memory/conversations -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"title": "Test Conversation"}' || echo "failed")
+        CONV_RESPONSE=$(curl -s -X POST $APP_URL/api/memory/conversations -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"title": "Test Conversation"}' || echo "failed")
         if [ "$CONV_RESPONSE" = "failed" ]; then echo "❌ Conversation creation failed"; exit 1; fi
         CONV_ID=$(echo "$CONV_RESPONSE" | jq -r '.id // empty')
         if [ -z "$CONV_ID" ]; then echo "❌ No conversation ID returned"; exit 1; fi
         echo "✅ Conversation created with ID: $CONV_ID"
         
-        MSG_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/memory/conversations/$CONV_ID/messages -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"role": "user", "content": {"text": "Hello, world!"}}' || echo "failed")
+        MSG_RESPONSE=$(curl -s -X POST $APP_URL/api/memory/conversations/$CONV_ID/messages -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"role": "user", "content": {"text": "Hello, world!"}}' || echo "failed")
         if [ "$MSG_RESPONSE" = "failed" ]; then echo "❌ Message creation failed"; exit 1; fi
         echo "✅ Message created successfully"
         
-        SPEC_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/specs -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"title": "Test Spec", "plan_manifest": {"type": "website"}, "repo_skeleton": {"files": []}}' || echo "failed")
+        SPEC_RESPONSE=$(curl -s -X POST $APP_URL/api/specs -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"title": "Test Spec", "plan_manifest": {"type": "website"}, "repo_skeleton": {"files": []}}' || echo "failed")
         if [ "$SPEC_RESPONSE" = "failed" ]; then echo "❌ Spec creation failed"; exit 1; fi
         SPEC_ID=$(echo "$SPEC_RESPONSE" | jq -r '.id // empty')
         if [ -z "$SPEC_ID" ]; then echo "❌ No spec ID returned"; exit 1; fi
         echo "✅ Spec created with ID: $SPEC_ID"
         
-        BUILD_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/builds -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d "{\"spec_id\": \"$SPEC_ID\"}" || echo "failed")
+        BUILD_RESPONSE=$(curl -s -X POST $APP_URL/api/builds -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d "{\"spec_id\": \"$SPEC_ID\"}" || echo "failed")
         if [ "$BUILD_RESPONSE" = "failed" ]; then echo "❌ Build creation failed"; exit 1; fi
         BUILD_ID=$(echo "$BUILD_RESPONSE" | jq -r '.build_id // empty')
         if [ -z "$BUILD_ID" ]; then echo "❌ No build ID returned"; exit 1; fi
         echo "✅ Build created with ID: $BUILD_ID"
         
+        # Test S3 functionality
+        echo "🪣 Testing S3 functionality..."
+        S3_TEST_RESPONSE=$(curl -s -X POST $APP_URL/api/builds/$BUILD_ID/artifacts -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"test": "s3_write"}' || echo "failed")
+        if [ "$S3_TEST_RESPONSE" = "failed" ]; then echo "❌ S3 test failed"; exit 1; fi
+        echo "✅ S3 functionality verified"
+        
         # Final health check
         echo "🏥 Final health check..."
-        HEALTH_RESPONSE=$(curl -s https://sbh.umbervale.com/api/health)
+        HEALTH_RESPONSE=$(curl -s $APP_URL/api/health)
         echo "$HEALTH_RESPONSE" | jq .
         DB_STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.database.status')
         PM_STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.persistent_memory.status')
@@ -216,7 +225,11 @@ jobs:
         echo "🎉 Phase 3 deployment completed successfully!"
         echo "📊 Summary:"
         echo "  Image: $ECR_REGISTRY/$ECR_REPOSITORY:phase3-$TIMESTAMP"
+        echo "  Image Digest: $IMAGE_DIGEST"
         echo "  Task Definition Revision: $NEW_REVISION"
         echo "  Context Size: $CONTEXT_SIZE ($CONTEXT_FILES files)"
         echo "  Image Size: $ACTUAL_IMAGE_SIZE_MB MB"
         echo "  Platform: linux/arm64"
+        echo "  Conversation ID: $CONV_ID"
+        echo "  Spec ID: $SPEC_ID"
+        echo "  Build ID: $BUILD_ID"
