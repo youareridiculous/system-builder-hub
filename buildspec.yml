@@ -13,8 +13,8 @@ phases:
     commands:
       - |
         set -euo pipefail
-        echo "Logging in to ECR for ${AWS_REGION}"
         REPO_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+        echo "Logging in to ECR at ${REPO_URI}"
         aws ecr get-login-password --region "${AWS_REGION}" \
           | docker login --username AWS --password-stdin "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         docker buildx version || true
@@ -23,6 +23,8 @@ phases:
   build:
     commands:
       - |
+        set -euo pipefail
+        REPO_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
         echo "Building and pushing ${REPO_URI}:${IMAGE_TAG} (linux/arm64)"
         docker buildx build \
           --platform linux/arm64 \
@@ -33,6 +35,8 @@ phases:
   post_build:
     commands:
       - |
+        set -euo pipefail
+        REPO_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
         echo "Image pushed: ${REPO_URI}:${IMAGE_TAG}"
         printf '{"ImageURI":"%s"}' "${REPO_URI}:${IMAGE_TAG}" > imageDetail.json
 
