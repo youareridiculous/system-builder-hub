@@ -4,10 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
-    paths:
-      - 'backend/**'
-      - 'buildspec.yml'
-      - '.github/workflows/phase3-deploy.yml'
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
