@@ -1,0 +1,81 @@
+{
+    "containerDefinitions": [
+        {
+            "name": "sbh-backend",
+            "image": "776567512687.dkr.ecr.us-west-2.amazonaws.com/sbh-repo-dev:20250915125350",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "containerPort": 8000,
+                    "hostPort": 8000,
+                    "protocol": "tcp"
+                }
+            ],
+            "essential": true,
+            "environment": [
+                {
+                    "name": "AWS_REGION",
+                    "value": "us-west-2"
+                },
+                {
+                    "name": "DATABASE_URL",
+                    "value": "postgresql://sbhadmin:BrokenWood2025!@sbh-db-dev.cbksw4k0sknh.us-west-2.rds.amazonaws.com:5432/sbh_db"
+                },
+                {
+                    "name": "AWS_BUCKET_NAME",
+                    "value": "sbh-workspace-dev-776567512687"
+                },
+                {
+                    "name": "S3_BUCKET_NAME",
+                    "value": "sbh-workspace-dev-b8aedb34"
+                },
+                {
+                    "name": "FLASK_ENV",
+                    "value": "production"
+                },
+                {
+                    "name": "SECRET_KEY",
+                    "value": "super-secret-key"
+                },
+                {
+                    "name": "OPENAI_API_KEY",
+                    "value": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                },
+                {
+                    "name": "ENV",
+                    "value": "production"
+                },
+                {
+                    "name": "CORS_ORIGINS",
+                    "value": "https://sbh.umbervale.com,http://localhost:3000"
+                }
+            ],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/sbh-backend",
+                    "awslogs-region": "us-west-2",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "systemControls": []
+        }
+    ],
+    "family": "sbh-task-dev",
+    "taskRoleArn": "arn:aws:iam::776567512687:role/sbh-ecs-task-role-dev",
+    "executionRoleArn": "arn:aws:iam::776567512687:role/sbh-ecs-execution-role-dev",
+    "networkMode": "awsvpc",
+    "volumes": [],
+    "placementConstraints": [],
+    "runtimePlatform": {
+        "cpuArchitecture": "ARM64",
+        "operatingSystemFamily": "LINUX"
+    },
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "512",
+    "memory": "1024"
+}

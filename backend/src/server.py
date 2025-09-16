@@ -4,7 +4,7 @@ import os
 import logging
 import time
 import openai
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, g
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -46,7 +46,7 @@ def create_app():
     
     # Initialize database manager
     try:
-        from .database_manager import init_database
+        from .database_manager import init_database, get_current_session, remove_current_session
         db_initialized = init_database()
         if db_initialized:
             logger.info("Database manager initialized")
@@ -55,6 +55,28 @@ def create_app():
     except Exception as e:
         logger.error(f"Failed to initialize database manager: {e}")
         db_initialized = False
+    
+    # Flask session management - one session per request
+    @app.before_request
+    def before_request():
+        """Create database session for each request"""
+        if db_initialized:
+            g.db = get_current_session()
+            logger.debug("Created database session for request")
+    
+    @app.teardown_appcontext
+    def teardown_appcontext(error):
+        """Clean up database session after each request"""
+        if hasattr(g, 'db'):
+            if error:
+                g.db.rollback()
+                logger.debug("Rolled back database session due to error")
+            else:
+                g.db.commit()
+                logger.debug("Committed database session")
+            g.db.close()
+            remove_current_session()
+            logger.debug("Closed database session")
     
     # Initialize S3 build storage
     try:

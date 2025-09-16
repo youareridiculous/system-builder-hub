@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from typing import Optional, Generator
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, scoped_session
 from sqlalchemy.pool import StaticPool
 
 logger = logging.getLogger(__name__)
@@ -18,6 +18,7 @@ class DatabaseManager:
     def __init__(self):
         self.engine = None
         self.SessionLocal = None
+        self.Session = None  # Scoped session
         self._initialized = False
     
     def initialize(self) -> bool:
@@ -48,6 +49,13 @@ class DatabaseManager:
             
             # Create session factory
             self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+            # Create scoped session for thread-local access
+            self.Session = scoped_session(sessionmaker(
+                autocommit=False, 
+                autoflush=False, 
+                bind=self.engine,
+                expire_on_commit=False
+            ))
             
             # Test connection
             with self.engine.connect() as conn:
@@ -86,6 +94,17 @@ class DatabaseManager:
     def is_initialized(self) -> bool:
         """Check if database is initialized"""
         return self._initialized
+    
+    def get_current_session(self) -> Session:
+        """Get current thread-local session"""
+        if not self._initialized:
+            raise RuntimeError("Database not initialized. Call initialize() first.")
+        return self.Session()
+    
+    def remove_session(self):
+        """Remove current thread-local session"""
+        if self.Session:
+            self.Session.remove()
 
 # Global database manager instance
 db_manager = DatabaseManager()
@@ -103,3 +122,11 @@ def get_db_session() -> Generator[Session, None, None]:
     """Get database session from global manager"""
     with db_manager.get_session() as session:
         yield session
+
+def get_current_session() -> Session:
+    """Get current thread-local session"""
+    return db_manager.get_current_session()
+
+def remove_current_session():
+    """Remove current thread-local session"""
+    db_manager.remove_session()

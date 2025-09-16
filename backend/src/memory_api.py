@@ -10,7 +10,7 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
-from .database_manager import get_db_session
+from .database_manager import get_db_session, get_current_session
 from .auth import get_current_context, require_auth
 from .models import Conversation, Message, BuildSpec, BuildRun, MessageRole, BuildSpecStatus, BuildRunStatus
 
@@ -24,36 +24,35 @@ def create_conversation():
     """Create a new conversation"""
     try:
         context = get_current_context()
-        tenant = context['tenant']
-        user = context['user']
+        tenant_id = context['tenant_id']
+        user_id = context['user_id']
         
         data = request.get_json() or {}
         title = data.get('title', 'New Conversation')
         
-        with get_db_session() as session:
-            conversation = Conversation(
-                tenant_id=tenant.id,
-                user_id=user.id if user else None,
-                title=title
-            )
-            session.add(conversation)
-            session.commit()
-            session.refresh(conversation)
-            
-            logger.info(f"Created conversation {conversation.id} in tenant {tenant.slug}")
-            
-            return jsonify({
-                'ok': True,
-                'data': {
-                    'id': str(conversation.id),
-                    'title': conversation.title,
-                    'tenant_id': str(conversation.tenant_id),
-                    'user_id': str(conversation.user_id) if conversation.user_id else None,
-                    'created_at': conversation.created_at.isoformat(),
-                    'updated_at': conversation.updated_at.isoformat()
-                }
-            })
-            
+        session = get_current_session()
+        conversation = Conversation(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            title=title
+        )
+        session.add(conversation)
+        session.flush()  # Get ID without committing
+        
+        logger.info(f"Created conversation {conversation.id} in tenant {tenant_id}")
+        
+        return jsonify({
+            'ok': True,
+            'data': {
+                'id': str(conversation.id),
+                'title': conversation.title,
+                'tenant_id': str(conversation.tenant_id),
+                'user_id': str(conversation.user_id) if conversation.user_id else None,
+                'created_at': conversation.created_at.isoformat(),
+                'updated_at': conversation.updated_at.isoformat()
+            }
+        })
+        
     except Exception as e:
         logger.error(f"Failed to create conversation: {e}")
         return jsonify({'ok': False, 'error': 'Failed to create conversation', 'details': str(e)}), 500
@@ -63,45 +62,45 @@ def list_conversations():
     """List conversations for current tenant"""
     try:
         context = get_current_context()
-        tenant = context['tenant']
+        tenant_id = context['tenant_id']
         
         # Pagination
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 20))
         offset = (page - 1) * per_page
         
-        with get_db_session() as session:
-            conversations = session.query(Conversation).filter(
-                Conversation.tenant_id == tenant.id
-            ).order_by(desc(Conversation.updated_at)).offset(offset).limit(per_page).all()
-            
-            total = session.query(Conversation).filter(
-                Conversation.tenant_id == tenant.id
-            ).count()
-            
-            data = []
-            for conv in conversations:
-                data.append({
-                    'id': str(conv.id),
-                    'title': conv.title,
-                    'tenant_id': str(conv.tenant_id),
-                    'user_id': str(conv.user_id) if conv.user_id else None,
-                    'created_at': conv.created_at.isoformat(),
-                    'updated_at': conv.updated_at.isoformat()
-                })
-            
-            return jsonify({
-                'ok': True,
-                'data': {
-                    'conversations': data,
-                    'pagination': {
-                        'page': page,
-                        'per_page': per_page,
-                        'total': total,
-                        'pages': (total + per_page - 1) // per_page
-                    }
-                }
+        session = get_current_session()
+        conversations = session.query(Conversation).filter(
+            Conversation.tenant_id == tenant_id
+        ).order_by(desc(Conversation.updated_at)).offset(offset).limit(per_page).all()
+        
+        total = session.query(Conversation).filter(
+            Conversation.tenant_id == tenant_id
+        ).count()
+        
+        data = []
+        for conv in conversations:
+            data.append({
+                'id': str(conv.id),
+                'title': conv.title,
+                'tenant_id': str(conv.tenant_id),
+                'user_id': str(conv.user_id) if conv.user_id else None,
+                'created_at': conv.created_at.isoformat(),
+                'updated_at': conv.updated_at.isoformat()
             })
+        
+        return jsonify({
+            'ok': True,
+            'data': {
+                'conversations': data,
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total': total,
+                    'pages': (total + per_page - 1) // per_page
+                }
+            }
+        })
             
     except Exception as e:
         logger.error(f"Failed to list conversations: {e}")
@@ -112,7 +111,7 @@ def add_message(conversation_id: str):
     """Add a message to a conversation"""
     try:
         context = get_current_context()
-        tenant = context['tenant']
+        tenant_id = context['tenant_id']
         
         data = request.get_json() or {}
         role = data.get('role', 'user')
@@ -125,43 +124,42 @@ def add_message(conversation_id: str):
         if not content:
             return jsonify({'ok': False, 'error': 'Content is required'}), 400
         
-        with get_db_session() as session:
-            # Verify conversation exists and belongs to tenant
-            conversation = session.query(Conversation).filter(
-                Conversation.id == conversation_id,
-                Conversation.tenant_id == tenant.id
-            ).first()
-            
-            if not conversation:
-                return jsonify({'ok': False, 'error': 'Conversation not found'}), 404
-            
-            message = Message(
-                conversation_id=conversation.id,
-                role=MessageRole(role),
-                content=content,
-                tokens_used=tokens_used
-            )
-            session.add(message)
-            
-            # Update conversation timestamp
-            conversation.updated_at = datetime.now(timezone.utc)
-            
-            session.commit()
-            session.refresh(message)
-            
-            logger.info(f"Added message {message.id} to conversation {conversation_id}")
-            
-            return jsonify({
-                'ok': True,
-                'data': {
-                    'id': str(message.id),
-                    'conversation_id': str(message.conversation_id),
-                    'role': message.role.value,
-                    'content': message.content,
-                    'tokens_used': message.tokens_used,
-                    'created_at': message.created_at.isoformat()
-                }
-            })
+        session = get_current_session()
+        # Verify conversation exists and belongs to tenant
+        conversation = session.query(Conversation).filter(
+            Conversation.id == conversation_id,
+            Conversation.tenant_id == tenant_id
+        ).first()
+        
+        if not conversation:
+            return jsonify({'ok': False, 'error': 'Conversation not found'}), 404
+        
+        message = Message(
+            conversation_id=conversation.id,
+            role=MessageRole(role),
+            content=content,
+            tokens_used=tokens_used
+        )
+        session.add(message)
+        
+        # Update conversation timestamp
+        conversation.updated_at = datetime.now(timezone.utc)
+        
+        session.flush()  # Get ID without committing
+        
+        logger.info(f"Added message {message.id} to conversation {conversation_id}")
+        
+        return jsonify({
+            'ok': True,
+            'data': {
+                'id': str(message.id),
+                'conversation_id': str(message.conversation_id),
+                'role': message.role.value,
+                'content': message.content,
+                'tokens_used': message.tokens_used,
+                'created_at': message.created_at.isoformat()
+            }
+        })
             
     except Exception as e:
         logger.error(f"Failed to add message: {e}")
@@ -172,54 +170,54 @@ def list_messages(conversation_id: str):
     """List messages in a conversation"""
     try:
         context = get_current_context()
-        tenant = context['tenant']
+        tenant_id = context['tenant_id']
         
         # Pagination
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 50))
         offset = (page - 1) * per_page
         
-        with get_db_session() as session:
-            # Verify conversation exists and belongs to tenant
-            conversation = session.query(Conversation).filter(
-                Conversation.id == conversation_id,
-                Conversation.tenant_id == tenant.id
-            ).first()
-            
-            if not conversation:
-                return jsonify({'ok': False, 'error': 'Conversation not found'}), 404
-            
-            messages = session.query(Message).filter(
-                Message.conversation_id == conversation.id
-            ).order_by(Message.created_at).offset(offset).limit(per_page).all()
-            
-            total = session.query(Message).filter(
-                Message.conversation_id == conversation.id
-            ).count()
-            
-            data = []
-            for msg in messages:
-                data.append({
-                    'id': str(msg.id),
-                    'conversation_id': str(msg.conversation_id),
-                    'role': msg.role.value,
-                    'content': msg.content,
-                    'tokens_used': msg.tokens_used,
-                    'created_at': msg.created_at.isoformat()
-                })
-            
-            return jsonify({
-                'ok': True,
-                'data': {
-                    'messages': data,
-                    'pagination': {
-                        'page': page,
-                        'per_page': per_page,
-                        'total': total,
-                        'pages': (total + per_page - 1) // per_page
-                    }
-                }
+        session = get_current_session()
+        # Verify conversation exists and belongs to tenant
+        conversation = session.query(Conversation).filter(
+            Conversation.id == conversation_id,
+            Conversation.tenant_id == tenant_id
+        ).first()
+        
+        if not conversation:
+            return jsonify({'ok': False, 'error': 'Conversation not found'}), 404
+        
+        messages = session.query(Message).filter(
+            Message.conversation_id == conversation.id
+        ).order_by(Message.created_at).offset(offset).limit(per_page).all()
+        
+        total = session.query(Message).filter(
+            Message.conversation_id == conversation.id
+        ).count()
+        
+        data = []
+        for msg in messages:
+            data.append({
+                'id': str(msg.id),
+                'conversation_id': str(msg.conversation_id),
+                'role': msg.role.value,
+                'content': msg.content,
+                'tokens_used': msg.tokens_used,
+                'created_at': msg.created_at.isoformat()
             })
+        
+        return jsonify({
+            'ok': True,
+            'data': {
+                'messages': data,
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total': total,
+                    'pages': (total + per_page - 1) // per_page
+                }
+            }
+        })
             
     except Exception as e:
         logger.error(f"Failed to list messages: {e}")
@@ -233,7 +231,7 @@ def create_spec():
     """Create or finalize a build specification"""
     try:
         context = get_current_context()
-        tenant = context['tenant']
+        tenant_id = context['tenant_id']
         
         data = request.get_json() or {}
         title = data.get('title', 'New Build Spec')
@@ -245,44 +243,43 @@ def create_spec():
         if status not in ['draft', 'finalized']:
             return jsonify({'ok': False, 'error': 'Invalid status. Must be draft or finalized'}), 400
         
-        with get_db_session() as session:
-            # Verify conversation exists and belongs to tenant if provided
-            if conversation_id:
-                conversation = session.query(Conversation).filter(
-                    Conversation.id == conversation_id,
-                    Conversation.tenant_id == tenant.id
-                ).first()
-                if not conversation:
-                    return jsonify({'ok': False, 'error': 'Conversation not found'}), 404
-            
-            build_spec = BuildSpec(
-                tenant_id=tenant.id,
-                conversation_id=conversation_id,
-                title=title,
-                plan_manifest=plan_manifest,
-                repo_skeleton=repo_skeleton,
-                status=BuildSpecStatus(status)
-            )
-            session.add(build_spec)
-            session.commit()
-            session.refresh(build_spec)
-            
-            logger.info(f"Created build spec {build_spec.id} in tenant {tenant.slug}")
-            
-            return jsonify({
-                'ok': True,
-                'data': {
-                    'id': str(build_spec.id),
-                    'title': build_spec.title,
-                    'tenant_id': str(build_spec.tenant_id),
-                    'conversation_id': str(build_spec.conversation_id) if build_spec.conversation_id else None,
-                    'plan_manifest': build_spec.plan_manifest,
-                    'repo_skeleton': build_spec.repo_skeleton,
-                    'status': build_spec.status.value,
-                    'created_at': build_spec.created_at.isoformat(),
-                    'updated_at': build_spec.updated_at.isoformat()
-                }
-            })
+        session = get_current_session()
+        # Verify conversation exists and belongs to tenant if provided
+        if conversation_id:
+            conversation = session.query(Conversation).filter(
+                Conversation.id == conversation_id,
+                Conversation.tenant_id == tenant_id
+            ).first()
+            if not conversation:
+                return jsonify({'ok': False, 'error': 'Conversation not found'}), 404
+        
+        build_spec = BuildSpec(
+            tenant_id=tenant_id,
+            conversation_id=conversation_id,
+            title=title,
+            plan_manifest=plan_manifest,
+            repo_skeleton=repo_skeleton,
+            status=BuildSpecStatus(status)
+        )
+        session.add(build_spec)
+        session.flush()  # Get ID without committing
+        
+        logger.info(f"Created build spec {build_spec.id} in tenant {tenant_id}")
+        
+        return jsonify({
+            'ok': True,
+            'data': {
+                'id': str(build_spec.id),
+                'title': build_spec.title,
+                'tenant_id': str(build_spec.tenant_id),
+                'conversation_id': str(build_spec.conversation_id) if build_spec.conversation_id else None,
+                'plan_manifest': build_spec.plan_manifest,
+                'repo_skeleton': build_spec.repo_skeleton,
+                'status': build_spec.status.value,
+                'created_at': build_spec.created_at.isoformat(),
+                'updated_at': build_spec.updated_at.isoformat()
+            }
+        })
             
     except Exception as e:
         logger.error(f"Failed to create build spec: {e}")
