@@ -61,3 +61,4 @@ Phase 3 infrastructure is ready for deployment. The workflow includes:
 # Workflow trigger test
 # Triggering session management deployment
 # Session fix deployment trigger
+# Workflow should trigger now
