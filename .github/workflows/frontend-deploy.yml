@@ -29,7 +29,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
     
     - name: Install dependencies
       run: npm install
@@ -48,13 +47,7 @@ jobs:
     
     - name: Deploy to S3
       run: |
-        # Upload frontend files to S3
         aws s3 sync out/ s3://sbh-workspace-dev-b8aedb34/frontend/ --delete
-        
-        # Set proper content types
-        aws s3 cp s3://sbh-workspace-dev-b8aedb34/frontend/ s3://sbh-workspace-dev-b8aedb34/frontend/ --recursive --metadata-directive REPLACE --content-type "text/html" --exclude "*" --include "*.html"
-        aws s3 cp s3://sbh-workspace-dev-b8aedb34/frontend/ s3://sbh-workspace-dev-b8aedb34/frontend/ --recursive --metadata-directive REPLACE --content-type "text/css" --exclude "*" --include "*.css"
-        aws s3 cp s3://sbh-workspace-dev-b8aedb34/frontend/ s3://sbh-workspace-dev-b8aedb34/frontend/ --recursive --metadata-directive REPLACE --content-type "application/javascript" --exclude "*" --include "*.js"
     
     - name: Configure S3 bucket for static website hosting
       run: |
@@ -74,7 +67,6 @@ jobs:
             }
           ]
         }'
-    
     - name: Get website URL
       run: |
         echo "Frontend deployed to: http://sbh-workspace-dev-b8aedb34.s3-website-us-west-2.amazonaws.com/frontend/"
