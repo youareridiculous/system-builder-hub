@@ -12,29 +12,43 @@ A system that builds systems - takes specs as input and outputs bootable applica
 - **Terraform** defines everything; one `terraform apply` per env
 - **SBH "builder outputs"**: each generated system ships in its own repo with the same pipeline pattern
 
-## Repository Structure
+## Configuration
 
-```
-├── infra/                    # Terraform for AWS infrastructure
-│   ├── modules/             # Reusable Terraform modules
-│   │   ├── network/         # VPC, subnets, NAT
-│   │   ├── db/              # RDS Postgres
-│   │   ├── storage/         # S3 buckets
-│   │   ├── ecr/             # Container registries
-│   │   ├── iam/             # IAM roles and policies
-│   │   ├── alb/             # Application Load Balancer
-│   │   └── ecs/             # ECS cluster and service
-│   ├── envs/                # Environment-specific configurations
-│   │   ├── dev/             # Development environment
-│   │   └── prod/            # Production environment
-│   └── scripts/             # One-time setup scripts
+The following environment variables can be configured:
+
+### Required (Production)
+- `OPENAI_API_KEY` - OpenAI API key for AI chat functionality (required in production)
+
+### Optional
+- `OPENAI_MODEL` - OpenAI model to use (default: `gpt-4o-mini`)
+- `OPENAI_TIMEOUT_SECONDS` - Timeout for OpenAI requests in seconds (default: `20`)
+- `SECRET_KEY` - Flask secret key (default: `dev-secret-key`)
+- `FLASK_ENV` - Flask environment (default: `production`)
+
+### AWS ECS Configuration
+In production, `OPENAI_API_KEY` is provided via ECS task definition secrets or environment variables. The application will gracefully fall back to echo behavior if the key is not configured.
+
+## Repository Structure
+├── infra/ # Terraform for AWS infrastructure
+│ ├── modules/ # Reusable Terraform modules
+│ │ ├── network/ # VPC, subnets, NAT
+│ │ ├── db/ # RDS Postgres
+│ │ ├── storage/ # S3 buckets
+│ │ ├── ecr/ # Container registries
+│ │ ├── iam/ # IAM roles and policies
+│ │ ├── alb/ # Application Load Balancer
+│ │ └── ecs/ # ECS cluster and service
+│ ├── envs/ # Environment-specific configurations
+│ │ ├── dev/ # Development environment
+│ │ └── prod/ # Production environment
+│ └── scripts/ # One-time setup scripts
 ├── apps/
-│   └── backend/             # SBH API application
-├── templates/               # Templates for generated systems
+│ └── backend/ # SBH API application
+├── templates/ # Templates for generated systems
 ├── .github/
-│   └── workflows/           # CI/CD pipelines
-└── README.md               # This file
-```
+│ └── workflows/ # CI/CD pipelines
+└── README.md # This file
+
 
 ## Quick Start
 
