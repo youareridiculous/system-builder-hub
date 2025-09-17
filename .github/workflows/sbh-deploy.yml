@@ -93,19 +93,35 @@ jobs:
           # Make IMAGE_URI available to later shell steps as $IMAGE_URI
           echo "IMAGE_URI=${IMAGE_URI}" >> "$GITHUB_ENV"
 
-      - name: Get current task definition (tolerate missing)
+            - name: Get current task definition (from service if possible)
         id: current-td
         run: |
           set -euxo pipefail
-          if aws ecs describe-task-definition \
-               --task-definition "${{ env.TASK_FAMILY }}" \
-               --query 'taskDefinition' \
-               --output json > current-task-def.json 2>/dev/null; then
+          # Try to fetch the service's current task definition ARN
+          SVC_TD=$(aws ecs describe-services \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --services "${{ env.ECS_SERVICE }}" \
+            --query 'services[0].taskDefinition' \
+            --output text || true)
+
+          if [ -n "${SVC_TD}" ] && [ "${SVC_TD}" != "None" ]; then
+            aws ecs describe-task-definition \
+              --task-definition "${SVC_TD}" \
+              --query 'taskDefinition' \
+              --output json > current-task-def.json
             echo "found=true" >> "$GITHUB_OUTPUT"
           else
-            echo "{}" > current-task-def.json
-            echo "found=false" >> "$GITHUB_OUTPUT"
-            echo "No existing task family; will register a fresh definition."
+            # Fallback to family lookup
+            if aws ecs describe-task-definition \
+                 --task-definition "${{ env.TASK_FAMILY }}" \
+                 --query 'taskDefinition' \
+                 --output json > current-task-def.json 2>/dev/null; then
+              echo "found=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "{}" > current-task-def.json
+              echo "found=false" >> "$GITHUB_OUTPUT"
+              echo "No existing task definition found; will register fresh."
+            fi
           fi
 
       - name: Render new task definition
@@ -113,44 +129,59 @@ jobs:
         run: |
           set -euxo pipefail
           cp infra/templates/taskdef.json new-task-def.json
-
-          # IMPORTANT: use $IMAGE_URI (shell env), not ${{ env.IMAGE_URI }}
+          # IMPORTANT: use runtime env var set earlier
           sed -i "s|__IMAGE__|$IMAGE_URI|g" new-task-def.json
 
           FOUND="${{ steps.current-td.outputs.found }}"
 
+          # Optionally discover default execution role if we don't have one
+          EXEC_ROLE=$(aws iam get-role --role-name ecsTaskExecutionRole --query 'Role.Arn' --output text 2>/dev/null || true)
+
           if [ "$FOUND" = "true" ]; then
-            # Merge with current TD to preserve roles and settings
-            jq -s '
+            jq -s --arg family "${{ env.TASK_FAMILY }}" --arg execRole "$EXEC_ROLE" '
               .[0] as $tpl |
               .[1] as $cur |
               {
-                family:                  $cur.family,
-                taskRoleArn:             $cur.taskRoleArn,
-                executionRoleArn:        $cur.executionRoleArn,
-                networkMode:             $cur.networkMode,
-                requiresCompatibilities: $cur.requiresCompatibilities,
-                cpu:                     $cur.cpu,
-                memory:                  $cur.memory,
-                runtimePlatform:         $cur.runtimePlatform,
-                volumes:                 $cur.volumes,
+                family:                  $family,
+                taskRoleArn:             ($cur.taskRoleArn // null),
+                executionRoleArn:        ($cur.executionRoleArn // ($execRole|select(length>0))),
+                networkMode:             ($cur.networkMode // "awsvpc"),
+                requiresCompatibilities: ($cur.requiresCompatibilities // ["FARGATE"]),
+                cpu:                     ($cur.cpu // "256"),
+                memory:                  ($cur.memory // "1024"),
+                runtimePlatform:         ($cur.runtimePlatform // {cpuArchitecture:"X86_64",operatingSystemFamily:"LINUX"}),
+                volumes:                 ($cur.volumes // []),
                 containerDefinitions:    $tpl.containerDefinitions
               }
             ' new-task-def.json current-task-def.json > final-task-def.json
           else
-            # First registration: just use the template containers;
-            # the family, roles, cpu/memory will be taken from the template if present
-            # or can be inherited from defaults (Fargate needs cpu/memory set in service/TD).
-            jq '.' new-task-def.json > final-task-def.json
+            # First registration: inject sane Fargate defaults
+            jq --arg family "${{ env.TASK_FAMILY }}" --arg execRole "$EXEC_ROLE" '
+              {
+                family: $family,
+                taskRoleArn: null,
+                executionRoleArn: ($execRole|select(length>0)),
+                networkMode: "awsvpc",
+                requiresCompatibilities: ["FARGATE"],
+                cpu: "256",
+                memory: "1024",
+                runtimePlatform: {cpuArchitecture:"X86_64",operatingSystemFamily:"LINUX"},
+                volumes: [],
+                containerDefinitions: .containerDefinitions
+              }
+            ' new-task-def.json > final-task-def.json
           fi
 
-          echo "Rendered task definition:"
-          jq '.family, .containerDefinitions[0].image' final-task-def.json
+          echo "Rendered TD:"
+          jq '{family, cpu, memory, requiresCompatibilities, networkMode, image: .containerDefinitions[0].image}' final-task-def.json
 
       - name: Register new task definition
         id: register-td
         run: |
           set -euxo pipefail
+          aws --version
+          jq --version
+          echo "Submitting final-task-def.json to ECS…"
           NEW_TD_ARN=$(aws ecs register-task-definition \
             --cli-input-json file://final-task-def.json \
             --query 'taskDefinition.taskDefinitionArn' \
