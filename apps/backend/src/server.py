@@ -104,16 +104,22 @@ def create_app():
             data = request.get_json()
             if not data:
                 return jsonify({'error': 'No data provided'}), 400
-
+    
             message = data.get('message', '')
             if not message:
                 return jsonify({'error': 'No message provided'}), 400
-
-            # Get conversation context
+    
+            # Get conversation context and model selection
             conversation_history = data.get('conversation_history', [])
             conversation_id = data.get('conversation_id', f'conv_{int(time.time())}_{str(uuid.uuid4())[:8]}')
             system_message = data.get('system', 'You are an AI assistant for the System Builder Hub (SBH) - an AI-assisted platform that designs, scaffolds, deploys, and monitors complete software systems onto AWS. SBH is better than Cursor because it takes high-level specifications and outputs complete, bootable applications with their own infrastructure, CI/CD, and monitoring. You help users create comprehensive specifications for any type of system they want to build, then guide them through the process of generating working applications that are ready to deploy independently. Ask relevant questions to understand their requirements, provide architecture guidance, and help them create detailed specifications that SBH can use to build their complete system with Terraform, ECS, ALB, RDS, S3, and GitHub Actions.')
-
+            
+            # Model selection with validation
+            requested_model = data.get('model', 'gpt-4o')  # Default to gpt-4o
+            valid_models = ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo']
+            if requested_model not in valid_models:
+                requested_model = 'gpt-4o'  # Fallback to default
+            
             # If no OpenAI client, return echo behavior
             if not openai_client:
                 return jsonify({
@@ -122,7 +128,7 @@ def create_app():
                     'conversation_id': conversation_id,
                     'note': 'openai not configured'
                 })
-
+    
             # Build messages for OpenAI
             messages = [{"role": "system", "content": system_message}]
             
@@ -133,11 +139,11 @@ def create_app():
             
             # Add current message
             messages.append({"role": "user", "content": message})
-
-            # Call OpenAI API
+    
+            # Call OpenAI API with selected model
             try:
                 response = openai_client.chat.completions.create(
-                    model=openai_config['model'],
+                    model=requested_model,  # Use the selected model
                     messages=messages,
                     max_tokens=1000,
                     temperature=0.7
@@ -154,7 +160,7 @@ def create_app():
                         'completion_tokens': usage.completion_tokens,
                         'total_tokens': usage.total_tokens
                     },
-                    'model': openai_config['model'],
+                    'model': requested_model,  # Return the actual model used
                     'conversation_id': conversation_id
                 })
                 
