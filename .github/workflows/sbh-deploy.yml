@@ -74,7 +74,6 @@ jobs:
             --push \
             apps/backend
 
-          # Make image URI available to later steps
           echo "IMAGE_URI=${IMAGE_URI}" >> "$GITHUB_ENV"
           echo "Built and pushed: ${IMAGE_URI}"
 
@@ -90,25 +89,29 @@ jobs:
       - name: Render new task definition
         id: render-td
         run: |
-          # Copy template and inject the just-built image URI.
-          cp infra/templates/taskdef.json new-task-def.json
-          # Use runtime shell var (NOT ${{ env.IMAGE_URI }} which is evaluated before the job runs)
-          sed -i 's|__IMAGE__|'"$IMAGE_URI"'|g' new-task-def.json
+          # Start from the template (single-container OBJECT)
+          cp infra/templates/taskdef.json container-template.json
 
-          # Merge with current TD to preserve roles & other settings
-          cat new-task-def.json | jq --slurpfile current current-task-def.json '
-            . as $containers
-            | {
-                family: $current[0].family,
-                taskRoleArn: $current[0].taskRoleArn,
-                executionRoleArn: $current[0].executionRoleArn,
-                networkMode: $current[0].networkMode,
-                requiresCompatibilities: $current[0].requiresCompatibilities,
-                cpu: $current[0].cpu,
-                memory: $current[0].memory,
-                containerDefinitions: $containers
-              }
-          ' > final-task-def.json
+          # Inject the newly built image into the container template
+          # (template contains the literal placeholder __IMAGE__)
+          sed -i 's|__IMAGE__|'"$IMAGE_URI"'|g' container-template.json
+
+          # Build the final task definition by combining preserved fields
+          # from the current TD with our (single) container OBJECT,
+          # wrapped into an ARRAY as required by ECS.
+          jq -n \
+            --slurpfile current current-task-def.json \
+            --slurpfile cont   container-template.json '
+            {
+              family:                 $current[0].family,
+              taskRoleArn:            $current[0].taskRoleArn,
+              executionRoleArn:       $current[0].executionRoleArn,
+              networkMode:            $current[0].networkMode,
+              requiresCompatibilities:$current[0].requiresCompatibilities,
+              cpu:                    $current[0].cpu,
+              memory:                 $current[0].memory,
+              containerDefinitions:   [ $cont[0] ]
+            }' > final-task-def.json
 
           echo "Rendered new task definition with image: $IMAGE_URI"
 
