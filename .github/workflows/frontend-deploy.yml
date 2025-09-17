@@ -1,0 +1,81 @@
+name: SBH Frontend Deploy
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'package.json'
+      - 'next.config.js'
+      - 'tailwind.config.js'
+      - 'tsconfig.json'
+      - 'postcss.config.js'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Build frontend
+      run: |
+        npm run build
+        npm run export
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: us-west-2
+        role-to-assume: arn:aws:iam::776567512687:role/GitHubActionsECRPush
+        role-session-name: sbh-frontend-deploy
+    
+    - name: Deploy to S3
+      run: |
+        # Upload frontend files to S3
+        aws s3 sync out/ s3://sbh-workspace-dev-b8aedb34/frontend/ --delete
+        
+        # Set proper content types
+        aws s3 cp s3://sbh-workspace-dev-b8aedb34/frontend/ s3://sbh-workspace-dev-b8aedb34/frontend/ --recursive --metadata-directive REPLACE --content-type "text/html" --exclude "*" --include "*.html"
+        aws s3 cp s3://sbh-workspace-dev-b8aedb34/frontend/ s3://sbh-workspace-dev-b8aedb34/frontend/ --recursive --metadata-directive REPLACE --content-type "text/css" --exclude "*" --include "*.css"
+        aws s3 cp s3://sbh-workspace-dev-b8aedb34/frontend/ s3://sbh-workspace-dev-b8aedb34/frontend/ --recursive --metadata-directive REPLACE --content-type "application/javascript" --exclude "*" --include "*.js"
+    
+    - name: Configure S3 bucket for static website hosting
+      run: |
+        aws s3 website s3://sbh-workspace-dev-b8aedb34 --index-document frontend/index.html --error-document frontend/index.html
+    
+    - name: Set bucket policy for public read
+      run: |
+        aws s3api put-bucket-policy --bucket sbh-workspace-dev-b8aedb34 --policy '{
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "PublicReadGetObject",
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "s3:GetObject",
+              "Resource": "arn:aws:s3:::sbh-workspace-dev-b8aedb34/frontend/*"
+            }
+          ]
+        }'
+    
+    - name: Get website URL
+      run: |
+        echo "Frontend deployed to: http://sbh-workspace-dev-b8aedb34.s3-website-us-west-2.amazonaws.com/frontend/"
+        echo "You can access it at: https://sbh.umbervale.com (once we configure the ALB)"
