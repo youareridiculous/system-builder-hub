@@ -268,7 +268,7 @@ def create_app():
     @app.route('/api/ai-chat/health', methods=['GET'])
     def ai_chat_health():
         """Health check for AI Chat service"""
-            return jsonify({
+        return jsonify({
             'status': 'healthy',
             'openai_configured': bool(openai.api_key),
             'timestamp': int(time.time())
