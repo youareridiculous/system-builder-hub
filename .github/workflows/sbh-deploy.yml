@@ -40,44 +40,28 @@ jobs:
           role-to-assume: arn:aws:iam::776567512687:role/GitHubActionsECRPush
           role-session-name: sbh-deploy-${{ github.run_id }}
 
-      - name: Who am I?
+      - name: Ensure ECR repository exists
         run: |
-          set -euxo pipefail
-          aws sts get-caller-identity
-
-      - name: Ensure jq is present
-        run: |
-          set -euxo pipefail
-          if ! command -v jq >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y jq
-          fi
-          jq --version
+          aws ecr describe-repositories --repository-names "${{ env.ECR_REPO }}" >/dev/null 2>&1 || \
+          aws ecr create-repository --repository-name "${{ env.ECR_REPO }}" >/dev/null
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Ensure ECR repo exists
-        run: |
-          set -euxo pipefail
-          aws ecr describe-repositories --repository-names "${{ env.ECR_REPO }}" >/dev/null 2>&1 \
-            || aws ecr create-repository --repository-name "${{ env.ECR_REPO }}" \
-                 --image-scanning-configuration scanOnPush=true \
-                 --encryption-configuration encryptionType=AES256
-
       - name: Set image tag
         id: image-tag
         run: |
-          set -euxo pipefail
           if [ -n "${{ github.event.inputs.image_tag }}" ]; then
             echo "tag=${{ github.event.inputs.image_tag }}" >> "$GITHUB_OUTPUT"
           else
             echo "tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push Docker image
         run: |
-          set -euxo pipefail
           IMAGE_TAG="${{ steps.image-tag.outputs.tag }}"
           IMAGE_URI="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${IMAGE_TAG}"
           LATEST_URI="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest"
@@ -90,166 +74,119 @@ jobs:
             --push \
             apps/backend
 
-          # Make IMAGE_URI available to later shell steps as $IMAGE_URI
+          # Make image URI available to later steps
           echo "IMAGE_URI=${IMAGE_URI}" >> "$GITHUB_ENV"
+          echo "Built and pushed: ${IMAGE_URI}"
 
-            - name: Get current task definition (from service if possible)
+      - name: Get current task definition
         id: current-td
         run: |
-          set -euxo pipefail
-          # Try to fetch the service's current task definition ARN
-          SVC_TD=$(aws ecs describe-services \
-            --cluster "${{ env.ECS_CLUSTER }}" \
-            --services "${{ env.ECS_SERVICE }}" \
-            --query 'services[0].taskDefinition' \
-            --output text || true)
-
-          if [ -n "${SVC_TD}" ] && [ "${SVC_TD}" != "None" ]; then
-            aws ecs describe-task-definition \
-              --task-definition "${SVC_TD}" \
-              --query 'taskDefinition' \
-              --output json > current-task-def.json
-            echo "found=true" >> "$GITHUB_OUTPUT"
-          else
-            # Fallback to family lookup
-            if aws ecs describe-task-definition \
-                 --task-definition "${{ env.TASK_FAMILY }}" \
-                 --query 'taskDefinition' \
-                 --output json > current-task-def.json 2>/dev/null; then
-              echo "found=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "{}" > current-task-def.json
-              echo "found=false" >> "$GITHUB_OUTPUT"
-              echo "No existing task definition found; will register fresh."
-            fi
-          fi
+          aws ecs describe-task-definition \
+            --task-definition "${{ env.TASK_FAMILY }}" \
+            --query 'taskDefinition' \
+            --output json > current-task-def.json
+          echo "Retrieved current task definition"
 
       - name: Render new task definition
         id: render-td
         run: |
-          set -euxo pipefail
+          # Copy template and inject the just-built image URI.
           cp infra/templates/taskdef.json new-task-def.json
-          # IMPORTANT: use runtime env var set earlier
-          sed -i "s|__IMAGE__|$IMAGE_URI|g" new-task-def.json
+          # Use runtime shell var (NOT ${{ env.IMAGE_URI }} which is evaluated before the job runs)
+          sed -i 's|__IMAGE__|'"$IMAGE_URI"'|g' new-task-def.json
 
-          FOUND="${{ steps.current-td.outputs.found }}"
-
-          # Optionally discover default execution role if we don't have one
-          EXEC_ROLE=$(aws iam get-role --role-name ecsTaskExecutionRole --query 'Role.Arn' --output text 2>/dev/null || true)
-
-          if [ "$FOUND" = "true" ]; then
-            jq -s --arg family "${{ env.TASK_FAMILY }}" --arg execRole "$EXEC_ROLE" '
-              .[0] as $tpl |
-              .[1] as $cur |
-              {
-                family:                  $family,
-                taskRoleArn:             ($cur.taskRoleArn // null),
-                executionRoleArn:        ($cur.executionRoleArn // ($execRole|select(length>0))),
-                networkMode:             ($cur.networkMode // "awsvpc"),
-                requiresCompatibilities: ($cur.requiresCompatibilities // ["FARGATE"]),
-                cpu:                     ($cur.cpu // "256"),
-                memory:                  ($cur.memory // "1024"),
-                runtimePlatform:         ($cur.runtimePlatform // {cpuArchitecture:"X86_64",operatingSystemFamily:"LINUX"}),
-                volumes:                 ($cur.volumes // []),
-                containerDefinitions:    $tpl.containerDefinitions
+          # Merge with current TD to preserve roles & other settings
+          cat new-task-def.json | jq --slurpfile current current-task-def.json '
+            . as $containers
+            | {
+                family: $current[0].family,
+                taskRoleArn: $current[0].taskRoleArn,
+                executionRoleArn: $current[0].executionRoleArn,
+                networkMode: $current[0].networkMode,
+                requiresCompatibilities: $current[0].requiresCompatibilities,
+                cpu: $current[0].cpu,
+                memory: $current[0].memory,
+                containerDefinitions: $containers
               }
-            ' new-task-def.json current-task-def.json > final-task-def.json
-          else
-            # First registration: inject sane Fargate defaults
-            jq --arg family "${{ env.TASK_FAMILY }}" --arg execRole "$EXEC_ROLE" '
-              {
-                family: $family,
-                taskRoleArn: null,
-                executionRoleArn: ($execRole|select(length>0)),
-                networkMode: "awsvpc",
-                requiresCompatibilities: ["FARGATE"],
-                cpu: "256",
-                memory: "1024",
-                runtimePlatform: {cpuArchitecture:"X86_64",operatingSystemFamily:"LINUX"},
-                volumes: [],
-                containerDefinitions: .containerDefinitions
-              }
-            ' new-task-def.json > final-task-def.json
-          fi
+          ' > final-task-def.json
 
-          echo "Rendered TD:"
-          jq '{family, cpu, memory, requiresCompatibilities, networkMode, image: .containerDefinitions[0].image}' final-task-def.json
+          echo "Rendered new task definition with image: $IMAGE_URI"
 
       - name: Register new task definition
         id: register-td
         run: |
-          set -euxo pipefail
-          aws --version
-          jq --version
-          echo "Submitting final-task-def.json to ECS…"
           NEW_TD_ARN=$(aws ecs register-task-definition \
             --cli-input-json file://final-task-def.json \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
           echo "NEW_TD_ARN=${NEW_TD_ARN}" >> "$GITHUB_OUTPUT"
-          echo "Registered: ${NEW_TD_ARN}"
+          echo "Registered new task definition: ${NEW_TD_ARN}"
 
       - name: Update ECS service
         run: |
-          set -euxo pipefail
+          echo "Updating ECS service with new task definition..."
           aws ecs update-service \
             --cluster "${{ env.ECS_CLUSTER }}" \
             --service "${{ env.ECS_SERVICE }}" \
             --task-definition "${{ steps.register-td.outputs.NEW_TD_ARN }}" \
-            --force-new-deployment
+            --force-new-deployment \
+            --output table
 
       - name: Wait for service to be stable
         run: |
-          set -euxo pipefail
+          echo "Waiting for service to reach steady state..."
           aws ecs wait services-stable \
             --cluster "${{ env.ECS_CLUSTER }}" \
             --services "${{ env.ECS_SERVICE }}"
+          echo "Service is now stable!"
 
       - name: Get target group health
         id: health-check
         run: |
-          set -euxo pipefail
           TG_ARN=$(aws ecs describe-services \
             --cluster "${{ env.ECS_CLUSTER }}" \
             --services "${{ env.ECS_SERVICE }}" \
             --query 'services[0].loadBalancers[0].targetGroupArn' \
-            --output text || true)
-
-          if [ "${TG_ARN}" != "None" ] && [ -n "${TG_ARN}" ]; then
+            --output text)
+          if [ "$TG_ARN" != "None" ] && [ -n "$TG_ARN" ]; then
+            echo "Target Group ARN: $TG_ARN"
             aws elbv2 describe-target-health \
-              --target-group-arn "${TG_ARN}" \
+              --target-group-arn "$TG_ARN" \
               --query 'TargetHealthDescriptions[*].{Target:Target.Id,Port:Target.Port,Health:TargetHealth.State,Reason:TargetHealth.Reason}' \
               --output table
-
             HEALTHY_COUNT=$(aws elbv2 describe-target-health \
-              --target-group-arn "${TG_ARN}" \
+              --target-group-arn "$TG_ARN" \
               --query 'length(TargetHealthDescriptions[?TargetHealth.State==`healthy`])' \
               --output text)
           else
+            echo "No target group found for service"
             HEALTHY_COUNT=0
           fi
-          echo "HEALTHY_COUNT=${HEALTHY_COUNT}" >> "$GITHUB_OUTPUT"
+          echo "HEALTHY_COUNT=$HEALTHY_COUNT" >> "$GITHUB_OUTPUT"
+          echo "Healthy targets: $HEALTHY_COUNT"
 
       - name: Test application health
         run: |
-          set -euxo pipefail
+          echo "Testing application health endpoint..."
           for i in {1..5}; do
             if curl -fsS "https://sbh.umbervale.com/api/ai-chat/health" > /dev/null; then
+              echo "✅ Application health check passed!"
               curl -fsS "https://sbh.umbervale.com/api/ai-chat/health" | jq .
               exit 0
+            else
+              echo "⏳ Attempt $i/5: Health check failed, retrying in 10s..."
+              sleep 10
             fi
-            echo "Attempt $i/5 failed; retrying in 10s…"
-            sleep 10
           done
-          echo "Application health check failed."
+          echo "❌ Application health check failed after 5 attempts"
           exit 1
 
       - name: Deployment summary
-        if: always()
         run: |
           echo "🚀 Deployment Summary"
-          echo "Image: $IMAGE_URI"
+          echo "===================="
+          echo "Image: ${IMAGE_URI}"
           echo "Task Definition: ${{ steps.register-td.outputs.NEW_TD_ARN }}"
           echo "Service: ${{ env.ECS_CLUSTER }}/${{ env.ECS_SERVICE }}"
           echo "Healthy Targets: ${{ steps.health-check.outputs.HEALTHY_COUNT }}"
-          echo "URL: https://sbh.umbervale.com/api/ai-chat/health"
+          echo "Application URL: https://sbh.umbervale.com/api/ai-chat/health"
