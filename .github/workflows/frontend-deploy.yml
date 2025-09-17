@@ -51,7 +51,7 @@ jobs:
     
     - name: Configure S3 bucket for static website hosting
       run: |
-        aws s3 website s3://sbh-workspace-dev-b8aedb34 --index-document frontend/index.html --error-document frontend/index.html
+        aws s3 website s3://sbh-workspace-dev-b8aedb34 --index-document index.html --error-document index.html
     
     - name: Set bucket policy for public read
       run: |
@@ -67,6 +67,7 @@ jobs:
             }
           ]
         }'
+    
     - name: Get website URL
       run: |
         echo "Frontend deployed to: http://sbh-workspace-dev-b8aedb34.s3-website-us-west-2.amazonaws.com/frontend/"
