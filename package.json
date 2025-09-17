@@ -10,15 +10,14 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .next out",
-    "export": "next build && next export"
+    "export": "next build"
   },
   "dependencies": {
     "next": "14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "lucide-react": "^0.292.0",
-    "clsx": "^2.0.0",
-    "critters": "^0.0.20"
+    "clsx": "^2.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
