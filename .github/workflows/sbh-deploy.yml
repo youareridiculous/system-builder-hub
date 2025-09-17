@@ -89,6 +89,7 @@ jobs:
             --tag "${IMAGE_URI}" \
             --tag "${LATEST_URI}" \
             --push \
+            -f apps/backend/Dockerfile \
             apps/backend
 
           echo "IMAGE_URI=${IMAGE_URI}" >> "$GITHUB_ENV"
