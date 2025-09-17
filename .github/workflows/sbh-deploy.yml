@@ -15,12 +15,14 @@ on:
 
 env:
   AWS_REGION: us-west-2
+  ACCOUNT_ID: 776567512687
   ECR_REGISTRY: 776567512687.dkr.ecr.us-west-2.amazonaws.com
   ECR_REPO: sbh-repo-dev
   ECS_CLUSTER: sbh-cluster-dev
   ECS_SERVICE: sbh-service-dev
   TASK_FAMILY: sbh-task-dev
   CONTAINER_NAME: sbh-backend
+  LOG_GROUP: /ecs/sbh-backend
 
 jobs:
   build-and-deploy:
@@ -30,22 +32,35 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials (OIDC)
+      - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::776567512687:role/GitHubActionsECRPush
+          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/GitHubActionsECRPush
           role-session-name: sbh-deploy-${{ github.run_id }}
+
+      - name: Ensure deps (jq)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq
 
       - name: Ensure ECR repository exists
         run: |
+          set -euo pipefail
           aws ecr describe-repositories --repository-names "${{ env.ECR_REPO }}" >/dev/null 2>&1 || \
           aws ecr create-repository --repository-name "${{ env.ECR_REPO }}" >/dev/null
 
-      - name: Login to Amazon ECR
+      - name: Ensure log group exists (no-op if present)
+        run: |
+          set -euo pipefail
+          aws logs describe-log-groups --log-group-name-prefix "${{ env.LOG_GROUP }}" \
+            --query "logGroups[?logGroupName=='${{ env.LOG_GROUP }}'] | length(@)" --output text | grep -q '^1$' || \
+          aws logs create-log-group --log-group-name "${{ env.LOG_GROUP }}" || true
+
+      - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Set image tag
@@ -60,13 +75,14 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker image
+      - name: Build and push image
         run: |
+          set -euo pipefail
           IMAGE_TAG="${{ steps.image-tag.outputs.tag }}"
           IMAGE_URI="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${IMAGE_TAG}"
           LATEST_URI="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest"
 
-          echo "Building image: ${IMAGE_URI}"
+          echo "Building ${IMAGE_URI}"
           docker buildx build \
             --platform linux/amd64 \
             --tag "${IMAGE_URI}" \
@@ -75,59 +91,56 @@ jobs:
             apps/backend
 
           echo "IMAGE_URI=${IMAGE_URI}" >> "$GITHUB_ENV"
-          echo "Built and pushed: ${IMAGE_URI}"
 
-      - name: Get current task definition
-        id: current-td
+      - name: Fetch current task definition
         run: |
+          set -euo pipefail
           aws ecs describe-task-definition \
             --task-definition "${{ env.TASK_FAMILY }}" \
             --query 'taskDefinition' \
             --output json > current-task-def.json
-          echo "Retrieved current task definition"
 
-      - name: Render new task definition
-        id: render-td
+      - name: Render updated task definition (only change image)
         run: |
-          # Start from the template (single-container OBJECT)
-          cp infra/templates/taskdef.json container-template.json
+          set -euo pipefail
+          # Remove AWS-managed / read-only fields, then update the image for the named container.
+          jq \
+            --arg CN "${{ env.CONTAINER_NAME }}" \
+            --arg IMG "${IMAGE_URI}" '
+              del(
+                .status,
+                .taskDefinitionArn,
+                .revision,
+                .requiresAttributes,
+                .compatibilities,
+                .registeredAt,
+                .registeredBy
+              )
+              | .containerDefinitions |= (map(
+                  if .name == $CN
+                  then .image = $IMG
+                  else .
+                  end
+                ))
+            ' current-task-def.json > final-task-def.json
 
-          # Inject the newly built image into the container template
-          # (template contains the literal placeholder __IMAGE__)
-          sed -i 's|__IMAGE__|'"$IMAGE_URI"'|g' container-template.json
-
-          # Build the final task definition by combining preserved fields
-          # from the current TD with our (single) container OBJECT,
-          # wrapped into an ARRAY as required by ECS.
-          jq -n \
-            --slurpfile current current-task-def.json \
-            --slurpfile cont   container-template.json '
-            {
-              family:                 $current[0].family,
-              taskRoleArn:            $current[0].taskRoleArn,
-              executionRoleArn:       $current[0].executionRoleArn,
-              networkMode:            $current[0].networkMode,
-              requiresCompatibilities:$current[0].requiresCompatibilities,
-              cpu:                    $current[0].cpu,
-              memory:                 $current[0].memory,
-              containerDefinitions:   [ $cont[0] ]
-            }' > final-task-def.json
-
-          echo "Rendered new task definition with image: $IMAGE_URI"
+          echo "Preview of final task def:"
+          jq '{family, containerDefinitions: [.containerDefinitions[] | {name, image}] }' final-task-def.json
 
       - name: Register new task definition
         id: register-td
         run: |
+          set -euo pipefail
           NEW_TD_ARN=$(aws ecs register-task-definition \
             --cli-input-json file://final-task-def.json \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
           echo "NEW_TD_ARN=${NEW_TD_ARN}" >> "$GITHUB_OUTPUT"
-          echo "Registered new task definition: ${NEW_TD_ARN}"
+          echo "Registered: ${NEW_TD_ARN}"
 
-      - name: Update ECS service
+      - name: Update ECS Service
         run: |
-          echo "Updating ECS service with new task definition..."
+          set -euo pipefail
           aws ecs update-service \
             --cluster "${{ env.ECS_CLUSTER }}" \
             --service "${{ env.ECS_SERVICE }}" \
@@ -135,61 +148,55 @@ jobs:
             --force-new-deployment \
             --output table
 
-      - name: Wait for service to be stable
+      - name: Wait for service stability
         run: |
-          echo "Waiting for service to reach steady state..."
+          set -euo pipefail
           aws ecs wait services-stable \
             --cluster "${{ env.ECS_CLUSTER }}" \
             --services "${{ env.ECS_SERVICE }}"
-          echo "Service is now stable!"
+          echo "Service stable."
 
-      - name: Get target group health
-        id: health-check
+      - name: Target group health
+        id: tg
         run: |
+          set -euo pipefail
           TG_ARN=$(aws ecs describe-services \
             --cluster "${{ env.ECS_CLUSTER }}" \
             --services "${{ env.ECS_SERVICE }}" \
             --query 'services[0].loadBalancers[0].targetGroupArn' \
             --output text)
+
           if [ "$TG_ARN" != "None" ] && [ -n "$TG_ARN" ]; then
-            echo "Target Group ARN: $TG_ARN"
+            echo "TG_ARN=${TG_ARN}" >> "$GITHUB_OUTPUT"
             aws elbv2 describe-target-health \
               --target-group-arn "$TG_ARN" \
               --query 'TargetHealthDescriptions[*].{Target:Target.Id,Port:Target.Port,Health:TargetHealth.State,Reason:TargetHealth.Reason}' \
               --output table
-            HEALTHY_COUNT=$(aws elbv2 describe-target-health \
-              --target-group-arn "$TG_ARN" \
-              --query 'length(TargetHealthDescriptions[?TargetHealth.State==`healthy`])' \
-              --output text)
           else
-            echo "No target group found for service"
-            HEALTHY_COUNT=0
+            echo "TG_ARN=" >> "$GITHUB_OUTPUT"
+            echo "No target group on service."
           fi
-          echo "HEALTHY_COUNT=$HEALTHY_COUNT" >> "$GITHUB_OUTPUT"
-          echo "Healthy targets: $HEALTHY_COUNT"
 
-      - name: Test application health
+      - name: App health probe
         run: |
-          echo "Testing application health endpoint..."
-          for i in {1..5}; do
+          set -euo pipefail
+          for i in {1..6}; do
             if curl -fsS "https://sbh.umbervale.com/api/ai-chat/health" > /dev/null; then
-              echo "✅ Application health check passed!"
+              echo "✅ App healthy"
               curl -fsS "https://sbh.umbervale.com/api/ai-chat/health" | jq .
               exit 0
-            else
-              echo "⏳ Attempt $i/5: Health check failed, retrying in 10s..."
-              sleep 10
             fi
+            echo "⏳ Health attempt $i/6 failed; retrying in 10s…"
+            sleep 10
           done
-          echo "❌ Application health check failed after 5 attempts"
+          echo "❌ App health check failed"
           exit 1
 
       - name: Deployment summary
         run: |
           echo "🚀 Deployment Summary"
-          echo "===================="
           echo "Image: ${IMAGE_URI}"
           echo "Task Definition: ${{ steps.register-td.outputs.NEW_TD_ARN }}"
           echo "Service: ${{ env.ECS_CLUSTER }}/${{ env.ECS_SERVICE }}"
-          echo "Healthy Targets: ${{ steps.health-check.outputs.HEALTHY_COUNT }}"
-          echo "Application URL: https://sbh.umbervale.com/api/ai-chat/health"
+          echo "Target Group: ${{ steps.tg.outputs.TG_ARN }}"
+          echo "URL: https://sbh.umbervale.com/api/ai-chat/health"
