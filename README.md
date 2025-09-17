@@ -1,68 +1,170 @@
 # System Builder Hub (SBH)
 
-A system that builds systems, taking specs as input and outputting bootable applications.
+A system that builds systems - takes specs as input and outputs bootable applications.
 
-## Phase 3 Deployment Setup
+## Architecture
 
-### GitHub Repository Setup
+- **One AWS account + one VPC + one ECR repo per env** (dev/prod)
+- **SBH backend** runs on ECS Fargate behind ALB with HTTPS and `/api/ai-chat/health` probe
+- **Postgres (RDS) + S3** for workspace storage
+- **Secrets in AWS Secrets Manager**
+- **GitHub Actions (OIDC)** builds/pushes image → deploys to ECS
+- **Terraform** defines everything; one `terraform apply` per env
+- **SBH "builder outputs"**: each generated system ships in its own repo with the same pipeline pattern
 
-1. Create a new private repository on GitHub: `youareridiculous/system-builder-hub`
-2. Set up the following repository variables (Settings > Secrets and variables > Actions > Variables):
-   - `AWS_REGION`: `us-west-2`
-   - `AWS_ACCOUNT_ID`: `776567512687`
-   - `ECR_REPO`: `sbh-repo-dev`
-   - `ECS_CLUSTER`: `sbh-cluster-dev`
-   - `ECS_SERVICE`: `sbh-service-dev`
-   - `APP_URL`: `https://sbh.umbervale.com`
-   - `S3_BUCKET_NAME`: `sbh-workspace-dev-b8aedb34`
+## Repository Structure
 
-### AWS IAM Configuration
+```
+├── infra/                    # Terraform for AWS infrastructure
+│   ├── modules/             # Reusable Terraform modules
+│   │   ├── network/         # VPC, subnets, NAT
+│   │   ├── db/              # RDS Postgres
+│   │   ├── storage/         # S3 buckets
+│   │   ├── ecr/             # Container registries
+│   │   ├── iam/             # IAM roles and policies
+│   │   ├── alb/             # Application Load Balancer
+│   │   └── ecs/             # ECS cluster and service
+│   ├── envs/                # Environment-specific configurations
+│   │   ├── dev/             # Development environment
+│   │   └── prod/            # Production environment
+│   └── scripts/             # One-time setup scripts
+├── apps/
+│   └── backend/             # SBH API application
+├── templates/               # Templates for generated systems
+├── .github/
+│   └── workflows/           # CI/CD pipelines
+└── README.md               # This file
+```
 
-The following IAM role has been created for GitHub Actions OIDC:
+## Quick Start
 
-- **Role ARN**: `arn:aws:iam::776567512687:role/sbh-github-oidc-deployer-dev`
-- **Trust Policy**: Allows GitHub Actions from `repo:youareridiculous/system-builder-hub:*`
-- **Permissions**: ECR push, ECS deploy, CloudWatch Logs, S3 read (least-privilege)
+### Prerequisites
+- AWS CLI configured
+- Terraform >= 1.0
+- GitHub repository with Actions enabled
 
-### Deployment Process
+### Bootstrap (One-time setup)
 
-Once the repository is created and variables are set:
+1. **Setup GitHub OIDC to AWS**:
+   ```bash
+   cd infra/scripts
+   ./setup-oidc.sh
+   # Note the role ARN for GitHub Actions
+   ```
 
-1. Push this code to the `main` branch
-2. The GitHub Actions workflow will automatically:
-   - Build ARM64 Docker image with context validation
-   - Push to ECR with image verification
-   - Deploy to ECS with health checks
-   - Apply database schema migrations
-   - Verify Phase-3 APIs and S3 functionality
+2. **Configure secrets in AWS Secrets Manager**:
+   ```bash
+   # Set these values (one-time)
+   aws secretsmanager put-secret-value --secret-id sbh-dev/db-url --secret-string "postgresql://..."
+   aws secretsmanager put-secret-value --secret-id sbh-dev/openai-key --secret-string "sk-..."
+   aws secretsmanager put-secret-value --secret-id sbh-dev/s3-bucket --secret-string "sbh-workspace-dev-..."
+   ```
 
-### Guardrails
+3. **Deploy infrastructure**:
+   ```bash
+   cd infra/envs/dev
+   terraform init
+   terraform plan
+   terraform apply
+   ```
 
-- **Context Budget**: Max 50MB, 5,000 files
-- **Forbidden Paths**: `.venv`, `node_modules`, `__pycache__`, etc.
-- **Platform Validation**: ARM64 manifest required
-- **Image Size**: Minimum 50MB
-- **Health Checks**: All subsystems must be healthy
+4. **Configure GitHub repository variables**:
+   - `AWS_ACCOUNT_ID`: 776567512687
+   - `AWS_REGION`: us-west-2
+   - `ECR_REPO`: sbh-repo-dev
+   - `ECS_CLUSTER`: sbh-cluster-dev
+   - `ECS_SERVICE`: sbh-service-dev
+   - `OIDC_ROLE_ARN`: (from step 1)
+   - `DOMAIN_NAME`: sbh.umbervale.com
 
-### Migration Path
+### Deploy
 
-- **Primary**: Alembic migrations via `/api/migrate/up`
-- **Fallback**: Direct schema fix via `/api/fix-db-schema`
-- **Reliability**: Runs in same VPC as application
+1. **Build and push image**:
+   - Push to `main` branch triggers build workflow
+   - Image is pushed to ECR with tag = short SHA
 
-## Current Status
+2. **Deploy to ECS**:
+   - Run "Deploy" workflow manually or on release tags
+   - New task definition is registered
+   - ECS service is updated with `--force-new-deployment`
 
-Phase 3 infrastructure is ready for deployment. The workflow includes:
-- Backend-only build context with strict exclusions
-- ARM64 Docker builds with validation
-- ECS deployment with health monitoring
-- Database schema management
-- API verification and S3 testing# Session management fix deployment
-# Workflow trigger test
-# Triggering session management deployment
-# Session fix deployment trigger
-# Workflow should trigger now
-# IAM permissions fixed - triggering deployment
-# Dispatching phase3-deploy workflow
-# Final attempt to trigger workflow
-# CodeBuild GitHub connection attempt
+3. **Verify deployment**:
+   ```bash
+   curl -sS "https://sbh.umbervale.com/api/ai-chat/health" | jq .
+   # Should return: {"status":"healthy",...}
+   ```
+
+### Rollback
+
+1. **Quick rollback**:
+   - Run "Deploy" workflow with previous image tag
+   - ECS will roll back to previous task definition
+
+2. **Emergency rollback**:
+   ```bash
+   aws ecs update-service \
+     --cluster sbh-cluster-dev \
+     --service sbh-service-dev \
+     --task-definition sbh-task-dev:PREVIOUS_REVISION \
+     --force-new-deployment
+   ```
+
+## Development
+
+### Local Development
+```bash
+cd apps/backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python -m src.server
+```
+
+### Database Migrations
+```bash
+# Run migrations
+make migrate
+
+# Run migrations online (during deployment)
+make migrate:online
+```
+
+## Monitoring
+
+### Health Checks
+- **Application**: `https://sbh.umbervale.com/api/ai-chat/health`
+- **Load Balancer**: ALB health checks on `/api/ai-chat/health`
+- **ECS**: Service health via CloudWatch
+
+### Logs
+```bash
+# Get last 200 lines of container logs
+aws logs tail /ecs/sbh-backend --follow --since 1h
+```
+
+### Alarms
+- **Target Group Unhealthy Hosts** > 0 for 5 minutes → SNS notification
+- **ECS Service CPU/Memory** utilization alarms
+
+## Generated Systems
+
+Each system built by SBH follows the same pattern:
+- Independent repository
+- Same infrastructure pattern (VPC, ECS, ALB, RDS, S3)
+- Same CI/CD pipeline (GitHub Actions + OIDC)
+- Health endpoint for monitoring
+- Rollback capabilities
+
+See `templates/TEMPLATE_GUIDE.md` for the contract each generated system must follow.
+
+## Troubleshooting
+
+See `apps/backend/RUNBOOK.md` for common issues and solutions.
+
+## Security
+
+- **No hardcoded secrets** - all secrets in AWS Secrets Manager
+- **OIDC authentication** - no long-lived AWS access keys
+- **Least privilege IAM** - minimal required permissions
+- **HTTPS only** - HTTP redirects to HTTPS
+- **Private subnets** - database and ECS tasks in private subnets

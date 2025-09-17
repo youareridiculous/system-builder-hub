@@ -1,0 +1,61 @@
+[
+  {
+    "name": "sbh-backend",
+    "image": "__IMAGE__",
+    "portMappings": [
+      {
+        "containerPort": 8000,
+        "hostPort": 8000,
+        "protocol": "tcp"
+      }
+    ],
+    "essential": true,
+    "environment": [
+      {
+        "name": "ENV",
+        "value": "production"
+      },
+      {
+        "name": "DB_URL",
+        "value": "__DB_URL__"
+      },
+      {
+        "name": "S3_BUCKET",
+        "value": "__S3_BUCKET__"
+      },
+      {
+        "name": "OPENAI_CONFIGURED",
+        "value": "true"
+      },
+      {
+        "name": "FLASK_ENV",
+        "value": "production"
+      },
+      {
+        "name": "PYTHONUNBUFFERED",
+        "value": "1"
+      }
+    ],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/sbh-backend",
+        "awslogs-region": "us-west-2",
+        "awslogs-stream-prefix": "ecs"
+      }
+    },
+    "healthCheck": {
+      "command": [
+        "CMD-SHELL",
+        "curl -f http://localhost:8000/api/ai-chat/health || exit 1"
+      ],
+      "interval": 30,
+      "timeout": 5,
+      "retries": 3,
+      "startPeriod": 60
+    },
+    "stopTimeout": 30,
+    "memoryReservation": 512,
+    "cpu": 256
+  }
+]

@@ -1,0 +1,194 @@
+name: SBH Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (defaults to commit SHA)'
+        required: false
+        default: ''
+  push:
+    branches: [main]
+    paths:
+      - 'apps/backend/**'
+      - '.github/workflows/sbh-deploy.yml'
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: 776567512687.dkr.ecr.us-west-2.amazonaws.com
+  ECR_REPO: sbh-repo-dev
+  ECS_CLUSTER: sbh-cluster-dev
+  ECS_SERVICE: sbh-service-dev
+  TASK_FAMILY: sbh-task-dev
+  CONTAINER_NAME: sbh-backend
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::776567512687:role/GitHubActionsECRPush
+          role-session-name: sbh-deploy-${{ github.run_id }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: image-tag
+        run: |
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push Docker image
+        run: |
+          IMAGE_TAG="${{ steps.image-tag.outputs.tag }}"
+          IMAGE_URI="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:$IMAGE_TAG"
+          LATEST_URI="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest"
+          
+          echo "Building image: $IMAGE_URI"
+          
+          # Build and push with both tags
+          docker buildx build \
+            --platform linux/amd64 \
+            --tag "$IMAGE_URI" \
+            --tag "$LATEST_URI" \
+            --push \
+            apps/backend
+          
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          echo "Built and pushed: $IMAGE_URI"
+
+      - name: Get current task definition
+        id: current-td
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.TASK_FAMILY }} \
+            --query 'taskDefinition' \
+            --output json > current-task-def.json
+          
+          echo "Retrieved current task definition"
+
+      - name: Render new task definition
+        id: render-td
+        run: |
+          # Copy the template
+          cp infra/templates/taskdef.json new-task-def.json
+          
+          # Replace image placeholder
+          sed -i "s|__IMAGE__|${{ env.IMAGE_URI }}|g" new-task-def.json
+          
+          # Merge with current task definition to preserve execution/task roles and other settings
+          jq --slurpfile current current-task-def.json '
+            {
+              family: $current[0].family,
+              taskRoleArn: $current[0].taskRoleArn,
+              executionRoleArn: $current[0].executionRoleArn,
+              networkMode: $current[0].networkMode,
+              requiresCompatibilities: $current[0].requiresCompatibilities,
+              cpu: $current[0].cpu,
+              memory: $current[0].memory,
+              containerDefinitions: .
+            }
+          ' new-task-def.json > final-task-def.json
+          
+          echo "Rendered new task definition with image: ${{ env.IMAGE_URI }}"
+
+      - name: Register new task definition
+        id: register-td
+        run: |
+          NEW_TD_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://final-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          
+          echo "NEW_TD_ARN=$NEW_TD_ARN" >> $GITHUB_OUTPUT
+          echo "Registered new task definition: $NEW_TD_ARN"
+
+      - name: Update ECS service
+        run: |
+          echo "Updating ECS service with new task definition..."
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --task-definition "${{ steps.register-td.outputs.NEW_TD_ARN }}" \
+            --force-new-deployment \
+            --output table
+
+      - name: Wait for service to be stable
+        run: |
+          echo "Waiting for service to reach steady state..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }}
+          echo "Service is now stable!"
+
+      - name: Get target group health
+        id: health-check
+        run: |
+          # Get the target group ARN from the service
+          TG_ARN=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].loadBalancers[0].targetGroupArn' \
+            --output text)
+          
+          if [ "$TG_ARN" != "None" ] && [ "$TG_ARN" != "" ]; then
+            echo "Target Group ARN: $TG_ARN"
+            
+            # Get target health
+            aws elbv2 describe-target-health \
+              --target-group-arn "$TG_ARN" \
+              --query 'TargetHealthDescriptions[*].{Target:Target.Id,Port:Target.Port,Health:TargetHealth.State,Reason:TargetHealth.Reason}' \
+              --output table
+            
+            # Count healthy targets
+            HEALTHY_COUNT=$(aws elbv2 describe-target-health \
+              --target-group-arn "$TG_ARN" \
+              --query 'TargetHealthDescriptions[?TargetHealth.State==`healthy`] | length(@)' \
+              --output text)
+            
+            echo "Healthy targets: $HEALTHY_COUNT"
+            echo "HEALTHY_COUNT=$HEALTHY_COUNT" >> $GITHUB_OUTPUT
+          else
+            echo "No target group found for service"
+            echo "HEALTHY_COUNT=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Test application health
+        run: |
+          echo "Testing application health endpoint..."
+          for i in {1..5}; do
+            if curl -f -s "https://sbh.umbervale.com/api/ai-chat/health" > /dev/null; then
+              echo "✅ Application health check passed!"
+              curl -s "https://sbh.umbervale.com/api/ai-chat/health" | jq .
+              exit 0
+            else
+              echo "⏳ Attempt $i/5: Health check failed, retrying in 10s..."
+              sleep 10
+            fi
+          done
+          echo "❌ Application health check failed after 5 attempts"
+          exit 1
+
+      - name: Deployment summary
+        run: |
+          echo "🚀 Deployment Summary"
+          echo "===================="
+          echo "Image: ${{ env.IMAGE_URI }}"
+          echo "Task Definition: ${{ steps.register-td.outputs.NEW_TD_ARN }}"
+          echo "Service: ${{ env.ECS_CLUSTER }}/${{ env.ECS_SERVICE }}"
+          echo "Healthy Targets: ${{ steps.health-check.outputs.HEALTHY_COUNT }}"
+          echo "Application URL: https://sbh.umbervale.com/api/ai-chat/health"
