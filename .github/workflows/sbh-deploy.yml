@@ -57,7 +57,8 @@ jobs:
         run: |
           set -euo pipefail
           aws logs describe-log-groups --log-group-name-prefix "${{ env.LOG_GROUP }}" \
-            --query "logGroups[?logGroupName=='${{ env.LOG_GROUP }}'] | length(@)" --output text | grep -q '^1$' || \
+            --query "logGroups[?logGroupName=='${{ env.LOG_GROUP }}'] | length(@)" \
+            --output text | grep -q '^1$' || \
           aws logs create-log-group --log-group-name "${{ env.LOG_GROUP }}" || true
 
       - name: Login to ECR
@@ -100,31 +101,39 @@ jobs:
             --query 'taskDefinition' \
             --output json > current-task-def.json
 
-      - name: Render updated task definition (only change image)
+      - name: Render updated task definition (only change image; keep everything else)
         run: |
           set -euo pipefail
-          # Remove AWS-managed / read-only fields, then update the image for the named container.
+          # Build a "clean" payload with only keys ECS accepts for register-task-definition.
+          # Then surgically update the image of the desired container.
           jq \
             --arg CN "${{ env.CONTAINER_NAME }}" \
             --arg IMG "${IMAGE_URI}" '
-              del(
-                .status,
-                .taskDefinitionArn,
-                .revision,
-                .requiresAttributes,
-                .compatibilities,
-                .registeredAt,
-                .registeredBy
-              )
-              | .containerDefinitions |= (map(
-                  if .name == $CN
-                  then .image = $IMG
-                  else .
-                  end
-                ))
+              # Switch the container image
+              .containerDefinitions |= (map(
+                if .name == $CN then (.image = $IMG) else . end
+              ))
+              # Rebuild a minimal, valid register payload with allowed fields only
+              | {
+                  family,
+                  taskRoleArn,
+                  executionRoleArn,
+                  networkMode,
+                  containerDefinitions,
+                  volumes,
+                  placementConstraints,
+                  requiresCompatibilities,
+                  cpu,
+                  memory,
+                  runtimePlatform,
+                  proxyConfiguration,
+                  ephemeralStorage
+                }
+              # Drop any nulls (optional keys not in the current TD)
+              | with_entries(select(.value != null))
             ' current-task-def.json > final-task-def.json
 
-          echo "Preview of final task def:"
+          echo "Preview of final task def (name + image):"
           jq '{family, containerDefinitions: [.containerDefinitions[] | {name, image}] }' final-task-def.json
 
       - name: Register new task definition
