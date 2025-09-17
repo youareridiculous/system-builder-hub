@@ -7,13 +7,8 @@ const nextConfig = {
   },
   env: {
     SBH_API_URL: process.env.SBH_API_URL || 'https://sbh.umbervale.com'
-  },
-  experimental: {
-    optimizeCss: true
-  },
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production'
   }
+  // Remove the experimental optimizeCss feature that's causing issues
 }
 
 module.exports = nextConfig
