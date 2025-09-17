@@ -44,6 +44,8 @@ In production, `OPENAI_API_KEY` is provided via ECS task definition secrets or e
 │ └── scripts/ # One-time setup scripts
 ├── apps/
 │ └── backend/ # SBH API application
+├── components/ # React UI components
+├── app/ # Next.js app directory
 ├── templates/ # Templates for generated systems
 ├── .github/
 │ └── workflows/ # CI/CD pipelines
@@ -56,6 +58,7 @@ In production, `OPENAI_API_KEY` is provided via ECS task definition secrets or e
 - AWS CLI configured
 - Terraform >= 1.0
 - GitHub repository with Actions enabled
+- Node.js >= 18.0.0
 
 ### Bootstrap (One-time setup)
 
@@ -90,6 +93,24 @@ In production, `OPENAI_API_KEY` is provided via ECS task definition secrets or e
    - `ECS_SERVICE`: sbh-service-dev
    - `OIDC_ROLE_ARN`: (from step 1)
    - `DOMAIN_NAME`: sbh.umbervale.com
+
+### Frontend Development
+
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Run development server**:
+   ```bash
+   npm run dev
+   ```
+
+3. **Build for production**:
+   ```bash
+   npm run build
+   npm run export
+   ```
 
 ### Deploy
 
@@ -182,3 +203,12 @@ See `apps/backend/RUNBOOK.md` for common issues and solutions.
 - **Least privilege IAM** - minimal required permissions
 - **HTTPS only** - HTTP redirects to HTTPS
 - **Private subnets** - database and ECS tasks in private subnets
+
+## Frontend Features
+
+- **AI Chat Interface** - Real-time chat with OpenAI models
+- **System Builder** - Step-by-step system configuration
+- **Model Selection** - Choose between GPT-4o, GPT-4o Mini, and GPT-4 Turbo
+- **Responsive Design** - Mobile-first approach with Tailwind CSS
+- **TypeScript** - Full type safety and IntelliSense
+- **Component Library** - Reusable UI components
