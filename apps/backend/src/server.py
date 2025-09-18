@@ -3174,7 +3174,7 @@ class {spec['name'].replace(' ', '')}Model(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     def __repr__(self):
-        return f"<{spec['name'].replace(' ', '')}Model(id={{self.id}}, name={{self.name}})>"'''
+        return f"<{spec['name'].replace(" ", "")}Model(id={{self.id}}, name={{self.name}})>"'''
 
 def generate_database_config(spec):
     return f'''from sqlalchemy import create_engine
@@ -4165,7 +4165,7 @@ def create_app():
                 io.BytesIO(zip_buffer),
                 mimetype='application/zip',
                 as_attachment=True,
-                download_name=f"{system['specification']['name'].lower().replace(' ', '-')}-system.zip"
+                download_name=f"{system['specification']['name'].lower().replace(" ", "-")}-system.zip"
             )
             
         except Exception as e:
