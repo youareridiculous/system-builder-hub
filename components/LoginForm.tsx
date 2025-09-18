@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useAuth } from './AuthProvider'
+import { useAuth } from './SimpleAuthProvider'
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
