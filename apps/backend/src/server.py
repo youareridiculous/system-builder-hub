@@ -1278,7 +1278,7 @@ def generate_nextjs_package_json(spec):
 def generate_nodejs_package_json(spec):
     """Generate real package.json for Node.js backend"""
     return json.dumps({
-        "name": f"{spec['name'].lower().replace(" ", "-")}-backend",
+        "name": f"{spec['name'].lower().replace(' ', '-')}-backend",
         "version": "1.0.0",
         "description": f"Backend API for {spec['name']}",
         "main": "src/app.js",
@@ -2989,7 +2989,7 @@ class {spec['name'].replace(" ", "")}Model(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     def __repr__(self):
-        return f"<{spec['name'].replace(" ", "")}Model(id={{self.id}}, name={{self.name}})>"'''
+        return f"<{spec['name'].replace(' ', '')}Model(id={{self.id}}, name={{self.name}})>"'''
 
 def generate_database_config(spec):
     return f'''from sqlalchemy import create_engine
@@ -3980,7 +3980,7 @@ def create_app():
                 io.BytesIO(zip_buffer),
                 mimetype='application/zip',
                 as_attachment=True,
-                download_name=f"{system['specification']['name'].lower().replace(" ", "-")}-system.zip"
+                download_name=f"{system['specification']['name'].lower().replace(' ', '-')}-system.zip"
             )
             
         except Exception as e:
