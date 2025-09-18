@@ -53,6 +53,7 @@ export function SystemBuilder() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isGenerating, setIsGenerating] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [generatedSystem, setGeneratedSystem] = useState<any>(null)
 
   const updateSpec = (updates: Partial<SystemSpec>) => {
     setSpec(prev => ({ ...prev, ...updates }))
@@ -94,11 +95,59 @@ export function SystemBuilder() {
   const generateSystem = async () => {
     if (validateStep(currentStep)) {
       setIsGenerating(true)
-      // TODO: Implement system generation logic
-      setTimeout(() => {
+      
+      try {
+        const response = await fetch('/api/system/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(spec)
+        })
+        
+        const result = await response.json()
+        
+        if (result.success) {
+          // System generated successfully
+          setGeneratedSystem(result.system)
+          console.log('Generated system:', result.system)
+          
+          // Show success message with system details
+          const systemDetails = `
+System "${spec.name}" generated successfully!
+
+System ID: ${result.system.systemId}
+Type: ${result.system.specification.type}
+Components: ${result.system.architecture.components.length}
+Templates: ${Object.keys(result.system.templates).length}
+Infrastructure: ${result.system.deployment.services.length} services
+
+Check the console for full system details.
+          `.trim()
+          
+          alert(systemDetails)
+        } else {
+          alert(`Error generating system: ${result.error}`)
+        }
+      } catch (error) {
+        console.error('Error generating system:', error)
+        alert('Failed to generate system. Please try again.')
+      } finally {
         setIsGenerating(false)
-        alert('System generation will be implemented in the next phase!')
-      }, 2000)
+      }
+    }
+  }
+
+  const downloadSystem = () => {
+    if (generatedSystem) {
+      const dataStr = JSON.stringify(generatedSystem, null, 2)
+      const dataBlob = new Blob([dataStr], { type: 'application/json' })
+      const url = URL.createObjectURL(dataBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${spec.name.toLowerCase().replace(/\s+/g, '-')}-system.json`
+      link.click()
+      URL.revokeObjectURL(url)
     }
   }
 
@@ -294,6 +343,8 @@ export function SystemBuilder() {
         {currentStep === 5 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-gray-900">Review & Generate</h2>
+            
+            {/* System Specification Review */}
             <div className="bg-gray-50 rounded-lg p-6 space-y-4">
               <div>
                 <h3 className="font-medium text-gray-900">System Name</h3>
@@ -338,6 +389,26 @@ export function SystemBuilder() {
                 </div>
               </div>
             </div>
+
+            {/* Generated System Display */}
+            {generatedSystem && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                <h3 className="font-medium text-green-900 mb-4">✅ System Generated Successfully!</h3>
+                <div className="space-y-2 text-sm">
+                  <p><strong>System ID:</strong> {generatedSystem.systemId}</p>
+                  <p><strong>Components:</strong> {generatedSystem.architecture.components.length}</p>
+                  <p><strong>Templates:</strong> {Object.keys(generatedSystem.templates).length}</p>
+                  <p><strong>Infrastructure Services:</strong> {generatedSystem.deployment.services.length}</p>
+                </div>
+                <button
+                  onClick={downloadSystem}
+                  className="mt-4 btn-primary flex items-center space-x-2"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download System</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
