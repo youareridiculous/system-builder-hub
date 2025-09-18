@@ -4140,7 +4140,7 @@ def create_app():
             strategy = get_deployment_strategy(domain_type)
             
             # Generate setup instructions
-            setup_instructions = generate_setup_instructions(domain, domain_type)
+            setup_instructions = generate_setup_instructions(domain_type, domain)
             
             return jsonify({
                 'success': True,
