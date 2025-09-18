@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Code, Database, Cloud, Zap, Settings, Play, Download, Eye, ShoppingCart, FileText, BarChart3 } from 'lucide-react'
+import { Code, Database, Cloud, Zap, Settings, Play, Download, Eye, ShoppingCart, FileText, BarChart3, Globe, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react'
 
 interface SystemSpec {
   name: string
@@ -10,6 +10,30 @@ interface SystemSpec {
   techStack: string[]
   features: string[]
   infrastructure: string[]
+}
+
+interface DomainValidation {
+  success: boolean
+  domain: string
+  domain_type: string
+  strategy: any
+  setup_instructions: any
+  error?: string
+}
+
+interface DeploymentResult {
+  success: boolean
+  system_id: string
+  live_url: string
+  deployment_id: string
+  deployment_type: string
+  domain_type: string
+  dns_setup: any
+  ssl_setup: any
+  strategy: any
+  status: string
+  message: string
+  error?: string
 }
 
 const systemTypes = [
@@ -54,6 +78,14 @@ export function SystemBuilder() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [generatedSystem, setGeneratedSystem] = useState<any>(null)
+  
+  // Domain management state
+  const [deploymentDomain, setDeploymentDomain] = useState('')
+  const [deploymentType, setDeploymentType] = useState('production')
+  const [domainValidation, setDomainValidation] = useState<DomainValidation | null>(null)
+  const [isValidatingDomain, setIsValidatingDomain] = useState(false)
+  const [isDeploying, setIsDeploying] = useState(false)
+  const [deploymentResult, setDeploymentResult] = useState<DeploymentResult | null>(null)
 
   const updateSpec = (updates: Partial<SystemSpec>) => {
     setSpec(prev => ({ ...prev, ...updates }))
@@ -90,6 +122,65 @@ export function SystemBuilder() {
 
   const handlePrevious = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1))
+  }
+
+  const validateDomain = async (domain: string) => {
+    if (!domain.trim()) return
+    
+    setIsValidatingDomain(true)
+    try {
+      const response = await fetch('/api/system/domain/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain })
+      })
+      const result = await response.json()
+      setDomainValidation(result)
+    } catch (error) {
+      console.error('Error validating domain:', error)
+      setDomainValidation({
+        success: false,
+        domain,
+        domain_type: 'unknown',
+        strategy: {},
+        setup_instructions: {},
+        error: 'Failed to validate domain'
+      })
+    } finally {
+      setIsValidatingDomain(false)
+    }
+  }
+
+  const deployToCloud = async (systemId: string) => {
+    if (!deploymentDomain.trim()) {
+      alert('Please enter a domain for deployment')
+      return
+    }
+
+    setIsDeploying(true)
+    try {
+      const response = await fetch(`/api/system/deploy/${systemId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          domain: deploymentDomain,
+          type: deploymentType
+        })
+      })
+      const result = await response.json()
+      setDeploymentResult(result)
+      
+      if (result.success) {
+        alert(`�� System deployed successfully!\n\nLive URL: ${result.live_url}\n\n${result.message}`)
+      } else {
+        alert(`❌ Deployment failed: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error deploying system:', error)
+      alert('Failed to deploy system. Please try again.')
+    } finally {
+      setIsDeploying(false)
+    }
   }
 
   const generateSystem = async () => {
@@ -392,21 +483,191 @@ Check the console for full system details.
 
             {/* Generated System Display */}
             {generatedSystem && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                <h3 className="font-medium text-green-900 mb-4">✅ System Generated Successfully!</h3>
-                <div className="space-y-2 text-sm">
-                  <p><strong>System ID:</strong> {generatedSystem.systemId}</p>
-                  <p><strong>Components:</strong> {generatedSystem.architecture.components.length}</p>
-                  <p><strong>Templates:</strong> {Object.keys(generatedSystem.templates).length}</p>
-                  <p><strong>Infrastructure Services:</strong> {generatedSystem.deployment.services.length}</p>
+              <div className="space-y-6">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                  <h3 className="font-medium text-green-900 mb-4 flex items-center">
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    System Generated Successfully!
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>System ID:</strong> {generatedSystem.systemId}</p>
+                    <p><strong>Components:</strong> {generatedSystem.architecture.components.length}</p>
+                    <p><strong>Templates:</strong> {Object.keys(generatedSystem.templates).length}</p>
+                    <p><strong>Infrastructure Services:</strong> {generatedSystem.deployment.services.length}</p>
+                  </div>
+                  <div className="flex space-x-3 mt-4">
+                    <button
+                      onClick={downloadSystem}
+                      className="btn-secondary flex items-center space-x-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download System</span>
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={downloadSystem}
-                  className="mt-4 btn-primary flex items-center space-x-2"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download System</span>
-                </button>
+
+                {/* Deployment Section */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <h3 className="font-medium text-blue-900 mb-4 flex items-center">
+                    <Globe className="w-5 h-5 mr-2" />
+                    Deploy to Cloud
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Domain Name
+                      </label>
+                      <div className="flex space-x-3">
+                        <input
+                          type="text"
+                          value={deploymentDomain}
+                          onChange={(e) => setDeploymentDomain(e.target.value)}
+                          onBlur={() => deploymentDomain && validateDomain(deploymentDomain)}
+                          placeholder="e.g., myapp.com or myapp.sbh.umbervale.com"
+                          className="input-field flex-1"
+                        />
+                        {isValidatingDomain && (
+                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mt-2" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Deployment Type
+                      </label>
+                      <select
+                        value={deploymentType}
+                        onChange={(e) => setDeploymentType(e.target.value)}
+                        className="input-field"
+                      >
+                        <option value="preview">Preview (for testing)</option>
+                        <option value="production">Production (live system)</option>
+                      </select>
+                    </div>
+
+                    {/* Domain Validation Results */}
+                    {domainValidation && (
+                      <div className={`p-4 rounded-lg border ${
+                        domainValidation.success 
+                          ? 'bg-green-50 border-green-200' 
+                          : 'bg-red-50 border-red-200'
+                      }`}>
+                        <div className="flex items-start">
+                          {domainValidation.success ? (
+                            <CheckCircle className="w-5 h-5 text-green-600 mr-2 mt-0.5" />
+                          ) : (
+                            <AlertCircle className="w-5 h-5 text-red-600 mr-2 mt-0.5" />
+                          )}
+                          <div className="flex-1">
+                            <h4 className={`font-medium ${
+                              domainValidation.success ? 'text-green-900' : 'text-red-900'
+                            }`}>
+                              {domainValidation.success ? 'Domain Valid' : 'Domain Invalid'}
+                            </h4>
+                            {domainValidation.success ? (
+                              <div className="mt-2">
+                                <p className="text-sm text-green-700">
+                                  <strong>Type:</strong> {domainValidation.domain_type}
+                                </p>
+                                <p className="text-sm text-green-700">
+                                  <strong>Strategy:</strong> {domainValidation.strategy.setup_instructions}
+                                </p>
+                                {domainValidation.setup_instructions.steps && domainValidation.setup_instructions.steps.length > 0 && (
+                                  <div className="mt-2">
+                                    <p className="text-sm font-medium text-green-800">Setup Steps:</p>
+                                    <ul className="text-sm text-green-700 mt-1 space-y-1">
+                                      {domainValidation.setup_instructions.steps.map((step: string, index: number) => (
+                                        <li key={index}>{step}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-red-700 mt-1">
+                                {domainValidation.error}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Deployment Button */}
+                    <button
+                      onClick={() => deployToCloud(generatedSystem.systemId)}
+                      disabled={isDeploying || !deploymentDomain.trim() || !domainValidation?.success}
+                      className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isDeploying ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Deploying...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Cloud className="w-4 h-4" />
+                          <span>Deploy to Cloud</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Deployment Result */}
+                    {deploymentResult && (
+                      <div className={`p-4 rounded-lg border ${
+                        deploymentResult.success 
+                          ? 'bg-green-50 border-green-200' 
+                          : 'bg-red-50 border-red-200'
+                      }`}>
+                        <div className="flex items-start">
+                          {deploymentResult.success ? (
+                            <CheckCircle className="w-5 h-5 text-green-600 mr-2 mt-0.5" />
+                          ) : (
+                            <AlertCircle className="w-5 h-5 text-red-600 mr-2 mt-0.5" />
+                          )}
+                          <div className="flex-1">
+                            <h4 className={`font-medium ${
+                              deploymentResult.success ? 'text-green-900' : 'text-red-900'
+                            }`}>
+                              {deploymentResult.success ? 'Deployment Successful!' : 'Deployment Failed'}
+                            </h4>
+                            {deploymentResult.success ? (
+                              <div className="mt-2 space-y-2">
+                                <p className="text-sm text-green-700">
+                                  <strong>Live URL:</strong> 
+                                  <a 
+                                    href={deploymentResult.live_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="ml-1 text-green-600 hover:text-green-800 underline flex items-center"
+                                  >
+                                    {deploymentResult.live_url}
+                                    <ExternalLink className="w-3 h-3 ml-1" />
+                                  </a>
+                                </p>
+                                <p className="text-sm text-green-700">
+                                  <strong>Deployment ID:</strong> {deploymentResult.deployment_id}
+                                </p>
+                                <p className="text-sm text-green-700">
+                                  <strong>Domain Type:</strong> {deploymentResult.domain_type}
+                                </p>
+                                <p className="text-sm text-green-700">
+                                  <strong>Status:</strong> {deploymentResult.status}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-red-700 mt-1">
+                                {deploymentResult.error}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
