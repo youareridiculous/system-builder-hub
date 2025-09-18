@@ -1539,7 +1539,7 @@ def generate_nextjs_package_json(spec):
 def generate_nodejs_package_json(spec):
     """Generate real package.json for Node.js backend"""
     return json.dumps({
-        "name": f"{spec['name'].lower().replace(" ", "-")}-backend",
+        "name": f"{spec['name'].lower().replace(' ', '-')}-backend",
         "version": "1.0.0",
         "description": f"Backend API for {spec['name']}",
         "main": "src/app.js",
