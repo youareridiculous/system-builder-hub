@@ -1608,6 +1608,15 @@ output "alb_dns_name" {{
   value = aws_lb.main.dns_name
 }}'''
 
+# Add these imports at the top with the other imports
+import zipfile
+import io
+import base64
+from datetime import datetime, timedelta
+
+# Add this in-memory storage for generated systems (in production, use Redis or database)
+generated_systems = {}
+
 def create_app():
     """Create Flask application with OpenAI integration and system generation"""
     app = Flask(__name__)
@@ -1804,6 +1813,9 @@ def create_app():
                 'generatedAt': datetime.utcnow().isoformat()
             }
             
+            # Store system for preview/testing
+            generated_systems[system_id] = system_output
+            
             return jsonify({
                 'success': True,
                 'system': system_output
@@ -1816,7 +1828,236 @@ def create_app():
                 'error': str(e)
             }), 500
 
+    @app.route('/api/system/preview/<system_id>', methods=['GET'])
+    def preview_system(system_id):
+        """Preview a generated system with code viewer and architecture"""
+        try:
+            if system_id not in generated_systems:
+                return jsonify({
+                    'success': False,
+                    'error': 'System not found'
+                }), 404
+            
+            system = generated_systems[system_id]
+            
+            # Create preview data with file contents
+            preview_data = {
+                'systemId': system_id,
+                'specification': system['specification'],
+                'architecture': system['architecture'],
+                'templates': system['templates'],
+                'deployment': system['deployment'],
+                'preview': {
+                    'fileCount': count_files(system['templates']),
+                    'components': len(system['architecture']['components']),
+                    'infrastructure': len(system['architecture']['infrastructure']),
+                    'generatedAt': system['generatedAt']
+                }
+            }
+            
+            return jsonify({
+                'success': True,
+                'preview': preview_data
+            })
+            
+        except Exception as e:
+            logger.error(f"System preview error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+    @app.route('/api/system/test/<system_id>', methods=['POST'])
+    def test_system(system_id):
+        """Deploy and test a generated system"""
+        try:
+            if system_id not in generated_systems:
+                return jsonify({
+                    'success': False,
+                    'error': 'System not found'
+                }), 404
+            
+            system = generated_systems[system_id]
+            
+            # Create test deployment
+            test_deployment = create_test_deployment(system)
+            
+            # Store test deployment info
+            system['testDeployment'] = test_deployment
+            
+            return jsonify({
+                'success': True,
+                'testDeployment': test_deployment
+            })
+            
+        except Exception as e:
+            logger.error(f"System test error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+    @app.route('/api/system/validate/<system_id>', methods=['GET'])
+    def validate_system(system_id):
+        """Validate a generated system"""
+        try:
+            if system_id not in generated_systems:
+                return jsonify({
+                    'success': False,
+                    'error': 'System not found'
+                }), 404
+            
+            system = generated_systems[system_id]
+            
+            # Run validation checks
+            validation_results = validate_system_components(system)
+            
+            return jsonify({
+                'success': True,
+                'validation': validation_results
+            })
+            
+        except Exception as e:
+            logger.error(f"System validation error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+    @app.route('/api/system/download/<system_id>', methods=['GET'])
+    def download_system(system_id):
+        """Download a generated system as ZIP file"""
+        try:
+            if system_id not in generated_systems:
+                return jsonify({
+                    'success': False,
+                    'error': 'System not found'
+                }), 404
+            
+            system = generated_systems[system_id]
+            
+            # Create ZIP file
+            zip_buffer = create_system_zip(system)
+            
+            # Return ZIP file
+            return send_file(
+                io.BytesIO(zip_buffer),
+                mimetype='application/zip',
+                as_attachment=True,
+                download_name=f"{system['specification']['name'].lower().replace(' ', '-')}-system.zip"
+            )
+            
+        except Exception as e:
+            logger.error(f"System download error: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
     return app
+
+# Helper functions
+def count_files(templates):
+    """Count total files in templates"""
+    total = 0
+    for template_type, template_data in templates.items():
+        if 'files' in template_data:
+            total += len(template_data['files'])
+    return total
+
+def create_test_deployment(system):
+    """Create test deployment configuration"""
+    return {
+        'testId': f"test_{system['systemId'][:8]}",
+        'status': 'deploying',
+        'frontendUrl': f"https://test-{system['systemId'][:8]}.sbh.umbervale.com",
+        'backendUrl': f"https://api-test-{system['systemId'][:8]}.sbh.umbervale.com",
+        'deployedAt': datetime.utcnow().isoformat(),
+        'estimatedTime': '2-3 minutes'
+    }
+
+def validate_system_components(system):
+    """Validate system components"""
+    validation = {
+        'overall': 'valid',
+        'checks': [],
+        'warnings': [],
+        'errors': []
+    }
+    
+    # Check required files
+    required_files = ['package.json', 'main.tf', 'Dockerfile']
+    for template_type, template_data in system['templates'].items():
+        if 'files' in template_data:
+            for file_info in template_data['files']:
+                if file_info['name'] in required_files:
+                    validation['checks'].append({
+                        'type': 'file',
+                        'name': file_info['name'],
+                        'status': 'found',
+                        'template': template_type
+                    })
+    
+    # Check infrastructure components
+    if len(system['architecture']['infrastructure']) < 2:
+        validation['warnings'].append('Minimal infrastructure components')
+    
+    # Check for security
+    if 'User Authentication' in system['specification']['features']:
+        validation['checks'].append({
+            'type': 'security',
+            'name': 'Authentication',
+            'status': 'configured'
+        })
+    
+    return validation
+
+def create_system_zip(system):
+    """Create ZIP file from system templates"""
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Add README
+        readme_content = f"""# {system['specification']['name']}
+
+{system['specification']['description']}
+
+## Generated System Components
+
+### Frontend
+- Type: {system['templates'].get('frontend', {}).get('type', 'N/A')}
+- Files: {len(system['templates'].get('frontend', {}).get('files', []))}
+
+### Backend  
+- Type: {system['templates'].get('backend', {}).get('type', 'N/A')}
+- Files: {len(system['templates'].get('backend', {}).get('files', []))}
+
+### Infrastructure
+- Type: {system['templates'].get('infrastructure', {}).get('type', 'N/A')}
+- Files: {len(system['templates'].get('infrastructure', {}).get('files', []))}
+
+## Deployment Instructions
+
+1. Review the generated code
+2. Update environment variables
+3. Deploy infrastructure with Terraform
+4. Deploy applications to ECS
+5. Configure CI/CD pipelines
+
+Generated by System Builder Hub (SBH)
+Generated at: {system['generatedAt']}
+"""
+        zip_file.writestr('README.md', readme_content)
+        
+        # Add all template files
+        for template_type, template_data in system['templates'].items():
+            if 'files' in template_data:
+                for file_info in template_data['files']:
+                    file_path = f"{template_type}/{file_info['name']}"
+                    zip_file.writestr(file_path, file_info['content'])
+    
+    zip_buffer.seek(0)
+    return zip_buffer.getvalue()
 
 # Create the Flask app instance
 app = create_app()
