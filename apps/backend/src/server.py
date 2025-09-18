@@ -689,7 +689,7 @@ S3_BUCKET_NAME=your-bucket-name
 ### Logs
 ```bash
 # AWS ECS
-aws logs tail /ecs/{system_name.lower().replace(' ', '-')} --follow
+aws logs tail /ecs/{system_name.lower().replace(" ", "-")} --follow
 
 # Docker Compose
 docker-compose logs -f backend
@@ -2366,7 +2366,7 @@ def generate_comprehensive_readme(spec):
 1. **Clone and setup:**
    ```bash
    git clone <your-repo-url>
-   cd {system_name.lower().replace(' ', '-')}
+   cd {system_name.lower().replace(" ", "-")}
    cp .env.example .env
    # Edit .env with your configuration
    ```
@@ -2407,7 +2407,7 @@ def generate_comprehensive_readme(spec):
 ## 📁 Project Structure
 
 ```
-{system_name.lower().replace(' ', '-')}/
+{system_name.lower().replace(" ", "-")}/
 ├── frontend/                 # Next.js frontend application
 │   ├── pages/               # Next.js pages
 │   ├── components/          # React components
