@@ -18,10 +18,16 @@ from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 import openai
 from openai import OpenAI
+import boto3
+from botocore.exceptions import ClientError
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# S3 Configuration
+s3_client = boto3.client('s3')
+S3_BUCKET = os.getenv('S3_BUCKET_NAME', 'sbh-generated-systems')
 
 def get_openai_config() -> Dict[str, Any]:
     """Get OpenAI configuration from environment variables"""
@@ -143,6 +149,464 @@ def generate_system_architecture(spec):
         })
     
     return architecture
+
+def save_system_to_s3(system_id, system_data):
+    """Save system to S3"""
+    try:
+        key = f"systems/{system_id}.json"
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=key,
+            Body=json.dumps(system_data, default=str),
+            ContentType='application/json'
+        )
+        return True
+    except ClientError as e:
+        logger.error(f"Error saving system to S3: {e}")
+        return False
+
+def load_system_from_s3(system_id):
+    """Load system from S3"""
+    try:
+        key = f"systems/{system_id}.json"
+        response = s3_client.get_object(Bucket=S3_BUCKET, Key=key)
+        return json.loads(response['Body'].read().decode('utf-8'))
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuchKey':
+            return None
+        logger.error(f"Error loading system from S3: {e}")
+        return None
+
+def delete_system_from_s3(system_id):
+    """Delete system from S3"""
+    try:
+        key = f"systems/{system_id}.json"
+        s3_client.delete_object(Bucket=S3_BUCKET, Key=key)
+        return True
+    except ClientError as e:
+        logger.error(f"Error deleting system from S3: {e}")
+        return False
+
+def detect_domain_type(domain):
+    """Detect the type of domain for deployment strategy"""
+    domain = domain.lower().strip()
+    
+    # SBH-managed subdomains
+    if domain.endswith('.sbh.umbervale.com'):
+        return 'sbh_managed'
+    
+    # Check if it's a root domain (no subdomain)
+    parts = domain.split('.')
+    if len(parts) == 2:  # ecommerce.com
+        return 'root_domain'
+    elif len(parts) > 2:  # ecommerce.umbervale.com
+        return 'custom_subdomain'
+    
+    return 'unknown'
+
+def validate_domain(domain):
+    """Validate domain format and availability"""
+    import re
+    
+    # Basic domain format validation
+    domain_pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$'
+    
+    if not re.match(domain_pattern, domain):
+        return {
+            'valid': False,
+            'error': 'Invalid domain format'
+        }
+    
+    # Check domain length
+    if len(domain) > 253:
+        return {
+            'valid': False,
+            'error': 'Domain too long (max 253 characters)'
+        }
+    
+    # Check for reserved domains
+    reserved_domains = ['localhost', 'example.com', 'test.com', 'sbh.umbervale.com']
+    if domain in reserved_domains:
+        return {
+            'valid': False,
+            'error': 'Domain is reserved'
+        }
+    
+    return {
+        'valid': True,
+        'domain_type': detect_domain_type(domain)
+    }
+
+def get_deployment_strategy(domain_type):
+    """Get deployment strategy based on domain type"""
+    strategies = {
+        'sbh_managed': {
+            'dns_management': 'automatic',
+            'ssl_management': 'automatic',
+            'user_action_required': False,
+            'setup_instructions': 'Fully automated - no user action required'
+        },
+        'custom_subdomain': {
+            'dns_management': 'cname_instructions',
+            'ssl_management': 'automatic_after_dns',
+            'user_action_required': True,
+            'setup_instructions': 'Create CNAME record pointing to our load balancer'
+        },
+        'root_domain': {
+            'dns_management': 'route53_or_cloudflare',
+            'ssl_management': 'automatic_after_dns',
+            'user_action_required': True,
+            'setup_instructions': 'Transfer to Route 53 or use CloudFlare for best results'
+        }
+    }
+    
+    return strategies.get(domain_type, {
+        'dns_management': 'manual',
+        'ssl_management': 'manual',
+        'user_action_required': True,
+        'setup_instructions': 'Manual DNS configuration required'
+    })
+
+def create_route53_record(domain, target, record_type='CNAME'):
+    """Create Route 53 DNS record"""
+    try:
+        route53_client = boto3.client('route53')
+        
+        # Get hosted zone ID for the domain
+        hosted_zone_id = get_hosted_zone_id(domain)
+        if not hosted_zone_id:
+            return {
+                'success': False,
+                'error': 'No Route 53 hosted zone found for domain'
+            }
+        
+        # Create DNS record
+        response = route53_client.change_resource_record_sets(
+            HostedZoneId=hosted_zone_id,
+            ChangeBatch={
+                'Changes': [{
+                    'Action': 'UPSERT',
+                    'ResourceRecordSet': {
+                        'Name': domain,
+                        'Type': record_type,
+                        'TTL': 300,
+                        'ResourceRecords': [{'Value': target}]
+                    }
+                }]
+            }
+        )
+        
+        return {
+            'success': True,
+            'change_id': response['ChangeInfo']['Id'],
+            'status': response['ChangeInfo']['Status']
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating Route 53 record: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def get_hosted_zone_id(domain):
+    """Get Route 53 hosted zone ID for domain"""
+    try:
+        route53_client = boto3.client('route53')
+        
+        # Extract root domain
+        parts = domain.split('.')
+        if len(parts) >= 2:
+            root_domain = '.'.join(parts[-2:])
+        else:
+            root_domain = domain
+        
+        # List hosted zones
+        response = route53_client.list_hosted_zones()
+        
+        for zone in response['HostedZones']:
+            zone_name = zone['Name'].rstrip('.')
+            if zone_name == root_domain:
+                return zone['Id'].split('/')[-1]
+        
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error getting hosted zone ID: {e}")
+        return None
+
+def request_ssl_certificate(domain):
+    """Request SSL certificate from AWS Certificate Manager"""
+    try:
+        acm_client = boto3.client('acm', region_name='us-east-1')  # ACM requires us-east-1
+        
+        # Request certificate
+        response = acm_client.request_certificate(
+            DomainName=domain,
+            ValidationMethod='DNS',
+            SubjectAlternativeNames=[domain] if not domain.startswith('*.') else [domain]
+        )
+        
+        certificate_arn = response['CertificateArn']
+        
+        # Get DNS validation records
+        validation_records = get_certificate_validation_records(certificate_arn)
+        
+        return {
+            'success': True,
+            'certificate_arn': certificate_arn,
+            'validation_records': validation_records,
+            'status': 'pending_validation'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error requesting SSL certificate: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def get_certificate_validation_records(certificate_arn):
+    """Get DNS validation records for SSL certificate"""
+    try:
+        acm_client = boto3.client('acm', region_name='us-east-1')
+        
+        response = acm_client.describe_certificate(CertificateArn=certificate_arn)
+        
+        validation_records = []
+        for option in response['Certificate']['DomainValidationOptions']:
+            if 'ResourceRecord' in option:
+                validation_records.append({
+                    'name': option['ResourceRecord']['Name'],
+                    'type': option['ResourceRecord']['Type'],
+                    'value': option['ResourceRecord']['Value']
+                })
+        
+        return validation_records
+        
+    except Exception as e:
+        logger.error(f"Error getting validation records: {e}")
+        return []
+
+def check_dns_propagation(domain, expected_value):
+    """Check if DNS record has propagated"""
+    try:
+        import socket
+        
+        # Try to resolve the domain
+        result = socket.gethostbyname(domain)
+        
+        # For CNAME records, we'd need to check the actual CNAME value
+        # This is a simplified check
+        return {
+            'propagated': True,
+            'resolved_ip': result
+        }
+        
+    except socket.gaierror:
+        return {
+            'propagated': False,
+            'error': 'DNS not yet propagated'
+        }
+    except Exception as e:
+        return {
+            'propagated': False,
+            'error': str(e)
+        }
+
+def upload_file_to_s3(file, system_id, file_type):
+    """Upload file to S3 for system reference"""
+    try:
+        import uuid
+        from werkzeug.utils import secure_filename
+        
+        # Generate unique filename
+        file_id = str(uuid.uuid4())
+        file_extension = secure_filename(file.filename).split('.')[-1] if '.' in file.filename else ''
+        s3_key = f"references/{system_id}/{file_type}/{file_id}.{file_extension}"
+        
+        # Upload to S3
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=s3_key,
+            Body=file.read(),
+            ContentType=file.content_type or 'application/octet-stream'
+        )
+        
+        return {
+            'success': True,
+            'file_id': file_id,
+            's3_key': s3_key,
+            'filename': file.filename,
+            'content_type': file.content_type,
+            'size': file.content_length
+        }
+        
+    except Exception as e:
+        logger.error(f"Error uploading file to S3: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def analyze_uploaded_image(s3_key):
+    """Analyze uploaded image for system design insights"""
+    try:
+        from PIL import Image
+        import io
+        
+        # Download image from S3
+        response = s3_client.get_object(Bucket=S3_BUCKET, Key=s3_key)
+        image_data = response['Body'].read()
+        
+        # Open image with PIL
+        image = Image.open(io.BytesIO(image_data))
+        
+        # Basic analysis
+        analysis = {
+            'width': image.width,
+            'height': image.height,
+            'format': image.format,
+            'mode': image.mode,
+            'size_kb': len(image_data) / 1024,
+            'aspect_ratio': round(image.width / image.height, 2)
+        }
+        
+        # Detect UI elements (basic color analysis)
+        if image.mode == 'RGB':
+            # Get dominant colors
+            colors = image.getcolors(maxcolors=256*256*256)
+            if colors:
+                dominant_color = max(colors, key=lambda x: x[0])
+                analysis['dominant_color'] = dominant_color[1]
+        
+        return {
+            'success': True,
+            'analysis': analysis
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing image: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def analyze_reference_url(url):
+    """Analyze reference URL for system inspiration"""
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+        
+        # Fetch the webpage
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        # Parse HTML
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Extract key information
+        analysis = {
+            'title': soup.title.string if soup.title else '',
+            'description': '',
+            'technologies': [],
+            'features': [],
+            'layout_elements': []
+        }
+        
+        # Get meta description
+        meta_desc = soup.find('meta', attrs={'name': 'description'})
+        if meta_desc:
+            analysis['description'] = meta_desc.get('content', '')
+        
+        # Detect technologies
+        scripts = soup.find_all('script', src=True)
+        for script in scripts:
+            src = script['src']
+            if 'react' in src.lower():
+                analysis['technologies'].append('React')
+            elif 'vue' in src.lower():
+                analysis['technologies'].append('Vue.js')
+            elif 'angular' in src.lower():
+                analysis['technologies'].append('Angular')
+            elif 'jquery' in src.lower():
+                analysis['technologies'].append('jQuery')
+        
+        # Detect common UI elements
+        if soup.find('nav'):
+            analysis['layout_elements'].append('Navigation')
+        if soup.find('form'):
+            analysis['layout_elements'].append('Forms')
+        if soup.find('button'):
+            analysis['layout_elements'].append('Buttons')
+        if soup.find('input'):
+            analysis['layout_elements'].append('Input Fields')
+        
+        # Detect features based on content
+        page_text = soup.get_text().lower()
+        if 'login' in page_text or 'sign in' in page_text:
+            analysis['features'].append('User Authentication')
+        if 'search' in page_text:
+            analysis['features'].append('Search Functionality')
+        if 'cart' in page_text or 'shopping' in page_text:
+            analysis['features'].append('E-commerce')
+        if 'contact' in page_text:
+            analysis['features'].append('Contact Forms')
+        
+        return {
+            'success': True,
+            'url': url,
+            'analysis': analysis
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing URL: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def extract_text_from_document(s3_key, content_type):
+    """Extract text from uploaded documents"""
+    try:
+        # Download file from S3
+        response = s3_client.get_object(Bucket=S3_BUCKET, Key=s3_key)
+        file_data = response['Body'].read()
+        
+        text_content = ""
+        
+        if content_type == 'application/pdf':
+            import PyPDF2
+            import io
+            pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_data))
+            for page in pdf_reader.pages:
+                text_content += page.extract_text() + "\n"
+                
+        elif content_type in ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword']:
+            from docx import Document
+            import io
+            doc = Document(io.BytesIO(file_data))
+            for paragraph in doc.paragraphs:
+                text_content += paragraph.text + "\n"
+                
+        elif content_type == 'text/plain':
+            text_content = file_data.decode('utf-8')
+            
+        return {
+            'success': True,
+            'text_content': text_content.strip(),
+            'word_count': len(text_content.split())
+        }
+        
+    except Exception as e:
+        logger.error(f"Error extracting text from document: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
 
 def generate_system_templates(spec, architecture):
     """Generate real, working system templates and code"""
@@ -689,7 +1153,7 @@ S3_BUCKET_NAME=your-bucket-name
 ### Logs
 ```bash
 # AWS ECS
-aws logs tail /ecs/{system_name.lower().replace(" ", "-")} --follow
+aws logs tail /ecs/{system_name.lower().replace(' ', '-')} --follow
 
 # Docker Compose
 docker-compose logs -f backend
@@ -1464,6 +1928,127 @@ const nextConfig = {{
 }}
 
 module.exports = nextConfig'''
+
+@app.route('/api/system/generate', methods=['POST'])
+def generate_system():
+    """Generate a complete system based on specifications and references"""
+    try:
+        spec = request.get_json()
+        if not spec:
+            return jsonify({'error': 'No specification provided', 'success': False}), 400
+        
+        # Generate system ID
+        system_id = str(uuid.uuid4())
+        
+        # Get reference data if provided
+        reference_urls = spec.get('reference_urls', [])
+        uploaded_files = spec.get('uploaded_files', [])
+        
+        # Analyze references and enhance specification
+        enhanced_spec = enhance_specification_with_references(spec, reference_urls, uploaded_files)
+        
+        # Generate architecture
+        architecture = generate_system_architecture(enhanced_spec)
+        
+        # Generate templates
+        templates = generate_system_templates(enhanced_spec, architecture)
+        
+        # Generate deployment configuration
+        deployment = generate_deployment_config(enhanced_spec, architecture)
+        
+        # Create complete system
+        system = {
+            'systemId': system_id,
+            'specification': {
+                **enhanced_spec,
+                'id': system_id,
+                'createdAt': datetime.now().isoformat(),
+                'status': 'generated',
+                'original_spec': spec,
+                'reference_urls': reference_urls,
+                'uploaded_files': uploaded_files
+            },
+            'architecture': architecture,
+            'templates': templates,
+            'deployment': deployment,
+            'generatedAt': datetime.now().isoformat(),
+            'status': 'generated'
+        }
+        
+        # Save to S3
+        if save_system_to_s3(system_id, system):
+            return jsonify({
+                'success': True,
+                'system_id': system_id,
+                'system': system,
+                'message': 'System generated successfully with reference analysis!'
+            })
+        else:
+            return jsonify({'error': 'Failed to save system', 'success': False}), 500
+            
+    except Exception as e:
+        logger.error(f"Error generating system: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
+def enhance_specification_with_references(spec, reference_urls, uploaded_files):
+    """Enhance system specification based on reference URLs and uploaded files"""
+    enhanced_spec = spec.copy()
+    
+    # Analyze reference URLs
+    url_insights = []
+    for url in reference_urls:
+        try:
+            analysis = analyze_reference_url(url)
+            if analysis['success']:
+                url_insights.append(analysis['analysis'])
+        except Exception as e:
+            logger.error(f"Error analyzing reference URL {url}: {e}")
+    
+    # Extract insights from URL analysis
+    if url_insights:
+        # Merge technologies
+        all_technologies = []
+        for insight in url_insights:
+            all_technologies.extend(insight.get('technologies', []))
+        enhanced_spec['techStack'] = list(set(enhanced_spec.get('techStack', []) + all_technologies))
+        
+        # Merge features
+        all_features = []
+        for insight in url_insights:
+            all_features.extend(insight.get('features', []))
+        enhanced_spec['features'] = list(set(enhanced_spec.get('features', []) + all_features))
+        
+        # Add layout elements
+        all_layout_elements = []
+        for insight in url_insights:
+            all_layout_elements.extend(insight.get('layout_elements', []))
+        enhanced_spec['layout_elements'] = list(set(all_layout_elements))
+    
+    # Analyze uploaded files
+    file_insights = []
+    for file_info in uploaded_files:
+        if file_info.get('analysis') and file_info['analysis']['success']:
+            file_insights.append(file_info['analysis'])
+    
+    # Extract insights from file analysis
+    if file_insights:
+        # Add design insights from images
+        for insight in file_insights:
+            if 'analysis' in insight and 'dominant_color' in insight['analysis']:
+                enhanced_spec['design_preferences'] = enhanced_spec.get('design_preferences', {})
+                enhanced_spec['design_preferences']['primary_color'] = insight['analysis']['dominant_color']
+            
+            if 'text_content' in insight:
+                # Extract requirements from document text
+                text = insight['text_content'].lower()
+                if 'authentication' in text or 'login' in text:
+                    enhanced_spec['features'] = list(set(enhanced_spec.get('features', []) + ['User Authentication']))
+                if 'payment' in text or 'ecommerce' in text:
+                    enhanced_spec['features'] = list(set(enhanced_spec.get('features', []) + ['Payment Processing']))
+                if 'search' in text:
+                    enhanced_spec['features'] = list(set(enhanced_spec.get('features', []) + ['Search Functionality']))
+    
+    return enhanced_spec
 
 def generate_api_routes(spec):
     return f'''const express = require('express')
@@ -2366,7 +2951,7 @@ def generate_comprehensive_readme(spec):
 1. **Clone and setup:**
    ```bash
    git clone <your-repo-url>
-   cd {system_name.lower().replace(" ", "-")}
+   cd {system_name.lower().replace(' ', '-')}
    cp .env.example .env
    # Edit .env with your configuration
    ```
@@ -2407,7 +2992,7 @@ def generate_comprehensive_readme(spec):
 ## 📁 Project Structure
 
 ```
-{system_name.lower().replace(" ", "-")}/
+{system_name.lower().replace(' ', '-')}/
 ├── frontend/                 # Next.js frontend application
 │   ├── pages/               # Next.js pages
 │   ├── components/          # React components
@@ -2442,7 +3027,7 @@ def generate_comprehensive_readme(spec):
 - **comments** - User interactions (if interaction features enabled)
 '''
     else:
-        readme += f'- **{system_name.lower().replace(" ", "_")}** - Main data table\n'
+        readme += f'- **{system_name.lower().replace(' ', '_')}** - Main data table\n'
     
     readme += f'''
 ### Migrations:
@@ -3234,6 +3819,81 @@ output "alb_dns_name" {{
   value = aws_lb.main.dns_name
 }}'''
 
+@app.route('/api/system/preview/<system_id>', methods=['GET'])
+def preview_system(system_id):
+    """Preview a generated system"""
+    try:
+        system = load_system_from_s3(system_id)
+        if not system:
+            return jsonify({'error': 'System not found', 'success': False}), 404
+        
+        # Count total files
+        total_files = count_files(system)
+        
+        return jsonify({
+            'success': True,
+            'system_id': system_id,
+            'system': system,
+            'total_files': total_files,
+            'message': f'System preview with {total_files} files'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error previewing system {system_id}: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/system/download/<system_id>', methods=['GET'])
+def download_system(system_id):
+    """Download a generated system as ZIP"""
+    try:
+        system = load_system_from_s3(system_id)
+        if not system:
+            return jsonify({'error': 'System not found', 'success': False}), 404
+        
+        # Create ZIP file
+        zip_data = create_system_zip(system)
+        
+        # Return ZIP file
+        return send_file(
+            io.BytesIO(zip_data),
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=f"{system['specification']['name'].lower().replace(' ', '-')}.zip"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error downloading system {system_id}: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
+def count_files(system):
+    """Count total files in a system"""
+    count = 0
+    for template_type, template_data in system['templates'].items():
+        if 'files' in template_data:
+            count += len(template_data['files'])
+    return count
+
+def create_system_zip(system):
+    """Create ZIP file from system data"""
+    import zipfile
+    import io
+    
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Add README
+        zip_file.writestr('README.md', f"# {system['specification']['name']}\n\nGenerated by System Builder Hub (SBH)\n\n{system['specification']['description']}")
+        
+        # Add all template files
+        for template_type, template_data in system['templates'].items():
+            if 'files' in template_data:
+                for file_info in template_data['files']:
+                    file_path = f"{template_type}/{file_info['name']}"
+                    zip_file.writestr(file_path, file_info['content'])
+    
+    zip_buffer.seek(0)
+    return zip_buffer.getvalue()
+
 # Add these imports at the top with the other imports
 import zipfile
 import io
@@ -3722,6 +4382,634 @@ Generated at: {system['generatedAt']}
     
     zip_buffer.seek(0)
     return zip_buffer.getvalue()
+
+@app.route('/api/system/deploy/<system_id>', methods=['POST'])
+def deploy_system(system_id):
+    """Deploy a generated system to AWS with live URL"""
+    try:
+        # Load system from S3
+        system = load_system_from_s3(system_id)
+        if not system:
+            return jsonify({'error': 'System not found', 'success': False}), 404
+        
+        # Get deployment configuration
+        deployment_config = request.get_json() or {}
+        custom_domain = deployment_config.get('domain', f"{system_id[:8]}.sbh.umbervale.com")
+        deployment_type = deployment_config.get('type', 'production')  # 'preview' or 'production'
+        
+        # Validate domain
+        domain_validation = validate_domain(custom_domain)
+        if not domain_validation['valid']:
+            return jsonify({
+                'success': False,
+                'error': domain_validation['error']
+            }), 400
+        
+        # Get deployment strategy
+        domain_type = domain_validation['domain_type']
+        strategy = get_deployment_strategy(domain_type)
+        
+        # Generate appropriate domain based on deployment type
+        if deployment_type == 'preview':
+            if domain_type == 'sbh_managed':
+                final_domain = f"preview-{system_id[:8]}.sbh.umbervale.com"
+            else:
+                final_domain = f"preview-{custom_domain}"
+        else:
+            final_domain = custom_domain
+        
+        # Deploy to AWS ECS
+        deployment_result = deploy_to_aws_ecs(system, final_domain, deployment_type)
+        
+        if deployment_result['success']:
+            # Handle DNS setup based on domain type
+            dns_result = setup_domain_dns(final_domain, deployment_result['load_balancer_dns'], domain_type)
+            
+            # Request SSL certificate
+            ssl_result = request_ssl_certificate(final_domain)
+            
+            return jsonify({
+                'success': True,
+                'system_id': system_id,
+                'live_url': f"https://{final_domain}",
+                'deployment_id': deployment_result['deployment_id'],
+                'deployment_type': deployment_type,
+                'domain_type': domain_type,
+                'dns_setup': dns_result,
+                'ssl_setup': ssl_result,
+                'strategy': strategy,
+                'status': 'deployed',
+                'message': f'System deployed successfully! Access it at https://{final_domain}'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': deployment_result['error']
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error deploying system {system_id}: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/system/domain/validate', methods=['POST'])
+def validate_domain_endpoint():
+    """Validate domain and get setup instructions"""
+    try:
+        data = request.get_json()
+        if not data or 'domain' not in data:
+            return jsonify({'error': 'Domain required', 'success': False}), 400
+        
+        domain = data['domain']
+        validation_result = validate_domain(domain)
+        
+        if not validation_result['valid']:
+            return jsonify({
+                'success': False,
+                'error': validation_result['error']
+            }), 400
+        
+        domain_type = validation_result['domain_type']
+        strategy = get_deployment_strategy(domain_type)
+        
+        # Generate setup instructions
+        setup_instructions = generate_setup_instructions(domain, domain_type)
+        
+        return jsonify({
+            'success': True,
+            'domain': domain,
+            'domain_type': domain_type,
+            'strategy': strategy,
+            'setup_instructions': setup_instructions
+        })
+        
+    except Exception as e:
+        logger.error(f"Error validating domain: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/system/domain/status/<system_id>', methods=['GET'])
+def check_domain_status(system_id):
+    """Check domain setup status"""
+    try:
+        # Load system from S3
+        system = load_system_from_s3(system_id)
+        if not system:
+            return jsonify({'error': 'System not found', 'success': False}), 404
+        
+        # Get deployment info (this would be stored in a deployments table in production)
+        domain = request.args.get('domain')
+        if not domain:
+            return jsonify({'error': 'Domain required', 'success': False}), 400
+        
+        # Check DNS propagation
+        dns_status = check_dns_propagation(domain, '')
+        
+        # Check SSL certificate status
+        ssl_status = check_ssl_certificate_status(domain)
+        
+        return jsonify({
+            'success': True,
+            'domain': domain,
+            'dns_status': dns_status,
+            'ssl_status': ssl_status,
+            'overall_status': 'ready' if dns_status['propagated'] and ssl_status['ready'] else 'pending'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error checking domain status: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/system/upload-reference/<system_id>', methods=['POST'])
+def upload_reference_files(system_id):
+    """Upload reference files (screenshots, docs, etc.) for system generation"""
+    try:
+        if 'files' not in request.files:
+            return jsonify({'error': 'No files provided', 'success': False}), 400
+        
+        files = request.files.getlist('files')
+        file_type = request.form.get('type', 'general')  # 'screenshot', 'document', 'wireframe', 'general'
+        
+        uploaded_files = []
+        
+        for file in files:
+            if file.filename == '':
+                continue
+                
+            # Upload to S3
+            upload_result = upload_file_to_s3(file, system_id, file_type)
+            
+            if upload_result['success']:
+                # Analyze the file based on type
+                analysis_result = None
+                
+                if file.content_type and file.content_type.startswith('image/'):
+                    analysis_result = analyze_uploaded_image(upload_result['s3_key'])
+                elif file.content_type in ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'text/plain']:
+                    analysis_result = extract_text_from_document(upload_result['s3_key'], file.content_type)
+                
+                uploaded_files.append({
+                    'file_id': upload_result['file_id'],
+                    'filename': upload_result['filename'],
+                    'content_type': upload_result['content_type'],
+                    'size': upload_result['size'],
+                    's3_key': upload_result['s3_key'],
+                    'analysis': analysis_result
+                })
+        
+        return jsonify({
+            'success': True,
+            'system_id': system_id,
+            'uploaded_files': uploaded_files,
+            'message': f'Successfully uploaded {len(uploaded_files)} files'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error uploading reference files: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/system/analyze-url', methods=['POST'])
+def analyze_reference_url_endpoint():
+    """Analyze a reference URL for system inspiration"""
+    try:
+        data = request.get_json()
+        if not data or 'url' not in data:
+            return jsonify({'error': 'URL required', 'success': False}), 400
+        
+        url = data['url']
+        analysis_result = analyze_reference_url(url)
+        
+        if analysis_result['success']:
+            return jsonify({
+                'success': True,
+                'url': url,
+                'analysis': analysis_result['analysis']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': analysis_result['error']
+            }), 400
+            
+    except Exception as e:
+        logger.error(f"Error analyzing URL: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/system/edit/<system_id>', methods=['POST'])
+def edit_system(system_id):
+    """Edit an existing system with new specifications or feedback"""
+    try:
+        # Load existing system
+        system = load_system_from_s3(system_id)
+        if not system:
+            return jsonify({'error': 'System not found', 'success': False}), 404
+        
+        # Get edit data
+        edit_data = request.get_json()
+        if not edit_data:
+            return jsonify({'error': 'No edit data provided', 'success': False}), 400
+        
+        # Update system based on edit type
+        edit_type = edit_data.get('type', 'specification')
+        
+        if edit_type == 'specification':
+            # Update system specification
+            new_spec = edit_data.get('specification', {})
+            system['specification'].update(new_spec)
+            
+            # Regenerate system with new specs
+            from server_part2 import generate_system_templates
+            from server_part3 import generate_system_architecture
+            from server_part4 import generate_deployment_config
+            
+            # Regenerate architecture and templates
+            system['architecture'] = generate_system_architecture(system['specification'])
+            system['templates'] = generate_system_templates(system['specification'], system['architecture'])
+            system['deployment'] = generate_deployment_config(system['specification'], system['architecture'])
+            
+        elif edit_type == 'file_update':
+            # Update specific files
+            file_updates = edit_data.get('file_updates', {})
+            for file_path, new_content in file_updates.items():
+                if file_path in system['templates']:
+                    system['templates'][file_path]['content'] = new_content
+        
+        elif edit_type == 'feature_add':
+            # Add new features
+            new_features = edit_data.get('features', [])
+            system['specification']['features'].extend(new_features)
+            
+            # Regenerate affected templates
+            from server_part2 import generate_system_templates
+            system['templates'] = generate_system_templates(system['specification'], system['architecture'])
+        
+        # Update metadata
+        system['lastModified'] = datetime.now().isoformat()
+        system['editHistory'] = system.get('editHistory', [])
+        system['editHistory'].append({
+            'timestamp': datetime.now().isoformat(),
+            'type': edit_type,
+            'changes': edit_data
+        })
+        
+        # Save updated system
+        if save_system_to_s3(system_id, system):
+            return jsonify({
+                'success': True,
+                'system_id': system_id,
+                'message': 'System updated successfully',
+                'updated_system': system
+            })
+        else:
+            return jsonify({'error': 'Failed to save updated system', 'success': False}), 500
+            
+    except Exception as e:
+        logger.error(f"Error editing system {system_id}: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/api/system/regenerate/<system_id>', methods=['POST'])
+def regenerate_system(system_id):
+    """Regenerate parts of an existing system"""
+    try:
+        # Load existing system
+        system = load_system_from_s3(system_id)
+        if not system:
+            return jsonify({'error': 'System not found', 'success': False}), 404
+        
+        # Get regeneration data
+        regen_data = request.get_json()
+        if not regen_data:
+            return jsonify({'error': 'No regeneration data provided', 'success': False}), 400
+        
+        components_to_regenerate = regen_data.get('components', ['all'])
+        
+        # Regenerate specified components
+        if 'all' in components_to_regenerate or 'architecture' in components_to_regenerate:
+            from server_part3 import generate_system_architecture
+            system['architecture'] = generate_system_architecture(system['specification'])
+        
+        if 'all' in components_to_regenerate or 'templates' in components_to_regenerate:
+            from server_part2 import generate_system_templates
+            system['templates'] = generate_system_templates(system['specification'], system['architecture'])
+        
+        if 'all' in components_to_regenerate or 'deployment' in components_to_regenerate:
+            from server_part4 import generate_deployment_config
+            system['deployment'] = generate_deployment_config(system['specification'], system['architecture'])
+        
+        # Update metadata
+        system['lastModified'] = datetime.now().isoformat()
+        system['regenerationHistory'] = system.get('regenerationHistory', [])
+        system['regenerationHistory'].append({
+            'timestamp': datetime.now().isoformat(),
+            'components': components_to_regenerate
+        })
+        
+        # Save regenerated system
+        if save_system_to_s3(system_id, system):
+            return jsonify({
+                'success': True,
+                'system_id': system_id,
+                'message': f'Successfully regenerated {", ".join(components_to_regenerate)}',
+                'regenerated_system': system
+            })
+        else:
+            return jsonify({'error': 'Failed to save regenerated system', 'success': False}), 500
+            
+    except Exception as e:
+        logger.error(f"Error regenerating system {system_id}: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
+
+def deploy_to_aws_ecs(system, domain, deployment_type='production'):
+    """Deploy system to AWS ECS with custom domain"""
+    try:
+        import boto3
+        import time
+        
+        # Initialize AWS clients
+        ecs_client = boto3.client('ecs')
+        elbv2_client = boto3.client('elbv2')
+        
+        system_name = system['specification']['name'].lower().replace(' ', '-')
+        cluster_name = f"{system_name}-{deployment_type}-cluster"
+        service_name = f"{system_name}-{deployment_type}-service"
+        
+        # Create ECS cluster if it doesn't exist
+        try:
+            ecs_client.create_cluster(clusterName=cluster_name)
+        except ecs_client.exceptions.ClusterAlreadyExistsException:
+            pass
+        
+        # Create Application Load Balancer
+        alb_result = create_application_load_balancer(system_name, deployment_type)
+        if not alb_result['success']:
+            return alb_result
+        
+        # Create task definition
+        task_definition = create_task_definition(system, deployment_type)
+        task_def_response = ecs_client.register_task_definition(**task_definition)
+        
+        # Create or update service
+        service_response = ecs_client.create_service(
+            cluster=cluster_name,
+            serviceName=service_name,
+            taskDefinition=task_def_response['taskDefinition']['taskDefinitionArn'],
+            desiredCount=1,
+            launchType='FARGATE',
+            networkConfiguration={
+                'awsvpcConfiguration': {
+                    'subnets': ['subnet-12345'],  # Replace with actual subnet
+                    'securityGroups': ['sg-12345'],  # Replace with actual security group
+                    'assignPublicIp': 'ENABLED'
+                }
+            },
+            loadBalancers=[{
+                'targetGroupArn': alb_result['target_group_arn'],
+                'containerName': f"{system_name}-container",
+                'containerPort': 8000
+            }]
+        )
+        
+        return {
+            'success': True,
+            'deployment_id': f"{system_name}-{deployment_type}-{int(time.time())}",
+            'cluster_name': cluster_name,
+            'service_name': service_name,
+            'domain': domain,
+            'load_balancer_dns': alb_result['dns_name'],
+            'load_balancer_arn': alb_result['arn']
+        }
+        
+    except Exception as e:
+        logger.error(f"Error deploying to AWS ECS: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def create_application_load_balancer(system_name, deployment_type):
+    """Create Application Load Balancer for the system"""
+    try:
+        elbv2_client = boto3.client('elbv2')
+        
+        # Create load balancer
+        alb_response = elbv2_client.create_load_balancer(
+            Name=f"{system_name}-{deployment_type}-alb",
+            Subnets=['subnet-12345', 'subnet-67890'],  # Replace with actual subnets
+            SecurityGroups=['sg-12345'],  # Replace with actual security group
+            Scheme='internet-facing',
+            Type='application',
+            IpAddressType='ipv4'
+        )
+        
+        alb_arn = alb_response['LoadBalancers'][0]['LoadBalancerArn']
+        alb_dns = alb_response['LoadBalancers'][0]['DNSName']
+        
+        # Create target group
+        tg_response = elbv2_client.create_target_group(
+            Name=f"{system_name}-{deployment_type}-tg",
+            Protocol='HTTP',
+            Port=8000,
+            VpcId='vpc-12345',  # Replace with actual VPC ID
+            TargetType='ip',
+            HealthCheckPath='/health',
+            HealthCheckProtocol='HTTP',
+            HealthCheckPort='8000'
+        )
+        
+        target_group_arn = tg_response['TargetGroups'][0]['TargetGroupArn']
+        
+        # Create listener
+        elbv2_client.create_listener(
+            LoadBalancerArn=alb_arn,
+            Protocol='HTTP',
+            Port=80,
+            DefaultActions=[{
+                'Type': 'forward',
+                'TargetGroupArn': target_group_arn
+            }]
+        )
+        
+        return {
+            'success': True,
+            'arn': alb_arn,
+            'dns_name': alb_dns,
+            'target_group_arn': target_group_arn
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating load balancer: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def setup_domain_dns(domain, target_dns, domain_type):
+    """Setup DNS based on domain type"""
+    if domain_type == 'sbh_managed':
+        # Automatically create Route 53 record
+        return create_route53_record(domain, target_dns)
+    elif domain_type == 'custom_subdomain':
+        # Provide CNAME instructions
+        return {
+            'success': True,
+            'action_required': 'user_dns_setup',
+            'record_type': 'CNAME',
+            'record_name': domain,
+            'record_value': target_dns,
+            'instructions': f'Create a CNAME record: {domain} → {target_dns}'
+        }
+    elif domain_type == 'root_domain':
+        # Provide A record or ALIAS instructions
+        return {
+            'success': True,
+            'action_required': 'user_dns_setup',
+            'record_type': 'A',
+            'record_name': '@',
+            'record_value': target_dns,
+            'instructions': f'Create an A record: @ → {target_dns} (or use Route 53 ALIAS)'
+        }
+    else:
+        return {
+            'success': False,
+            'error': 'Unknown domain type'
+        }
+
+def generate_setup_instructions(domain, domain_type):
+    """Generate detailed setup instructions for domain"""
+    instructions = {
+        'sbh_managed': {
+            'title': 'Fully Automated Setup',
+            'description': 'No action required - DNS and SSL will be configured automatically',
+            'steps': []
+        },
+        'custom_subdomain': {
+            'title': 'CNAME Record Setup',
+            'description': 'Create a CNAME record at your domain registrar',
+            'steps': [
+                '1. Log into your domain registrar (GoDaddy, Namecheap, etc.)',
+                '2. Go to DNS management',
+                '3. Create a new CNAME record:',
+                f'   - Name: {domain.split(".")[0]}',
+                f'   - Value: [Load balancer DNS will be provided]',
+                '   - TTL: 300',
+                '4. Save the record',
+                '5. Wait for DNS propagation (5-30 minutes)'
+            ]
+        },
+        'root_domain': {
+            'title': 'Root Domain Setup',
+            'description': 'Root domains require special DNS configuration',
+            'options': [
+                {
+                    'name': 'Route 53 Transfer (Recommended)',
+                    'steps': [
+                        '1. Transfer your domain to AWS Route 53',
+                        '2. We will automatically configure DNS',
+                        '3. SSL certificate will be issued automatically'
+                    ]
+                },
+                {
+                    'name': 'CloudFlare Setup',
+                    'steps': [
+                        '1. Add your domain to CloudFlare',
+                        '2. Enable CNAME flattening',
+                        '3. Create CNAME record: @ → [Load balancer DNS]',
+                        '4. SSL will be handled by CloudFlare'
+                    ]
+                },
+                {
+                    'name': 'Manual A Record (Not Recommended)',
+                    'steps': [
+                        '1. Get the IP address of our load balancer',
+                        '2. Create A record: @ → [IP address]',
+                        '3. Note: IP may change, requiring manual updates'
+                    ]
+                }
+            ]
+        }
+    }
+    
+    return instructions.get(domain_type, {
+        'title': 'Manual Setup Required',
+        'description': 'Please contact support for assistance',
+        'steps': []
+    })
+
+def check_ssl_certificate_status(domain):
+    """Check SSL certificate status"""
+    try:
+        acm_client = boto3.client('acm', region_name='us-east-1')
+        
+        # List certificates
+        response = acm_client.list_certificates()
+        
+        for cert in response['CertificateSummaryList']:
+            if cert['DomainName'] == domain:
+                # Get detailed certificate info
+                cert_detail = acm_client.describe_certificate(CertificateArn=cert['CertificateArn'])
+                
+                return {
+                    'ready': cert_detail['Certificate']['Status'] == 'ISSUED',
+                    'status': cert_detail['Certificate']['Status'],
+                    'certificate_arn': cert['CertificateArn']
+                }
+        
+        return {
+            'ready': False,
+            'status': 'not_found',
+            'error': 'Certificate not found'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error checking SSL certificate: {e}")
+        return {
+            'ready': False,
+            'status': 'error',
+            'error': str(e)
+        }
+
+def create_task_definition(system, deployment_type='production'):
+    """Create ECS task definition for the system"""
+    system_name = system['specification']['name'].lower().replace(' ', '-')
+    
+    return {
+        'family': f"{system_name}-{deployment_type}-task",
+        'networkMode': 'awsvpc',
+        'requiresCompatibilities': ['FARGATE'],
+        'cpu': '256',
+        'memory': '512',
+        'executionRoleArn': 'arn:aws:iam::123456789012:role/ecsTaskExecutionRole',  # Replace with actual role
+        'containerDefinitions': [{
+            'name': f"{system_name}-container",
+            'image': f"123456789012.dkr.ecr.us-east-1.amazonaws.com/{system_name}:latest",  # Replace with actual ECR URI
+            'portMappings': [{
+                'containerPort': 8000,
+                'protocol': 'tcp'
+            }],
+            'essential': True,
+            'environment': [
+                {'name': 'ENVIRONMENT', 'value': deployment_type},
+                {'name': 'SYSTEM_NAME', 'value': system_name}
+            ],
+            'logConfiguration': {
+                'logDriver': 'awslogs',
+                'options': {
+                    'awslogs-group': f"/ecs/{system_name}-{deployment_type}",
+                    'awslogs-region': 'us-east-1',
+                    'awslogs-stream-prefix': 'ecs'
+                }
+            }
+        }]
+    }
+
+def create_domain_record(domain, service_arn):
+    """Create Route53 record for custom domain"""
+    try:
+        # This would create a Route53 record pointing to the ECS service
+        # For now, we'll just log the domain creation
+        logger.info(f"Domain {domain} would be created for service {service_arn}")
+        return True
+    except Exception as e:
+        logger.error(f"Error creating domain record: {e}")
+        return False
 
 # Create the Flask app instance
 app = create_app()
