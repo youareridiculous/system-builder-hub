@@ -20,6 +20,8 @@ import openai
 from openai import OpenAI
 import boto3
 from botocore.exceptions import ClientError
+import zipfile
+import io
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -3848,8 +3850,6 @@ def count_files(system):
 
 def create_system_zip(system):
     """Create ZIP file from system data"""
-    import zipfile
-    import io
     
     zip_buffer = io.BytesIO()
     
@@ -3868,8 +3868,6 @@ def create_system_zip(system):
     return zip_buffer.getvalue()
 
 # Additional imports for server_part7.py
-import zipfile
-import io
 
 def deploy_to_aws_ecs(system, domain, deployment_type):
     """Deploy system to AWS ECS"""
@@ -4498,9 +4496,7 @@ def create_app():
                 system['specification'].update(new_spec)
                 
                 # Regenerate system with new specs
-                from server_part2 import generate_system_templates
-                from server_part3 import generate_system_architecture
-                from server_part4 import generate_deployment_config
+                # Functions are now in the same file
                 
                 # Regenerate architecture and templates
                 system['architecture'] = generate_system_architecture(system['specification'])
@@ -4520,7 +4516,7 @@ def create_app():
                 system['specification']['features'].extend(new_features)
                 
                 # Regenerate affected templates
-                from server_part2 import generate_system_templates
+                # Functions are now in the same file
                 system['templates'] = generate_system_templates(system['specification'], system['architecture'])
             
             # Update metadata
@@ -4565,15 +4561,15 @@ def create_app():
             
             # Regenerate specified components
             if 'all' in components_to_regenerate or 'architecture' in components_to_regenerate:
-                from server_part3 import generate_system_architecture
+                # Functions are now in the same file
                 system['architecture'] = generate_system_architecture(system['specification'])
             
             if 'all' in components_to_regenerate or 'templates' in components_to_regenerate:
-                from server_part2 import generate_system_templates
+                # Functions are now in the same file
                 system['templates'] = generate_system_templates(system['specification'], system['architecture'])
             
             if 'all' in components_to_regenerate or 'deployment' in components_to_regenerate:
-                from server_part4 import generate_deployment_config
+                # Functions are now in the same file
                 system['deployment'] = generate_deployment_config(system['specification'], system['architecture'])
             
             # Update metadata
