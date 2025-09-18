@@ -51,5 +51,12 @@ click==8.1.7
 # Production server
 gunicorn==21.2.0
 
+# File analysis dependencies
+beautifulsoup4==4.12.2
+Pillow==10.0.1
+python-magic==0.4.27
+PyPDF2==3.0.1
+python-docx==0.8.11
+
 # Testing
 pytest>=7.0.0
