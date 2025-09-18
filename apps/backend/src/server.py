@@ -608,6 +608,67 @@ def extract_text_from_document(s3_key, content_type):
             'error': str(e)
         }
 
+def generate_setup_instructions(domain_type, domain):
+    """Generate setup instructions based on domain type"""
+    if domain_type == 'subdomain':
+        return {
+            'type': 'subdomain',
+            'instructions': [
+                f"1. Add a CNAME record for {domain}",
+                "2. Point it to: sbh.umbervale.com",
+                "3. SSL certificate will be automatically provisioned",
+                "4. DNS propagation may take 5-10 minutes"
+            ],
+            'dns_record': {
+                'type': 'CNAME',
+                'name': domain,
+                'value': 'sbh.umbervale.com'
+            }
+        }
+    elif domain_type == 'custom_domain':
+        return {
+            'type': 'custom_domain',
+            'instructions': [
+                f"1. Add a CNAME record for {domain}",
+                "2. Point it to: sbh.umbervale.com",
+                "3. SSL certificate will be automatically provisioned",
+                "4. DNS propagation may take 5-10 minutes"
+            ],
+            'dns_record': {
+                'type': 'CNAME',
+                'name': domain,
+                'value': 'sbh.umbervale.com'
+            }
+        }
+    elif domain_type == 'root_domain':
+        return {
+            'type': 'root_domain',
+            'instructions': [
+                f"1. Root domains require A records (not CNAME)",
+                "2. Contact support for ALB IP addresses",
+                "3. Alternative: Transfer domain to Route 53",
+                "4. SSL certificate will be automatically provisioned"
+            ],
+            'dns_record': {
+                'type': 'A',
+                'name': domain,
+                'value': 'Contact support for ALB IP'
+            }
+        }
+    else:
+        return {
+            'type': 'unknown',
+            'instructions': [
+                "1. Contact support for domain setup assistance",
+                "2. Provide domain details for custom configuration"
+            ],
+            'dns_record': {
+                'type': 'Unknown',
+                'name': domain,
+                'value': 'Contact support'
+            }
+        }
+
 #!/usr/bin/env python3
 """
 System Builder Hub - Enhanced Server with OpenAI Integration and System Generation
