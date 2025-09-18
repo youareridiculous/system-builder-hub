@@ -1929,66 +1929,7 @@ const nextConfig = {{
 
 module.exports = nextConfig'''
 
-@app.route('/api/system/generate', methods=['POST'])
-def generate_system():
-    """Generate a complete system based on specifications and references"""
-    try:
-        spec = request.get_json()
-        if not spec:
-            return jsonify({'error': 'No specification provided', 'success': False}), 400
-        
-        # Generate system ID
-        system_id = str(uuid.uuid4())
-        
-        # Get reference data if provided
-        reference_urls = spec.get('reference_urls', [])
-        uploaded_files = spec.get('uploaded_files', [])
-        
-        # Analyze references and enhance specification
-        enhanced_spec = enhance_specification_with_references(spec, reference_urls, uploaded_files)
-        
-        # Generate architecture
-        architecture = generate_system_architecture(enhanced_spec)
-        
-        # Generate templates
-        templates = generate_system_templates(enhanced_spec, architecture)
-        
-        # Generate deployment configuration
-        deployment = generate_deployment_config(enhanced_spec, architecture)
-        
-        # Create complete system
-        system = {
-            'systemId': system_id,
-            'specification': {
-                **enhanced_spec,
-                'id': system_id,
-                'createdAt': datetime.now().isoformat(),
-                'status': 'generated',
-                'original_spec': spec,
-                'reference_urls': reference_urls,
-                'uploaded_files': uploaded_files
-            },
-            'architecture': architecture,
-            'templates': templates,
-            'deployment': deployment,
-            'generatedAt': datetime.now().isoformat(),
-            'status': 'generated'
-        }
-        
-        # Save to S3
-        if save_system_to_s3(system_id, system):
-            return jsonify({
-                'success': True,
-                'system_id': system_id,
-                'system': system,
-                'message': 'System generated successfully with reference analysis!'
-            })
-        else:
-            return jsonify({'error': 'Failed to save system', 'success': False}), 500
-            
-    except Exception as e:
-        logger.error(f"Error generating system: {e}")
-        return jsonify({'error': str(e), 'success': False}), 500
+# Route moved to server_part7.py inside create_app() function
 
 def enhance_specification_with_references(spec, reference_urls, uploaded_files):
     """Enhance system specification based on reference URLs and uploaded files"""
@@ -3027,7 +2968,7 @@ def generate_comprehensive_readme(spec):
 - **comments** - User interactions (if interaction features enabled)
 '''
     else:
-        readme += f'- **{system_name.lower().replace(" ", "_")}** - Main data table\n'
+        readme += f'- **{system_name.lower().replace(' ', '_')}** - Main data table\n'
     
     readme += f'''
 ### Migrations:
@@ -3819,51 +3760,7 @@ output "alb_dns_name" {{
   value = aws_lb.main.dns_name
 }}'''
 
-@app.route('/api/system/preview/<system_id>', methods=['GET'])
-def preview_system(system_id):
-    """Preview a generated system"""
-    try:
-        system = load_system_from_s3(system_id)
-        if not system:
-            return jsonify({'error': 'System not found', 'success': False}), 404
-        
-        # Count total files
-        total_files = count_files(system)
-        
-        return jsonify({
-            'success': True,
-            'system_id': system_id,
-            'system': system,
-            'total_files': total_files,
-            'message': f'System preview with {total_files} files'
-        })
-        
-    except Exception as e:
-        logger.error(f"Error previewing system {system_id}: {e}")
-        return jsonify({'error': str(e), 'success': False}), 500
-
-@app.route('/api/system/download/<system_id>', methods=['GET'])
-def download_system(system_id):
-    """Download a generated system as ZIP"""
-    try:
-        system = load_system_from_s3(system_id)
-        if not system:
-            return jsonify({'error': 'System not found', 'success': False}), 404
-        
-        # Create ZIP file
-        zip_data = create_system_zip(system)
-        
-        # Return ZIP file
-        return send_file(
-            io.BytesIO(zip_data),
-            mimetype='application/zip',
-            as_attachment=True,
-            download_name=f"{system['specification']['name'].lower().replace(' ', '-')}.zip"
-        )
-        
-    except Exception as e:
-        logger.error(f"Error downloading system {system_id}: {e}")
-        return jsonify({'error': str(e), 'success': False}), 500
+# Routes moved to server_part7.py inside create_app() function
 
 def count_files(system):
     """Count total files in a system"""
@@ -4278,6 +4175,340 @@ def create_app():
                 'error': str(e)
             }), 500
 
+    @app.route('/api/system/deploy/<system_id>', methods=['POST'])
+    def deploy_system(system_id):
+        """Deploy a generated system to AWS with live URL"""
+        try:
+            # Load system from S3
+            system = load_system_from_s3(system_id)
+            if not system:
+                return jsonify({'error': 'System not found', 'success': False}), 404
+            
+            # Get deployment configuration
+            deployment_config = request.get_json() or {}
+            custom_domain = deployment_config.get('domain', f"{system_id[:8]}.sbh.umbervale.com")
+            deployment_type = deployment_config.get('type', 'production')  # 'preview' or 'production'
+            
+            # Validate domain
+            domain_validation = validate_domain(custom_domain)
+            if not domain_validation['valid']:
+                return jsonify({
+                    'success': False,
+                    'error': domain_validation['error']
+                }), 400
+            
+            # Get deployment strategy
+            domain_type = domain_validation['domain_type']
+            strategy = get_deployment_strategy(domain_type)
+            
+            # Generate appropriate domain based on deployment type
+            if deployment_type == 'preview':
+                if domain_type == 'sbh_managed':
+                    final_domain = f"preview-{system_id[:8]}.sbh.umbervale.com"
+                else:
+                    final_domain = f"preview-{custom_domain}"
+            else:
+                final_domain = custom_domain
+            
+            # Deploy to AWS ECS
+            deployment_result = deploy_to_aws_ecs(system, final_domain, deployment_type)
+            
+            if deployment_result['success']:
+                # Handle DNS setup based on domain type
+                dns_result = setup_domain_dns(final_domain, deployment_result['load_balancer_dns'], domain_type)
+                
+                # Request SSL certificate
+                ssl_result = request_ssl_certificate(final_domain)
+                
+                return jsonify({
+                    'success': True,
+                    'system_id': system_id,
+                    'live_url': f"https://{final_domain}",
+                    'deployment_id': deployment_result['deployment_id'],
+                    'deployment_type': deployment_type,
+                    'domain_type': domain_type,
+                    'dns_setup': dns_result,
+                    'ssl_setup': ssl_result,
+                    'strategy': strategy,
+                    'status': 'deployed',
+                    'message': f'System deployed successfully! Access it at https://{final_domain}'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': deployment_result['error']
+                }), 500
+                
+        except Exception as e:
+            logger.error(f"Error deploying system {system_id}: {e}")
+            return jsonify({'error': str(e), 'success': False}), 500
+
+    @app.route('/api/system/domain/validate', methods=['POST'])
+    def validate_domain_endpoint():
+        """Validate domain and get setup instructions"""
+        try:
+            data = request.get_json()
+            if not data or 'domain' not in data:
+                return jsonify({'error': 'Domain required', 'success': False}), 400
+            
+            domain = data['domain']
+            validation_result = validate_domain(domain)
+            
+            if not validation_result['valid']:
+                return jsonify({
+                    'success': False,
+                    'error': validation_result['error']
+                }), 400
+            
+            domain_type = validation_result['domain_type']
+            strategy = get_deployment_strategy(domain_type)
+            
+            # Generate setup instructions
+            setup_instructions = generate_setup_instructions(domain, domain_type)
+            
+            return jsonify({
+                'success': True,
+                'domain': domain,
+                'domain_type': domain_type,
+                'strategy': strategy,
+                'setup_instructions': setup_instructions
+            })
+            
+        except Exception as e:
+            logger.error(f"Error validating domain: {e}")
+            return jsonify({'error': str(e), 'success': False}), 500
+
+    @app.route('/api/system/domain/status/<system_id>', methods=['GET'])
+    def check_domain_status(system_id):
+        """Check domain setup status"""
+        try:
+            # Load system from S3
+            system = load_system_from_s3(system_id)
+            if not system:
+                return jsonify({'error': 'System not found', 'success': False}), 404
+            
+            # Get deployment info (this would be stored in a deployments table in production)
+            domain = request.args.get('domain')
+            if not domain:
+                return jsonify({'error': 'Domain required', 'success': False}), 400
+            
+            # Check DNS propagation
+            dns_status = check_dns_propagation(domain, '')
+            
+            # Check SSL certificate status
+            ssl_status = check_ssl_certificate_status(domain)
+            
+            return jsonify({
+                'success': True,
+                'domain': domain,
+                'dns_status': dns_status,
+                'ssl_status': ssl_status,
+                'overall_status': 'ready' if dns_status['propagated'] and ssl_status['ready'] else 'pending'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error checking domain status: {e}")
+            return jsonify({'error': str(e), 'success': False}), 500
+
+    @app.route('/api/system/upload-reference/<system_id>', methods=['POST'])
+    def upload_reference_files(system_id):
+        """Upload reference files (screenshots, docs, etc.) for system generation"""
+        try:
+            if 'files' not in request.files:
+                return jsonify({'error': 'No files provided', 'success': False}), 400
+            
+            files = request.files.getlist('files')
+            file_type = request.form.get('type', 'general')  # 'screenshot', 'document', 'wireframe', 'general'
+            
+            uploaded_files = []
+            
+            for file in files:
+                if file.filename == '':
+                    continue
+                    
+                # Upload to S3
+                upload_result = upload_file_to_s3(file, system_id, file_type)
+                
+                if upload_result['success']:
+                    # Analyze the file based on type
+                    analysis_result = None
+                    
+                    if file.content_type and file.content_type.startswith('image/'):
+                        analysis_result = analyze_uploaded_image(upload_result['s3_key'])
+                    elif file.content_type in ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'text/plain']:
+                        analysis_result = extract_text_from_document(upload_result['s3_key'], file.content_type)
+                    
+                    uploaded_files.append({
+                        'file_id': upload_result['file_id'],
+                        'filename': upload_result['filename'],
+                        'content_type': upload_result['content_type'],
+                        'size': upload_result['size'],
+                        's3_key': upload_result['s3_key'],
+                        'analysis': analysis_result
+                    })
+            
+            return jsonify({
+                'success': True,
+                'system_id': system_id,
+                'uploaded_files': uploaded_files,
+                'message': f'Successfully uploaded {len(uploaded_files)} files'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error uploading reference files: {e}")
+            return jsonify({'error': str(e), 'success': False}), 500
+
+    @app.route('/api/system/analyze-url', methods=['POST'])
+    def analyze_reference_url_endpoint():
+        """Analyze a reference URL for system inspiration"""
+        try:
+            data = request.get_json()
+            if not data or 'url' not in data:
+                return jsonify({'error': 'URL required', 'success': False}), 400
+            
+            url = data['url']
+            analysis_result = analyze_reference_url(url)
+            
+            if analysis_result['success']:
+                return jsonify({
+                    'success': True,
+                    'url': url,
+                    'analysis': analysis_result['analysis']
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': analysis_result['error']
+                }), 400
+                
+        except Exception as e:
+            logger.error(f"Error analyzing URL: {e}")
+            return jsonify({'error': str(e), 'success': False}), 500
+
+    @app.route('/api/system/edit/<system_id>', methods=['POST'])
+    def edit_system(system_id):
+        """Edit an existing system with new specifications or feedback"""
+        try:
+            # Load existing system
+            system = load_system_from_s3(system_id)
+            if not system:
+                return jsonify({'error': 'System not found', 'success': False}), 404
+            
+            # Get edit data
+            edit_data = request.get_json()
+            if not edit_data:
+                return jsonify({'error': 'No edit data provided', 'success': False}), 400
+            
+            # Update system based on edit type
+            edit_type = edit_data.get('type', 'specification')
+            
+            if edit_type == 'specification':
+                # Update system specification
+                new_spec = edit_data.get('specification', {})
+                system['specification'].update(new_spec)
+                
+                # Regenerate system with new specs
+                from server_part2 import generate_system_templates
+                from server_part3 import generate_system_architecture
+                from server_part4 import generate_deployment_config
+                
+                # Regenerate architecture and templates
+                system['architecture'] = generate_system_architecture(system['specification'])
+                system['templates'] = generate_system_templates(system['specification'], system['architecture'])
+                system['deployment'] = generate_deployment_config(system['specification'], system['architecture'])
+                
+            elif edit_type == 'file_update':
+                # Update specific files
+                file_updates = edit_data.get('file_updates', {})
+                for file_path, new_content in file_updates.items():
+                    if file_path in system['templates']:
+                        system['templates'][file_path]['content'] = new_content
+            
+            elif edit_type == 'feature_add':
+                # Add new features
+                new_features = edit_data.get('features', [])
+                system['specification']['features'].extend(new_features)
+                
+                # Regenerate affected templates
+                from server_part2 import generate_system_templates
+                system['templates'] = generate_system_templates(system['specification'], system['architecture'])
+            
+            # Update metadata
+            system['lastModified'] = datetime.now().isoformat()
+            system['editHistory'] = system.get('editHistory', [])
+            system['editHistory'].append({
+                'timestamp': datetime.now().isoformat(),
+                'type': edit_type,
+                'changes': edit_data
+            })
+            
+            # Save updated system
+            if save_system_to_s3(system_id, system):
+                return jsonify({
+                    'success': True,
+                    'system_id': system_id,
+                    'message': 'System updated successfully',
+                    'updated_system': system
+                })
+            else:
+                return jsonify({'error': 'Failed to save updated system', 'success': False}), 500
+                
+        except Exception as e:
+            logger.error(f"Error editing system {system_id}: {e}")
+            return jsonify({'error': str(e), 'success': False}), 500
+
+    @app.route('/api/system/regenerate/<system_id>', methods=['POST'])
+    def regenerate_system(system_id):
+        """Regenerate parts of an existing system"""
+        try:
+            # Load existing system
+            system = load_system_from_s3(system_id)
+            if not system:
+                return jsonify({'error': 'System not found', 'success': False}), 404
+            
+            # Get regeneration data
+            regen_data = request.get_json()
+            if not regen_data:
+                return jsonify({'error': 'No regeneration data provided', 'success': False}), 400
+            
+            components_to_regenerate = regen_data.get('components', ['all'])
+            
+            # Regenerate specified components
+            if 'all' in components_to_regenerate or 'architecture' in components_to_regenerate:
+                from server_part3 import generate_system_architecture
+                system['architecture'] = generate_system_architecture(system['specification'])
+            
+            if 'all' in components_to_regenerate or 'templates' in components_to_regenerate:
+                from server_part2 import generate_system_templates
+                system['templates'] = generate_system_templates(system['specification'], system['architecture'])
+            
+            if 'all' in components_to_regenerate or 'deployment' in components_to_regenerate:
+                from server_part4 import generate_deployment_config
+                system['deployment'] = generate_deployment_config(system['specification'], system['architecture'])
+            
+            # Update metadata
+            system['lastModified'] = datetime.now().isoformat()
+            system['regenerationHistory'] = system.get('regenerationHistory', [])
+            system['regenerationHistory'].append({
+                'timestamp': datetime.now().isoformat(),
+                'components': components_to_regenerate
+            })
+            
+            # Save regenerated system
+            if save_system_to_s3(system_id, system):
+                return jsonify({
+                    'success': True,
+                    'system_id': system_id,
+                    'message': f'Successfully regenerated {", ".join(components_to_regenerate)}',
+                    'regenerated_system': system
+                })
+            else:
+                return jsonify({'error': 'Failed to save regenerated system', 'success': False}), 500
+                
+        except Exception as e:
+            logger.error(f"Error regenerating system {system_id}: {e}")
+            return jsonify({'error': str(e), 'success': False}), 500
+
     return app
 
 # Helper functions
@@ -4665,57 +4896,7 @@ def edit_system(system_id):
         logger.error(f"Error editing system {system_id}: {e}")
         return jsonify({'error': str(e), 'success': False}), 500
 
-@app.route('/api/system/regenerate/<system_id>', methods=['POST'])
-def regenerate_system(system_id):
-    """Regenerate parts of an existing system"""
-    try:
-        # Load existing system
-        system = load_system_from_s3(system_id)
-        if not system:
-            return jsonify({'error': 'System not found', 'success': False}), 404
-        
-        # Get regeneration data
-        regen_data = request.get_json()
-        if not regen_data:
-            return jsonify({'error': 'No regeneration data provided', 'success': False}), 400
-        
-        components_to_regenerate = regen_data.get('components', ['all'])
-        
-        # Regenerate specified components
-        if 'all' in components_to_regenerate or 'architecture' in components_to_regenerate:
-            from server_part3 import generate_system_architecture
-            system['architecture'] = generate_system_architecture(system['specification'])
-        
-        if 'all' in components_to_regenerate or 'templates' in components_to_regenerate:
-            from server_part2 import generate_system_templates
-            system['templates'] = generate_system_templates(system['specification'], system['architecture'])
-        
-        if 'all' in components_to_regenerate or 'deployment' in components_to_regenerate:
-            from server_part4 import generate_deployment_config
-            system['deployment'] = generate_deployment_config(system['specification'], system['architecture'])
-        
-        # Update metadata
-        system['lastModified'] = datetime.now().isoformat()
-        system['regenerationHistory'] = system.get('regenerationHistory', [])
-        system['regenerationHistory'].append({
-            'timestamp': datetime.now().isoformat(),
-            'components': components_to_regenerate
-        })
-        
-        # Save regenerated system
-        if save_system_to_s3(system_id, system):
-            return jsonify({
-                'success': True,
-                'system_id': system_id,
-                'message': f'Successfully regenerated {", ".join(components_to_regenerate)}',
-                'regenerated_system': system
-            })
-        else:
-            return jsonify({'error': 'Failed to save regenerated system', 'success': False}), 500
-            
-    except Exception as e:
-        logger.error(f"Error regenerating system {system_id}: {e}")
-        return jsonify({'error': str(e), 'success': False}), 500
+# Duplicate route removed - now inside create_app() function
 
 def deploy_to_aws_ecs(system, domain, deployment_type='production'):
     """Deploy system to AWS ECS with custom domain"""
