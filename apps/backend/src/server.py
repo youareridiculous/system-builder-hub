@@ -1335,7 +1335,7 @@ jobs:
     - name: Upload Trivy scan results
       uses: github/codeql-action/upload-sarif@v2
       with:
-        sarif_file: 'trivy-results.sarif''''
+        sarif_file: 'trivy-results.sarif'''
 
 def generate_terraform_variables(spec):
     return f'''variable "project_name" {{
