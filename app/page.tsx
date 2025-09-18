@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useAuth } from '@/components/AuthProvider'
+import { useAuth } from '@/components/SimpleAuthProvider'
 import LoginForm from '@/components/LoginForm'
 import { ModelSelector } from '@/components/ModelSelector'
 import { ChatInterface } from '@/components/ChatInterface'
