@@ -836,6 +836,163 @@ def generate_system_architecture(spec):
     
     return architecture
 
+def generate_system_templates(spec, architecture):
+    """Generate complete system templates based on specifications and architecture"""
+    templates = {}
+    
+    # Generate frontend templates
+    if spec['type'] in ['web-app', 'ecommerce-platform', 'cms', 'dashboard']:
+        templates['frontend'] = generate_frontend_templates(spec, architecture)
+    
+    # Generate backend templates
+    if spec['type'] in ['web-app', 'api', 'ecommerce-platform', 'ml-service', 'microservice', 'cms', 'dashboard']:
+        templates['backend'] = generate_backend_templates(spec, architecture)
+    
+    # Generate infrastructure templates
+    templates['infrastructure'] = generate_infrastructure_templates(spec, architecture)
+    
+    # Generate database templates
+    if 'PostgreSQL' in spec.get('techStack', []) or 'AWS RDS' in spec.get('infrastructure', []):
+        templates['database'] = generate_database_templates(spec, architecture)
+    
+    # Generate deployment templates
+    templates['deployment'] = generate_deployment_templates(spec, architecture)
+    
+    return templates
+
+def generate_frontend_templates(spec, architecture):
+    """Generate frontend templates"""
+    frontend_type = 'Next.js' if 'Next.js' in spec.get('techStack', []) else 'React'
+    
+    templates = {
+        'type': frontend_type,
+        'files': []
+    }
+    
+    if frontend_type == 'Next.js':
+        templates['files'] = [
+            {'name': 'package.json', 'content': generate_nextjs_package_json(spec)},
+            {'name': 'pages/index.tsx', 'content': generate_nextjs_index_page(spec)},
+            {'name': 'components/Header.tsx', 'content': generate_nextjs_header_component(spec)},
+            {'name': 'components/Layout.tsx', 'content': generate_nextjs_layout_component(spec)},
+            {'name': 'tailwind.config.js', 'content': generate_tailwind_config(spec)},
+            {'name': 'next.config.js', 'content': generate_nextjs_config(spec)},
+            {'name': 'tsconfig.json', 'content': generate_typescript_config(spec)}
+        ]
+    else:
+        templates['files'] = [
+            {'name': 'package.json', 'content': generate_react_package_json(spec)},
+            {'name': 'src/App.js', 'content': generate_react_app_component(spec)},
+            {'name': 'src/components/Header.js', 'content': generate_react_header_component(spec)},
+            {'name': 'src/pages/Home.js', 'content': generate_react_home_page(spec)},
+            {'name': 'tailwind.config.js', 'content': generate_tailwind_config(spec)},
+            {'name': 'tsconfig.json', 'content': generate_typescript_config(spec)}
+        ]
+    
+    return templates
+
+def generate_backend_templates(spec, architecture):
+    """Generate backend templates"""
+    backend_type = 'Node.js' if 'Node.js' in spec.get('techStack', []) else 'Python'
+    
+    templates = {
+        'type': backend_type,
+        'files': []
+    }
+    
+    if backend_type == 'Node.js':
+        templates['files'] = [
+            {'name': 'package.json', 'content': generate_nodejs_package_json(spec)},
+            {'name': 'src/app.js', 'content': generate_express_app(spec)},
+            {'name': 'src/routes/api.js', 'content': generate_api_routes(spec)},
+            {'name': 'src/models/index.js', 'content': generate_database_models(spec)},
+            {'name': 'src/middleware/auth.js', 'content': generate_auth_middleware(spec)},
+            {'name': 'Dockerfile', 'content': generate_nodejs_dockerfile(spec)},
+            {'name': '.env.example', 'content': generate_env_example(spec)}
+        ]
+    else:
+        templates['files'] = [
+            {'name': 'requirements.txt', 'content': generate_python_requirements(spec)},
+            {'name': 'src/main.py', 'content': generate_fastapi_app(spec)},
+            {'name': 'src/routes.py', 'content': generate_fastapi_routes(spec)},
+            {'name': 'src/models.py', 'content': generate_sqlalchemy_models(spec)},
+            {'name': 'src/database.py', 'content': generate_database_config(spec)},
+            {'name': 'src/middleware/auth.py', 'content': generate_python_auth_middleware(spec)},
+            {'name': 'Dockerfile', 'content': generate_python_dockerfile(spec)},
+            {'name': '.env.example', 'content': generate_env_example(spec)}
+        ]
+    
+    return templates
+
+def generate_infrastructure_templates(spec, architecture):
+    """Generate infrastructure templates"""
+    return {
+        'type': 'Terraform',
+        'files': [
+            {'name': 'main.tf', 'content': generate_terraform_main(spec, architecture)},
+            {'name': 'variables.tf', 'content': generate_terraform_variables(spec)},
+            {'name': 'outputs.tf', 'content': generate_terraform_outputs(spec)},
+            {'name': 'modules/vpc/main.tf', 'content': generate_vpc_module(spec)},
+            {'name': 'modules/ecs/main.tf', 'content': generate_ecs_module(spec)},
+            {'name': 'modules/rds/main.tf', 'content': generate_rds_module(spec)},
+            {'name': 'modules/alb/main.tf', 'content': generate_alb_module(spec)}
+        ]
+    }
+
+def generate_database_templates(spec, architecture):
+    """Generate database templates"""
+    return {
+        'type': 'PostgreSQL',
+        'files': [
+            {'name': 'models/index.js', 'content': generate_database_models(spec)},
+            {'name': 'migrations/001_create_users_table.sql', 'content': generate_webapp_migrations(spec, spec.get('features', []))[0]['content']},
+            {'name': 'migrations/002_create_posts_table.sql', 'content': generate_webapp_migrations(spec, spec.get('features', []))[1]['content'] if len(generate_webapp_migrations(spec, spec.get('features', []))) > 1 else ''},
+            {'name': 'migrations/003_create_comments_table.sql', 'content': generate_webapp_migrations(spec, spec.get('features', []))[2]['content'] if len(generate_webapp_migrations(spec, spec.get('features', []))) > 2 else ''},
+            {'name': 'scripts/run-migrations.js', 'content': generate_migration_runner(spec)}
+        ]
+    }
+
+def generate_deployment_templates(spec, architecture):
+    """Generate deployment templates"""
+    return {
+        'type': 'Multi-Cloud',
+        'files': [
+            {'name': 'docker-compose.yml', 'content': generate_docker_compose(spec)},
+            {'name': 'deploy-aws.sh', 'content': generate_deployment_scripts(spec)[0]['content']},
+            {'name': 'deploy-gcp.sh', 'content': generate_deployment_scripts(spec)[1]['content']},
+            {'name': 'deploy-azure.sh', 'content': generate_deployment_scripts(spec)[2]['content']},
+            {'name': '.github/workflows/deploy.yml', 'content': generate_github_actions_workflow(spec)},
+            {'name': '.github/workflows/test.yml', 'content': generate_test_workflow(spec)},
+            {'name': '.github/workflows/security.yml', 'content': generate_security_workflow(spec)},
+            {'name': 'README.md', 'content': generate_comprehensive_readme(spec)}
+        ]
+    }
+
+def generate_deployment_config(spec, architecture):
+    """Generate deployment configuration"""
+    return {
+        'type': 'AWS ECS Fargate',
+        'config': {
+            'cluster': f"{spec['name'].lower().replace(' ', '-')}-cluster",
+            'service': f"{spec['name'].lower().replace(' ', '-')}-service",
+            'task_definition': f"{spec['name'].lower().replace(' ', '-')}-task",
+            'load_balancer': f"{spec['name'].lower().replace(' ', '-')}-alb",
+            'database': f"{spec['name'].lower().replace(' ', '-')}-db",
+            'storage': f"{spec['name'].lower().replace(' ', '-')}-storage"
+        },
+        'environment': {
+            'NODE_ENV': 'production',
+            'DATABASE_URL': f"postgresql://admin:password@db:5432/{spec['name'].lower().replace(' ', '_')}",
+            'PORT': '8000'
+        },
+        'scaling': {
+            'min_capacity': 1,
+            'max_capacity': 10,
+            'target_cpu': 70,
+            'target_memory': 80
+        }
+    }
+
 def save_system_to_s3(system_id, system_data):
     """Save system to S3"""
     try:
