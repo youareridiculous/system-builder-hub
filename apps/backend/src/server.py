@@ -3027,7 +3027,7 @@ def generate_comprehensive_readme(spec):
 - **comments** - User interactions (if interaction features enabled)
 '''
     else:
-        readme += f'- **{system_name.lower().replace(' ', '_')}** - Main data table\n'
+        readme += f'- **{system_name.lower().replace(" ", "_")}** - Main data table\n'
     
     readme += f'''
 ### Migrations:
