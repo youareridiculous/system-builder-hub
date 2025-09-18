@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import LoginForm from '@/components/LoginForm'
-import ModelSelector from '@/components/ModelSelector'
-import ChatInterface from '@/components/ChatInterface'
-import SystemBuilder from '@/components/SystemBuilder'
+import { ModelSelector } from '@/components/ModelSelector'
+import { ChatInterface } from '@/components/ChatInterface'
+import { SystemBuilder } from '@/components/SystemBuilder'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'chat' | 'builder'>('chat')
