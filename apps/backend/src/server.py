@@ -625,6 +625,21 @@ def generate_setup_instructions(domain_type, domain):
                 'value': 'sbh.umbervale.com'
             }
         }
+    elif domain_type == 'sbh_managed':
+        return {
+            'type': 'sbh_managed',
+            'instructions': [
+                "1. Domain is fully managed by SBH",
+                "2. No DNS configuration required",
+                "3. SSL certificate will be automatically provisioned",
+                "4. System will be available immediately after deployment"
+            ],
+            'dns_record': {
+                'type': 'AUTO',
+                'name': domain,
+                'value': 'Automatically managed by SBH'
+            }
+        }
     elif domain_type == 'custom_domain':
         return {
             'type': 'custom_domain',
