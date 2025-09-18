@@ -33,17 +33,24 @@ jobs:
     - name: Install dependencies
       run: npm install
     
-    - name: Build frontend
-      run: |
-        npm run build
-        npm run export
-    
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-region: us-west-2
         role-to-assume: arn:aws:iam::776567512687:role/GitHubActionsECRPush
         role-session-name: sbh-frontend-deploy
+    
+    - name: Fetch Cognito configuration from Parameter Store
+      run: |
+        echo "NEXT_PUBLIC_COGNITO_USER_POOL_ID=$(aws ssm get-parameter --name '/sbh/cognito/user-pool-id' --query 'Parameter.Value' --output text)" >> $GITHUB_ENV
+        echo "NEXT_PUBLIC_COGNITO_CLIENT_ID=$(aws ssm get-parameter --name '/sbh/cognito/client-id' --query 'Parameter.Value' --output text)" >> $GITHUB_ENV
+        echo "NEXT_PUBLIC_COGNITO_IDENTITY_POOL_ID=$(aws ssm get-parameter --name '/sbh/cognito/identity-pool-id' --query 'Parameter.Value' --output text)" >> $GITHUB_ENV
+        echo "NEXT_PUBLIC_AWS_REGION=$(aws ssm get-parameter --name '/sbh/cognito/aws-region' --query 'Parameter.Value' --output text)" >> $GITHUB_ENV
+    
+    - name: Build frontend
+      run: |
+        npm run build
+        npm run export
     
     - name: Deploy to S3
       run: |
@@ -67,8 +74,3 @@ jobs:
             }
           ]
         }'
-    
-    - name: Get website URL
-      run: |
-        echo "Frontend deployed to: http://sbh-workspace-dev-b8aedb34.s3-website-us-west-2.amazonaws.com/frontend/"
-        echo "You can access it at: https://sbh.umbervale.com (once we configure the ALB)"
