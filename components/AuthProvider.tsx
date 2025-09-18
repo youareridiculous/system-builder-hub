@@ -17,9 +17,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<CognitoUser | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Get environment variables with fallbacks
+  const userPoolId = process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || 'us-west-2_1kCtllr1G'
+  const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || '1c44jrscj09u4358t4f4qktn31'
+
   const userPool = new CognitoUserPool({
-    UserPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID!,
-    ClientId: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID!
+    UserPoolId: userPoolId,
+    ClientId: clientId
   })
 
   useEffect(() => {
