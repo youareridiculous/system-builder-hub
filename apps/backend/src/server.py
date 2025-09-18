@@ -14,7 +14,7 @@ import json
 import logging
 from datetime import datetime
 from typing import Optional, Dict, Any
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 import openai
 from openai import OpenAI
