@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Code, Database, Cloud, Zap, Settings, Play, Download, Eye } from 'lucide-react'
+import { Code, Database, Cloud, Zap, Settings, Play, Download, Eye, ShoppingCart, FileText, BarChart3 } from 'lucide-react'
 
 interface SystemSpec {
   name: string
   description: string
-  type: 'web-app' | 'api' | 'data-pipeline' | 'ml-service' | 'microservice'
+  type: 'web-app' | 'api' | 'data-pipeline' | 'ml-service' | 'microservice' | 'ecommerce-platform' | 'cms' | 'dashboard'
   techStack: string[]
   features: string[]
   infrastructure: string[]
@@ -17,7 +17,10 @@ const systemTypes = [
   { id: 'api', name: 'REST API', icon: Database, description: 'Backend API service with database' },
   { id: 'data-pipeline', name: 'Data Pipeline', icon: Cloud, description: 'ETL pipeline for data processing' },
   { id: 'ml-service', name: 'ML Service', icon: Zap, description: 'Machine learning model serving' },
-  { id: 'microservice', name: 'Microservice', icon: Settings, description: 'Containerized microservice' }
+  { id: 'microservice', name: 'Microservice', icon: Settings, description: 'Containerized microservice' },
+  { id: 'ecommerce-platform', name: 'E-commerce Platform', icon: ShoppingCart, description: 'Complete e-commerce solution with payment processing' },
+  { id: 'cms', name: 'Content Management System', icon: FileText, description: 'CMS for content creation and management' },
+  { id: 'dashboard', name: 'Analytics Dashboard', icon: BarChart3, description: 'Real-time analytics and reporting dashboard' }
 ]
 
 const techStacks = [
@@ -49,9 +52,12 @@ export function SystemBuilder() {
   })
   const [currentStep, setCurrentStep] = useState(1)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const updateSpec = (updates: Partial<SystemSpec>) => {
     setSpec(prev => ({ ...prev, ...updates }))
+    // Clear errors when user makes changes
+    setErrors({})
   }
 
   const toggleArrayItem = (array: string[], item: string, setter: (items: string[]) => void) => {
@@ -62,13 +68,38 @@ export function SystemBuilder() {
     }
   }
 
+  const validateStep = (step: number): boolean => {
+    const newErrors: Record<string, string> = {}
+    
+    if (step === 1) {
+      if (!spec.name.trim()) newErrors.name = 'System name is required'
+      if (!spec.description.trim()) newErrors.description = 'Description is required'
+      if (!spec.type) newErrors.type = 'System type is required'
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, 5))
+    }
+  }
+
+  const handlePrevious = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1))
+  }
+
   const generateSystem = async () => {
-    setIsGenerating(true)
-    // TODO: Implement system generation logic
-    setTimeout(() => {
-      setIsGenerating(false)
-      alert('System generation will be implemented in the next phase!')
-    }, 2000)
+    if (validateStep(currentStep)) {
+      setIsGenerating(true)
+      // TODO: Implement system generation logic
+      setTimeout(() => {
+        setIsGenerating(false)
+        alert('System generation will be implemented in the next phase!')
+      }, 2000)
+    }
   }
 
   const steps = [
@@ -100,7 +131,7 @@ export function SystemBuilder() {
                       : 'border-gray-300 bg-white text-gray-400'
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
+                  {isCompleted ? '✓' : <Icon className="w-5 h-5" />}
                 </div>
                 <div className="ml-3">
                   <p className={`text-sm font-medium ${isActive ? 'text-sbh-600' : 'text-gray-500'}`}>
@@ -123,31 +154,37 @@ export function SystemBuilder() {
             <h2 className="text-xl font-semibold text-gray-900">Basic Information</h2>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                System Name
+                System Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={spec.name}
                 onChange={(e) => updateSpec({ name: e.target.value })}
                 placeholder="e.g., E-commerce Platform"
-                className="input-field"
+                className={`input-field ${errors.name ? 'border-red-500' : ''}`}
               />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
+                Description <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={spec.description}
                 onChange={(e) => updateSpec({ description: e.target.value })}
                 placeholder="Describe what your system should do..."
-                className="input-field"
+                className={`input-field ${errors.description ? 'border-red-500' : ''}`}
                 rows={4}
               />
+              {errors.description && (
+                <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                System Type
+                System Type <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {systemTypes.map((type) => {
@@ -169,6 +206,9 @@ export function SystemBuilder() {
                   )
                 })}
               </div>
+              {errors.type && (
+                <p className="mt-2 text-sm text-red-600">{errors.type}</p>
+              )}
             </div>
           </div>
         )}
@@ -304,7 +344,7 @@ export function SystemBuilder() {
         {/* Navigation */}
         <div className="flex justify-between pt-6 border-t border-gray-200">
           <button
-            onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+            onClick={handlePrevious}
             disabled={currentStep === 1}
             className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -313,7 +353,7 @@ export function SystemBuilder() {
           
           {currentStep < 5 ? (
             <button
-              onClick={() => setCurrentStep(Math.min(5, currentStep + 1))}
+              onClick={handleNext}
               className="btn-primary"
             >
               Next
