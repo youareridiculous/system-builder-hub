@@ -14,7 +14,7 @@ import json
 import logging
 from datetime import datetime
 from typing import Optional, Dict, Any
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import openai
 from openai import OpenAI
@@ -1612,10 +1612,51 @@ output "alb_dns_name" {{
 import zipfile
 import io
 import base64
+import json
+import boto3
 from datetime import datetime, timedelta
+from botocore.exceptions import ClientError
 
-# Add this in-memory storage for generated systems (in production, use Redis or database)
-generated_systems = {}
+# S3 client for persistent storage
+s3_client = boto3.client('s3')
+S3_BUCKET = os.getenv('S3_BUCKET_NAME', 'sbh-generated-systems')
+
+def save_system_to_s3(system_id, system_data):
+    """Save system to S3"""
+    try:
+        key = f"systems/{system_id}.json"
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=key,
+            Body=json.dumps(system_data, default=str),
+            ContentType='application/json'
+        )
+        return True
+    except ClientError as e:
+        logger.error(f"Error saving system to S3: {e}")
+        return False
+
+def load_system_from_s3(system_id):
+    """Load system from S3"""
+    try:
+        key = f"systems/{system_id}.json"
+        response = s3_client.get_object(Bucket=S3_BUCKET, Key=key)
+        return json.loads(response['Body'].read().decode('utf-8'))
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuchKey':
+            return None
+        logger.error(f"Error loading system from S3: {e}")
+        return None
+
+def delete_system_from_s3(system_id):
+    """Delete system from S3"""
+    try:
+        key = f"systems/{system_id}.json"
+        s3_client.delete_object(Bucket=S3_BUCKET, Key=key)
+        return True
+    except ClientError as e:
+        logger.error(f"Error deleting system from S3: {e}")
+        return False
 
 def create_app():
     """Create Flask application with OpenAI integration and system generation"""
@@ -1813,8 +1854,8 @@ def create_app():
                 'generatedAt': datetime.utcnow().isoformat()
             }
             
-            # Store system for preview/testing
-            generated_systems[system_id] = system_output
+            # Store system for preview/testing in S3
+            save_system_to_s3(system_id, system_output)
             
             return jsonify({
                 'success': True,
@@ -1832,13 +1873,12 @@ def create_app():
     def preview_system(system_id):
         """Preview a generated system with code viewer and architecture"""
         try:
-            if system_id not in generated_systems:
+            system = load_system_from_s3(system_id)
+            if not system:
                 return jsonify({
                     'success': False,
                     'error': 'System not found'
                 }), 404
-            
-            system = generated_systems[system_id]
             
             # Create preview data with file contents
             preview_data = {
@@ -1871,19 +1911,19 @@ def create_app():
     def test_system(system_id):
         """Deploy and test a generated system"""
         try:
-            if system_id not in generated_systems:
+            system = load_system_from_s3(system_id)
+            if not system:
                 return jsonify({
                     'success': False,
                     'error': 'System not found'
                 }), 404
             
-            system = generated_systems[system_id]
-            
             # Create test deployment
             test_deployment = create_test_deployment(system)
             
-            # Store test deployment info
+            # Store test deployment info and save back to S3
             system['testDeployment'] = test_deployment
+            save_system_to_s3(system_id, system)
             
             return jsonify({
                 'success': True,
@@ -1901,13 +1941,12 @@ def create_app():
     def validate_system(system_id):
         """Validate a generated system"""
         try:
-            if system_id not in generated_systems:
+            system = load_system_from_s3(system_id)
+            if not system:
                 return jsonify({
                     'success': False,
                     'error': 'System not found'
                 }), 404
-            
-            system = generated_systems[system_id]
             
             # Run validation checks
             validation_results = validate_system_components(system)
@@ -1928,13 +1967,12 @@ def create_app():
     def download_system(system_id):
         """Download a generated system as ZIP file"""
         try:
-            if system_id not in generated_systems:
+            system = load_system_from_s3(system_id)
+            if not system:
                 return jsonify({
                     'success': False,
                     'error': 'System not found'
                 }), 404
-            
-            system = generated_systems[system_id]
             
             # Create ZIP file
             zip_buffer = create_system_zip(system)
