@@ -171,6 +171,13 @@ def generate_system_templates(spec, architecture):
     # Generate real CI/CD pipeline
     templates['deployment'] = generate_cicd_pipeline(spec, architecture)
     
+    # Add Docker Compose and deployment scripts
+    templates['docker'] = generate_docker_setup(spec)
+    templates['scripts'] = generate_deployment_scripts_wrapper(spec)
+    
+    # Add comprehensive documentation
+    templates['docs'] = generate_documentation(spec)
+    
     return templates
 
 def generate_react_frontend(spec, architecture):
@@ -243,38 +250,54 @@ def generate_nextjs_frontend(spec, architecture):
 
 def generate_nodejs_backend(spec, architecture):
     """Generate real Node.js/Express backend"""
+    files = [
+        {
+            'name': 'package.json',
+            'content': generate_nodejs_package_json(spec)
+        },
+        {
+            'name': 'src/app.js',
+            'content': generate_express_app(spec)
+        },
+        {
+            'name': 'src/routes/api.js',
+            'content': generate_api_routes(spec)
+        },
+        {
+            'name': 'src/models/index.js',
+            'content': generate_database_models(spec)
+        },
+        {
+            'name': 'src/middleware/auth.js',
+            'content': generate_auth_middleware(spec)
+        },
+        {
+            'name': 'Dockerfile',
+            'content': generate_nodejs_dockerfile(spec)
+        },
+        {
+            'name': '.env.example',
+            'content': generate_env_example(spec)
+        }
+    ]
+    
+    # Add database migration files
+    migrations = generate_database_migrations(spec)
+    for migration in migrations:
+        files.append({
+            'name': f'database/migrations/{migration["name"]}',
+            'content': migration['content']
+        })
+    
+    # Add migration runner script
+    files.append({
+        'name': 'scripts/run-migrations.js',
+        'content': generate_migration_runner(spec)
+    })
+    
     return {
         'type': 'Node.js/Express',
-        'files': [
-            {
-                'name': 'package.json',
-                'content': generate_nodejs_package_json(spec)
-            },
-            {
-                'name': 'src/app.js',
-                'content': generate_express_app(spec)
-            },
-            {
-                'name': 'src/routes/api.js',
-                'content': generate_api_routes(spec)
-            },
-            {
-                'name': 'src/models/index.js',
-                'content': generate_database_models(spec)
-            },
-            {
-                'name': 'src/middleware/auth.js',
-                'content': generate_auth_middleware(spec)
-            },
-            {
-                'name': 'Dockerfile',
-                'content': generate_nodejs_dockerfile(spec)
-            },
-            {
-                'name': '.env.example',
-                'content': generate_env_example(spec)
-            }
-        ]
+        'files': files
     }
 
 def generate_python_backend(spec, architecture):
@@ -372,6 +395,529 @@ def generate_cicd_pipeline(spec, architecture):
             }
         ]
     }
+
+def generate_docker_setup(spec):
+    """Generate Docker Compose setup"""
+    return {
+        'type': 'Docker Compose',
+        'files': [
+            {
+                'name': 'docker-compose.yml',
+                'content': generate_docker_compose(spec)
+            },
+            {
+                'name': 'docker-compose.prod.yml',
+                'content': generate_docker_compose_prod(spec)
+            },
+            {
+                'name': '.env.example',
+                'content': generate_docker_env_example(spec)
+            }
+        ]
+    }
+
+def generate_deployment_scripts_wrapper(spec):
+    """Generate deployment scripts for multiple cloud providers"""
+    scripts = generate_deployment_scripts(spec)
+    return {
+        'type': 'Deployment Scripts',
+        'files': scripts
+    }
+
+def generate_docker_compose_prod(spec):
+    """Generate production Docker Compose"""
+    system_name = spec['name'].lower().replace(' ', '-').replace('_', '-')
+    
+    return f'''version: '3.8'
+
+services:
+  # Backend API (Production)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: {system_name}-backend-prod
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${{DATABASE_URL}}
+      REDIS_URL: ${{REDIS_URL}}
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Frontend (Production)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: {system_name}-frontend-prod
+    environment:
+      NEXT_PUBLIC_API_URL: ${{NEXT_PUBLIC_API_URL}}
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+networks:
+  default:
+    name: {system_name}-network-prod
+'''
+
+def generate_docker_env_example(spec):
+    """Generate Docker environment example"""
+    system_name = spec['name'].lower().replace(' ', '-').replace('_', '-')
+    
+    return f'''# {spec['name']} Environment Configuration
+# Copy this file to .env and update the values
+
+# Database Configuration
+DATABASE_URL=postgresql://{system_name}_user:{system_name}_password@localhost:5432/{system_name}
+
+# Redis Configuration
+REDIS_URL=redis://localhost:6379
+
+# Application Configuration
+NODE_ENV=development
+PORT=8000
+NEXT_PUBLIC_API_URL=http://localhost:8000
+
+# Security
+JWT_SECRET=your-super-secret-jwt-key-here
+SESSION_SECRET=your-super-secret-session-key-here
+
+# AWS Configuration (for production)
+AWS_REGION=us-west-2
+AWS_ACCESS_KEY_ID=your-aws-access-key
+AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+S3_BUCKET_NAME=your-s3-bucket-name
+
+# Email Configuration (optional)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
+# External APIs (optional)
+OPENAI_API_KEY=your-openai-api-key
+STRIPE_SECRET_KEY=your-stripe-secret-key
+'''
+
+def generate_documentation(spec):
+    """Generate comprehensive documentation"""
+    return {
+        'type': 'Documentation',
+        'files': [
+            {
+                'name': 'README.md',
+                'content': generate_comprehensive_readme(spec)
+            },
+            {
+                'name': 'DEPLOYMENT.md',
+                'content': generate_deployment_guide(spec)
+            },
+            {
+                'name': 'API.md',
+                'content': generate_api_documentation(spec)
+            }
+        ]
+    }
+
+def generate_deployment_guide(spec):
+    """Generate detailed deployment guide"""
+    system_name = spec['name']
+    
+    return f'''# {system_name} - Deployment Guide
+
+**Generated by System Builder Hub (SBH)**
+
+## 🚀 Deployment Options
+
+### 1. AWS Deployment (Recommended)
+
+#### Prerequisites
+- AWS CLI configured
+- Docker installed
+- AWS account with appropriate permissions
+
+#### Steps
+1. **Configure AWS CLI:**
+   ```bash
+   aws configure
+   ```
+
+2. **Set environment variables:**
+   ```bash
+   export AWS_ACCOUNT_ID=your-account-id
+   export AWS_REGION=us-west-2
+   ```
+
+3. **Deploy:**
+   ```bash
+   chmod +x deploy-aws.sh
+   ./deploy-aws.sh
+   ```
+
+#### What gets deployed:
+- ECS Fargate cluster
+- RDS PostgreSQL database
+- Application Load Balancer
+- CloudFront distribution
+- Route 53 DNS (if configured)
+
+### 2. Google Cloud Platform
+
+#### Prerequisites
+- Google Cloud CLI installed
+- Docker installed
+- GCP project with billing enabled
+
+#### Steps
+1. **Authenticate:**
+   ```bash
+   gcloud auth login
+   gcloud config set project YOUR_PROJECT_ID
+   ```
+
+2. **Deploy:**
+   ```bash
+   chmod +x deploy-gcp.sh
+   ./deploy-gcp.sh
+   ```
+
+### 3. Microsoft Azure
+
+#### Prerequisites
+- Azure CLI installed
+- Docker installed
+- Azure subscription
+
+#### Steps
+1. **Authenticate:**
+   ```bash
+   az login
+   az account set --subscription YOUR_SUBSCRIPTION_ID
+   ```
+
+2. **Deploy:**
+   ```bash
+   chmod +x deploy-azure.sh
+   ./deploy-azure.sh
+   ```
+
+### 4. Docker Compose (Any Server)
+
+#### Prerequisites
+- Docker and Docker Compose
+- Server with public IP
+- Domain name (optional)
+
+#### Steps
+1. **Upload files to server:**
+   ```bash
+   scp -r . user@your-server:/path/to/app
+   ```
+
+2. **Deploy:**
+   ```bash
+   ssh user@your-server
+   cd /path/to/app
+   docker-compose -f docker-compose.prod.yml up -d
+   ```
+
+## 🔧 Environment Configuration
+
+### Required Environment Variables
+
+```bash
+# Database
+DATABASE_URL=postgresql://user:password@host:5432/database
+
+# Application
+NODE_ENV=production
+PORT=8000
+JWT_SECRET=your-super-secret-jwt-key
+
+# External Services (if used)
+OPENAI_API_KEY=your-openai-key
+STRIPE_SECRET_KEY=your-stripe-key
+```
+
+### AWS-Specific Variables
+```bash
+AWS_REGION=us-west-2
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+S3_BUCKET_NAME=your-bucket-name
+```
+
+## 📊 Monitoring & Health Checks
+
+### Health Endpoints
+- **Application**: `GET /health`
+- **Database**: Connection status in health check
+- **External APIs**: Service availability
+
+### Logs
+```bash
+# AWS ECS
+aws logs tail /ecs/{system_name.lower().replace(' ', '-')} --follow
+
+# Docker Compose
+docker-compose logs -f backend
+```
+
+## 🔒 Security Considerations
+
+### Production Security
+- Use strong JWT secrets
+- Enable HTTPS/TLS
+- Configure CORS properly
+- Use environment variables for secrets
+- Regular security updates
+
+### Database Security
+- Use connection encryption
+- Regular backups
+- Access control
+- Parameterized queries
+
+## 🆘 Troubleshooting
+
+### Common Issues
+
+1. **Deployment Fails:**
+   - Check AWS/GCP/Azure credentials
+   - Verify Docker is running
+   - Check resource limits
+
+2. **Database Connection Issues:**
+   - Verify DATABASE_URL format
+   - Check network connectivity
+   - Verify database exists
+
+3. **Application Won't Start:**
+   - Check environment variables
+   - Verify port availability
+   - Check application logs
+
+## 📞 Support
+
+- **Documentation**: This guide
+- **Issues**: GitHub Issues
+- **Generated by**: System Builder Hub (SBH)
+'''
+
+def generate_api_documentation(spec):
+    """Generate API documentation"""
+    system_name = spec['name']
+    system_type = spec.get('type', 'web-app')
+    features = spec.get('features', [])
+    
+    api_doc = f'''# {system_name} - API Documentation
+
+**Generated by System Builder Hub (SBH)**
+
+## Base URL
+- **Development**: `http://localhost:8000`
+- **Production**: `https://your-domain.com`
+
+## Authentication
+
+All protected endpoints require a JWT token in the Authorization header:
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+## Endpoints
+
+### Health Check
+- **GET** `/health`
+- **Description**: Check application health
+- **Response**: `{{"status": "healthy", "timestamp": "..."}}`
+
+### Authentication
+
+#### Login
+- **POST** `/api/auth/login`
+- **Body**: `{{"email": "user@example.com", "password": "password"}}`
+- **Response**: `{{"token": "jwt-token", "user": {{"id": 1, "email": "..."}}}}`
+
+#### Register
+- **POST** `/api/auth/register`
+- **Body**: `{{"email": "user@example.com", "password": "password", "name": "User Name"}}`
+- **Response**: `{{"token": "jwt-token", "user": {{"id": 1, "email": "..."}}}}`
+
+#### Profile
+- **GET** `/api/auth/profile`
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**: `{{"id": 1, "email": "user@example.com", "name": "User Name"}}`
+'''
+
+    if system_type == 'web-app' and any('content' in feature.lower() or 'post' in feature.lower() for feature in features):
+        api_doc += '''
+### Posts (Content Management)
+
+#### List Posts
+- **GET** `/api/posts`
+- **Query Parameters**: `?limit=10&offset=0&status=published`
+- **Response**: `[{"id": 1, "title": "...", "content": "...", "author": {...}}]`
+
+#### Get Post
+- **GET** `/api/posts/:id`
+- **Response**: `{"id": 1, "title": "...", "content": "...", "author": {...}}`
+
+#### Create Post
+- **POST** `/api/posts`
+- **Headers**: `Authorization: Bearer <token>`
+- **Body**: `{"title": "Post Title", "content": "Post content"}`
+- **Response**: `{"id": 1, "title": "...", "content": "...", "status": "draft"}`
+
+#### Update Post
+- **PUT** `/api/posts/:id`
+- **Headers**: `Authorization: Bearer <token>`
+- **Body**: `{"title": "Updated Title", "content": "Updated content"}`
+- **Response**: `{"id": 1, "title": "...", "content": "...", "updated_at": "..."}`
+
+#### Delete Post
+- **DELETE** `/api/posts/:id`
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**: `{"message": "Post deleted successfully"}`
+'''
+
+    if system_type == 'web-app' and any('comment' in feature.lower() or 'interaction' in feature.lower() for feature in features):
+        api_doc += '''
+### Comments (User Interactions)
+
+#### List Comments
+- **GET** `/api/posts/:postId/comments`
+- **Query Parameters**: `?limit=50&offset=0`
+- **Response**: `[{"id": 1, "content": "...", "author": {...}, "created_at": "..."}]`
+
+#### Create Comment
+- **POST** `/api/posts/:postId/comments`
+- **Headers**: `Authorization: Bearer <token>`
+- **Body**: `{"content": "Comment content"}`
+- **Response**: `{"id": 1, "content": "...", "author": {...}, "created_at": "..."}`
+
+#### Update Comment
+- **PUT** `/api/comments/:id`
+- **Headers**: `Authorization: Bearer <token>`
+- **Body**: `{"content": "Updated comment content"}`
+- **Response**: `{"id": 1, "content": "...", "updated_at": "..."}`
+
+#### Delete Comment
+- **DELETE** `/api/comments/:id`
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**: `{"message": "Comment deleted successfully"}`
+'''
+
+    api_doc += '''
+## Error Responses
+
+### 400 Bad Request
+```json
+{
+  "error": "Validation failed",
+  "details": ["Email is required", "Password must be at least 8 characters"]
+}
+```
+
+### 401 Unauthorized
+```json
+{
+  "error": "Authentication required",
+  "message": "Please provide a valid JWT token"
+}
+```
+
+### 403 Forbidden
+```json
+{
+  "error": "Access denied",
+  "message": "You don't have permission to perform this action"
+}
+```
+
+### 404 Not Found
+```json
+{
+  "error": "Resource not found",
+  "message": "The requested resource does not exist"
+}
+```
+
+### 500 Internal Server Error
+```json
+{
+  "error": "Internal server error",
+  "message": "An unexpected error occurred"
+}
+```
+
+## Rate Limiting
+
+- **Limit**: 100 requests per minute per IP
+- **Headers**: 
+  - `X-RateLimit-Limit`: Request limit
+  - `X-RateLimit-Remaining`: Remaining requests
+  - `X-RateLimit-Reset`: Reset time
+
+## Testing
+
+### Using curl
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# Login
+curl -X POST http://localhost:8000/api/auth/login \\
+  -H "Content-Type: application/json" \\
+  -d '{"email": "user@example.com", "password": "password"}'
+
+# Get posts (with token)
+curl http://localhost:8000/api/posts \\
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Using Postman
+1. Import the API collection
+2. Set base URL to your application URL
+3. Configure authentication token
+4. Test endpoints
+
+## Generated by System Builder Hub (SBH)
+'''
+
+    return api_doc
 
 def generate_deployment_config(spec, architecture):
     """Generate deployment configuration"""
@@ -967,6 +1513,295 @@ async def status():
     }}'''
 
 def generate_database_models(spec):
+    """Generate real, system-specific database models based on system type and features"""
+    
+    # Determine system type and generate appropriate models
+    system_type = spec.get('type', 'web-app')
+    features = spec.get('features', [])
+    
+    if system_type == 'web-app':
+        return generate_webapp_models(spec, features)
+    elif system_type == 'ecommerce-platform':
+        return generate_ecommerce_models(spec, features)
+    elif system_type == 'api-service':
+        return generate_api_models(spec, features)
+    else:
+        return generate_generic_models(spec)
+
+def generate_webapp_models(spec, features):
+    """Generate models for a web application with users, posts, comments"""
+    system_name = spec['name'].replace(' ', '').replace('-', '')
+    
+    models = f'''const {{ Pool }} = require('pg')
+
+// Database connection
+const pool = new Pool({{
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? {{ rejectUnauthorized: false }} : false
+}})
+
+// {spec['name']} Database Models
+
+// User Model
+class User {{
+  static async create(userData) {{
+    const {{ email, password_hash, name, role = 'user' }} = userData
+    const query = `
+      INSERT INTO users (email, password_hash, name, role, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, NOW(), NOW())
+      RETURNING id, email, name, role, created_at, updated_at
+    `
+    const values = [email, password_hash, name, role]
+    const result = await pool.query(query, values)
+    return result.rows[0]
+  }}
+
+  static async findByEmail(email) {{
+    const query = 'SELECT * FROM users WHERE email = $1'
+    const result = await pool.query(query, [email])
+    return result.rows[0]
+  }}
+
+  static async findById(id) {{
+    const query = 'SELECT id, email, name, role, created_at, updated_at FROM users WHERE id = $1'
+    const result = await pool.query(query, [id])
+    return result.rows[0]
+  }}
+
+  static async update(id, updateData) {{
+    const fields = []
+    const values = []
+    let paramCount = 1
+
+    for (const [key, value] of Object.entries(updateData)) {{
+      if (key !== 'id') {{
+        fields.push(`${{key}} = ${{paramCount}}`)
+        values.push(value)
+        paramCount++
+      }}
+    }}
+
+    if (fields.length === 0) return null
+
+    fields.push('updated_at = NOW()')
+    values.push(id)
+
+    const query = `
+      UPDATE users 
+      SET ${{fields.join(', ')}}
+      WHERE id = ${{paramCount}}
+      RETURNING id, email, name, role, created_at, updated_at
+    `
+    const result = await pool.query(query, values)
+    return result.rows[0]
+  }}
+
+  static async delete(id) {{
+    const query = 'DELETE FROM users WHERE id = $1 RETURNING id'
+    const result = await pool.query(query, [id])
+    return result.rows[0]
+  }}
+}}'''
+
+    # Add Post model if content management is a feature
+    if any('content' in feature.lower() or 'post' in feature.lower() or 'blog' in feature.lower() for feature in features):
+        models += f'''
+
+// Post Model
+class Post {{
+  static async create(postData) {{
+    const {{ title, content, author_id, status = 'draft' }} = postData
+    const query = `
+      INSERT INTO posts (title, content, author_id, status, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, NOW(), NOW())
+      RETURNING *
+    `
+    const values = [title, content, author_id, status]
+    const result = await pool.query(query, values)
+    return result.rows[0]
+  }}
+
+  static async findById(id) {{
+    const query = `
+      SELECT p.*, u.name as author_name, u.email as author_email
+      FROM posts p
+      JOIN users u ON p.author_id = u.id
+      WHERE p.id = $1
+    `
+    const result = await pool.query(query, [id])
+    return result.rows[0]
+  }}
+
+  static async findByAuthor(authorId, limit = 10, offset = 0) {{
+    const query = `
+      SELECT p.*, u.name as author_name
+      FROM posts p
+      JOIN users u ON p.author_id = u.id
+      WHERE p.author_id = $1
+      ORDER BY p.created_at DESC
+      LIMIT $2 OFFSET $3
+    `
+    const result = await pool.query(query, [authorId, limit, offset])
+    return result.rows
+  }}
+
+  static async findAll(limit = 10, offset = 0, status = 'published') {{
+    const query = `
+      SELECT p.*, u.name as author_name
+      FROM posts p
+      JOIN users u ON p.author_id = u.id
+      WHERE p.status = $1
+      ORDER BY p.created_at DESC
+      LIMIT $2 OFFSET $3
+    `
+    const result = await pool.query(query, [status, limit, offset])
+    return result.rows
+  }}
+
+  static async update(id, updateData) {{
+    const fields = []
+    const values = []
+    let paramCount = 1
+
+    for (const [key, value] of Object.entries(updateData)) {{
+      if (key !== 'id') {{
+        fields.push(`${{key}} = ${{paramCount}}`)
+        values.push(value)
+        paramCount++
+      }}
+    }}
+
+    if (fields.length === 0) return null
+
+    fields.push('updated_at = NOW()')
+    values.push(id)
+
+    const query = `
+      UPDATE posts 
+      SET ${{fields.join(', ')}}
+      WHERE id = ${{paramCount}}
+      RETURNING *
+    `
+    const result = await pool.query(query, values)
+    return result.rows[0]
+  }}
+
+  static async delete(id) {{
+    const query = 'DELETE FROM posts WHERE id = $1 RETURNING id'
+    const result = await pool.query(query, [id])
+    return result.rows[0]
+  }}
+}}'''
+
+    # Add Comment model if user interactions are a feature
+    if any('comment' in feature.lower() or 'interaction' in feature.lower() or 'social' in feature.lower() for feature in features):
+        models += f'''
+
+// Comment Model
+class Comment {{
+  static async create(commentData) {{
+    const {{ content, author_id, post_id, parent_id = null }} = commentData
+    const query = `
+      INSERT INTO comments (content, author_id, post_id, parent_id, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, NOW(), NOW())
+      RETURNING *
+    `
+    const values = [content, author_id, post_id, parent_id]
+    const result = await pool.query(query, values)
+    return result.rows[0]
+  }}
+
+  static async findByPost(postId, limit = 50, offset = 0) {{
+    const query = `
+      SELECT c.*, u.name as author_name, u.email as author_email
+      FROM comments c
+      JOIN users u ON c.author_id = u.id
+      WHERE c.post_id = $1 AND c.parent_id IS NULL
+      ORDER BY c.created_at ASC
+      LIMIT $2 OFFSET $3
+    `
+    const result = await pool.query(query, [postId, limit, offset])
+    return result.rows
+  }}
+
+  static async findReplies(parentId, limit = 20, offset = 0) {{
+    const query = `
+      SELECT c.*, u.name as author_name, u.email as author_email
+      FROM comments c
+      JOIN users u ON c.author_id = u.id
+      WHERE c.parent_id = $1
+      ORDER BY c.created_at ASC
+      LIMIT $2 OFFSET $3
+    `
+    const result = await pool.query(query, [parentId, limit, offset])
+    return result.rows
+  }}
+
+  static async update(id, updateData) {{
+    const fields = []
+    const values = []
+    let paramCount = 1
+
+    for (const [key, value] of Object.entries(updateData)) {{
+      if (key !== 'id') {{
+        fields.push(`${{key}} = ${{paramCount}}`)
+        values.push(value)
+        paramCount++
+      }}
+    }}
+
+    if (fields.length === 0) return null
+
+    fields.push('updated_at = NOW()')
+    values.push(id)
+
+    const query = `
+      UPDATE comments 
+      SET ${{fields.join(', ')}}
+      WHERE id = ${{paramCount}}
+      RETURNING *
+    `
+    const result = await pool.query(query, values)
+    return result.rows[0]
+  }}
+
+  static async delete(id) {{
+    const query = 'DELETE FROM comments WHERE id = $1 RETURNING id'
+    const result = await pool.query(query, [id])
+    return result.rows[0]
+  }}
+}}'''
+
+    # Export all models
+    models += f'''
+
+module.exports = {{
+  pool,
+  User,
+'''
+    
+    if any('content' in feature.lower() or 'post' in feature.lower() or 'blog' in feature.lower() for feature in features):
+        models += '  Post,\n'
+    
+    if any('comment' in feature.lower() or 'interaction' in feature.lower() or 'social' in feature.lower() for feature in features):
+        models += '  Comment,\n'
+    
+    models += '}'
+    
+    return models
+
+def generate_ecommerce_models(spec, features):
+    """Generate models for an e-commerce platform"""
+    # TODO: Implement e-commerce specific models
+    return generate_generic_models(spec)
+
+def generate_api_models(spec, features):
+    """Generate models for an API service"""
+    # TODO: Implement API service specific models
+    return generate_generic_models(spec)
+
+def generate_generic_models(spec):
+    """Generate generic models as fallback"""
     return f'''const {{ Pool }} = require('pg')
 
 // Database connection
@@ -1001,6 +1836,797 @@ module.exports = {{
   pool,
   {spec['name'].replace(' ', '')}Model
 }}'''
+
+def generate_database_migrations(spec):
+    """Generate real database migration files"""
+    system_type = spec.get('type', 'web-app')
+    features = spec.get('features', [])
+    
+    if system_type == 'web-app':
+        return generate_webapp_migrations(spec, features)
+    else:
+        return generate_generic_migrations(spec)
+
+def generate_webapp_migrations(spec, features):
+    """Generate migration files for web application"""
+    migrations = []
+    
+    # Initial migration - create users table
+    migrations.append({
+        'name': '001_create_users_table.sql',
+        'content': f'''-- Migration: Create users table
+-- Generated for: {spec['name']}
+
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'user',
+    email_verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
+
+-- Create updated_at trigger
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_users_updated_at 
+    BEFORE UPDATE ON users 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+'''
+    })
+    
+    # Add posts table if content management is a feature
+    if any('content' in feature.lower() or 'post' in feature.lower() or 'blog' in feature.lower() for feature in features):
+        migrations.append({
+            'name': '002_create_posts_table.sql',
+            'content': f'''-- Migration: Create posts table
+-- Generated for: {spec['name']}
+
+CREATE TABLE IF NOT EXISTS posts (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(500) NOT NULL,
+    content TEXT NOT NULL,
+    excerpt TEXT,
+    slug VARCHAR(500) UNIQUE,
+    author_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(50) DEFAULT 'draft',
+    featured_image VARCHAR(500),
+    meta_description TEXT,
+    published_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_posts_author_id ON posts(author_id);
+CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
+CREATE INDEX IF NOT EXISTS idx_posts_published_at ON posts(published_at);
+CREATE INDEX IF NOT EXISTS idx_posts_slug ON posts(slug);
+CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at);
+
+-- Create updated_at trigger
+CREATE TRIGGER update_posts_updated_at 
+    BEFORE UPDATE ON posts 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+'''
+        })
+    
+    # Add comments table if user interactions are a feature
+    if any('comment' in feature.lower() or 'interaction' in feature.lower() or 'social' in feature.lower() for feature in features):
+        migrations.append({
+            'name': '003_create_comments_table.sql',
+            'content': f'''-- Migration: Create comments table
+-- Generated for: {spec['name']}
+
+CREATE TABLE IF NOT EXISTS comments (
+    id SERIAL PRIMARY KEY,
+    content TEXT NOT NULL,
+    author_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
+    status VARCHAR(50) DEFAULT 'approved',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_comments_author_id ON comments(author_id);
+CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id);
+CREATE INDEX IF NOT EXISTS idx_comments_status ON comments(status);
+CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at);
+
+-- Create updated_at trigger
+CREATE TRIGGER update_comments_updated_at 
+    BEFORE UPDATE ON comments 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+'''
+        })
+    
+    # Add seed data migration
+    migrations.append({
+        'name': '004_seed_data.sql',
+        'content': f'''-- Migration: Seed initial data
+-- Generated for: {spec['name']}
+
+-- Insert admin user (password: admin123 - change in production!)
+INSERT INTO users (email, password_hash, name, role, email_verified) 
+VALUES (
+    'admin@{spec['name'].lower().replace(' ', '')}.com',
+    '$2b$10$rQZ8K9vX8K9vX8K9vX8K9e', -- bcrypt hash for 'admin123'
+    'Admin User',
+    'admin',
+    true
+) ON CONFLICT (email) DO NOTHING;
+
+-- Insert sample user
+INSERT INTO users (email, password_hash, name, role, email_verified) 
+VALUES (
+    'user@{spec['name'].lower().replace(' ', '')}.com',
+    '$2b$10$rQZ8K9vX8K9vX8K9vX8K9e', -- bcrypt hash for 'user123'
+    'Sample User',
+    'user',
+    true
+) ON CONFLICT (email) DO NOTHING;
+'''
+    })
+    
+    return migrations
+
+def generate_generic_migrations(spec):
+    """Generate generic migration files"""
+    return [{
+        'name': '001_create_initial_table.sql',
+        'content': f'''-- Migration: Create initial table
+-- Generated for: {spec['name']}
+
+CREATE TABLE IF NOT EXISTS {spec['name'].lower().replace(' ', '_')} (
+    id SERIAL PRIMARY KEY,
+    data JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes
+CREATE INDEX IF NOT EXISTS idx_{spec['name'].lower().replace(' ', '_')}_created_at ON {spec['name'].lower().replace(' ', '_')}(created_at);
+'''
+    }]
+
+def generate_migration_runner(spec):
+    """Generate migration runner script"""
+    return f'''const {{ Pool }} = require('pg')
+const fs = require('fs')
+const path = require('path')
+
+// Database connection
+const pool = new Pool({{
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? {{ rejectUnauthorized: false }} : false
+}})
+
+async function runMigrations() {{
+  try {{
+    console.log('🚀 Starting database migrations for {spec['name']}...')
+    
+    // Create migrations table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS migrations (
+        id SERIAL PRIMARY KEY,
+        filename VARCHAR(255) UNIQUE NOT NULL,
+        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    
+    // Get list of migration files
+    const migrationsDir = path.join(__dirname, '../database/migrations')
+    const migrationFiles = fs.readdirSync(migrationsDir)
+      .filter(file => file.endsWith('.sql'))
+      .sort()
+    
+    console.log(`Found ${{migrationFiles.length}} migration files`)
+    
+    // Run each migration
+    for (const filename of migrationFiles) {{
+      // Check if migration already ran
+      const result = await pool.query(
+        'SELECT id FROM migrations WHERE filename = $1',
+        [filename]
+      )
+      
+      if (result.rows.length > 0) {{
+        console.log(`⏭️  Skipping ${{filename}} (already executed)`)
+        continue
+      }}
+      
+      // Read and execute migration
+      const migrationPath = path.join(migrationsDir, filename)
+      const migrationSQL = fs.readFileSync(migrationPath, 'utf8')
+      
+      console.log(`🔄 Running migration: ${{filename}}`)
+      await pool.query(migrationSQL)
+      
+      // Record migration as executed
+      await pool.query(
+        'INSERT INTO migrations (filename) VALUES ($1)',
+        [filename]
+      )
+      
+      console.log(`✅ Completed migration: ${{filename}}`)
+    }}
+    
+    console.log('🎉 All migrations completed successfully!')
+    
+  }} catch (error) {{
+    console.error('❌ Migration failed:', error)
+    process.exit(1)
+  }} finally {{
+    await pool.end()
+  }}
+}}
+
+// Run migrations if this script is executed directly
+if (require.main === module) {{
+  runMigrations()
+}}
+
+module.exports = {{ runMigrations }}
+'''
+
+def generate_docker_compose(spec):
+    """Generate Docker Compose for local development"""
+    system_name = spec['name'].lower().replace(' ', '-').replace('_', '-')
+    
+    return f'''version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: {system_name}-postgres
+    environment:
+      POSTGRES_DB: {system_name}
+      POSTGRES_USER: {system_name}_user
+      POSTGRES_PASSWORD: {system_name}_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {system_name}_user -d {system_name}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: {system_name}-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: {system_name}-backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://{system_name}_user:{system_name}_password@postgres:5432/{system_name}
+      REDIS_URL: redis://redis:6379
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: npm run dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend (if Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: {system_name}-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    command: npm run dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: {system_name}-network
+'''
+
+def generate_deployment_scripts(spec):
+    """Generate deployment scripts for different cloud providers"""
+    system_name = spec['name'].lower().replace(' ', '-').replace('_', '-')
+    
+    scripts = []
+    
+    # AWS deployment script
+    scripts.append({
+        'name': 'deploy-aws.sh',
+        'content': f'''#!/bin/bash
+# AWS Deployment Script for {spec['name']}
+# Generated by System Builder Hub (SBH)
+
+set -e
+
+echo "🚀 Deploying {spec['name']} to AWS..."
+
+# Configuration
+PROJECT_NAME="{system_name}"
+AWS_REGION="us-west-2"
+ECR_REPO="$PROJECT_NAME-repo"
+ECS_CLUSTER="$PROJECT_NAME-cluster"
+ECS_SERVICE="$PROJECT_NAME-service"
+
+# Check if AWS CLI is configured
+if ! aws sts get-caller-identity > /dev/null 2>&1; then
+    echo "❌ AWS CLI not configured. Please run 'aws configure' first."
+    exit 1
+fi
+
+# Check if Docker is running
+if ! docker info > /dev/null 2>&1; then
+    echo "❌ Docker is not running. Please start Docker first."
+    exit 1
+fi
+
+echo "📦 Building Docker image..."
+docker build -t $PROJECT_NAME:latest ./backend
+
+echo "🏷️  Tagging image for ECR..."
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+docker tag $PROJECT_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:latest
+
+echo "⬆️  Pushing image to ECR..."
+docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:latest
+
+echo "🔄 Updating ECS service..."
+aws ecs update-service \\
+    --cluster $ECS_CLUSTER \\
+    --service $ECS_SERVICE \\
+    --force-new-deployment
+
+echo "⏳ Waiting for deployment to complete..."
+aws ecs wait services-stable \\
+    --cluster $ECS_CLUSTER \\
+    --services $ECS_SERVICE
+
+echo "✅ Deployment completed successfully!"
+echo "🌐 Your application should be available at: https://$PROJECT_NAME.sbh.umbervale.com"
+'''
+    })
+    
+    # GCP deployment script
+    scripts.append({
+        'name': 'deploy-gcp.sh',
+        'content': f'''#!/bin/bash
+# Google Cloud Platform Deployment Script for {spec['name']}
+# Generated by System Builder Hub (SBH)
+
+set -e
+
+echo "🚀 Deploying {spec['name']} to Google Cloud Platform..."
+
+# Configuration
+PROJECT_NAME="{system_name}"
+GCP_PROJECT_ID="$GCP_PROJECT_ID"
+GCP_REGION="us-west1"
+SERVICE_NAME="$PROJECT_NAME-service"
+
+# Check if gcloud CLI is configured
+if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" | head -n1 > /dev/null 2>&1; then
+    echo "❌ Google Cloud CLI not configured. Please run 'gcloud auth login' first."
+    exit 1
+fi
+
+# Set the project
+gcloud config set project $GCP_PROJECT_ID
+
+echo "📦 Building and pushing to Google Container Registry..."
+gcloud builds submit --tag gcr.io/$GCP_PROJECT_ID/$PROJECT_NAME ./backend
+
+echo "🚀 Deploying to Cloud Run..."
+gcloud run deploy $SERVICE_NAME \\
+    --image gcr.io/$GCP_PROJECT_ID/$PROJECT_NAME \\
+    --platform managed \\
+    --region $GCP_REGION \\
+    --allow-unauthenticated \\
+    --port 8000 \\
+    --memory 512Mi \\
+    --cpu 1 \\
+    --max-instances 10
+
+echo "✅ Deployment completed successfully!"
+echo "🌐 Your application is available at the URL shown above."
+'''
+    })
+    
+    # Azure deployment script
+    scripts.append({
+        'name': 'deploy-azure.sh',
+        'content': f'''#!/bin/bash
+# Microsoft Azure Deployment Script for {spec['name']}
+# Generated by System Builder Hub (SBH)
+
+set -e
+
+echo "🚀 Deploying {spec['name']} to Microsoft Azure..."
+
+# Configuration
+PROJECT_NAME="{system_name}"
+AZURE_RESOURCE_GROUP="$PROJECT_NAME-rg"
+AZURE_LOCATION="westus2"
+CONTAINER_APP_NAME="$PROJECT_NAME-app"
+
+# Check if Azure CLI is configured
+if ! az account show > /dev/null 2>&1; then
+    echo "❌ Azure CLI not configured. Please run 'az login' first."
+    exit 1
+fi
+
+echo "📦 Building and pushing to Azure Container Registry..."
+az acr build --registry $AZURE_ACR_NAME --image $PROJECT_NAME:latest ./backend
+
+echo "🚀 Deploying to Azure Container Apps..."
+az containerapp create \\
+    --name $CONTAINER_APP_NAME \\
+    --resource-group $AZURE_RESOURCE_GROUP \\
+    --location $AZURE_LOCATION \\
+    --image $AZURE_ACR_NAME.azurecr.io/$PROJECT_NAME:latest \\
+    --target-port 8000 \\
+    --ingress external \\
+    --cpu 0.5 \\
+    --memory 1Gi \\
+    --min-replicas 1 \\
+    --max-replicas 10
+
+echo "✅ Deployment completed successfully!"
+echo "🌐 Your application is available at the URL shown above."
+'''
+    })
+    
+    return scripts
+
+def generate_comprehensive_readme(spec):
+    """Generate comprehensive README for the generated system"""
+    system_name = spec['name']
+    system_type = spec.get('type', 'web-app')
+    features = spec.get('features', [])
+    tech_stack = spec.get('techStack', [])
+    
+    readme = f'''# {system_name}
+
+**Generated by System Builder Hub (SBH) - The AI-powered system that builds complete, deployable applications.**
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Docker and Docker Compose
+- Node.js 18+ (for local development)
+- PostgreSQL (or use Docker)
+- Git
+
+### Local Development
+
+1. **Clone and setup:**
+   ```bash
+   git clone <your-repo-url>
+   cd {system_name.lower().replace(' ', '-')}
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+2. **Start with Docker Compose:**
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Run database migrations:**
+   ```bash
+   docker-compose exec backend node scripts/run-migrations.js
+   ```
+
+4. **Access your application:**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:8000
+   - API Health: http://localhost:8000/health
+
+## 🏗️ Architecture
+
+### System Type: {system_type.title()}
+
+### Tech Stack:
+'''
+    
+    for tech in tech_stack:
+        readme += f'- {tech}\n'
+    
+    readme += f'''
+### Features:
+'''
+    
+    for feature in features:
+        readme += f'- {feature}\n'
+    
+    readme += f'''
+## 📁 Project Structure
+
+```
+{system_name.lower().replace(' ', '-')}/
+├── frontend/                 # Next.js frontend application
+│   ├── pages/               # Next.js pages
+│   ├── components/          # React components
+│   ├── styles/              # CSS and styling
+│   └── package.json         # Frontend dependencies
+├── backend/                 # Node.js/Express backend
+│   ├── src/                 # Source code
+│   │   ├── models/          # Database models
+│   │   ├── routes/          # API routes
+│   │   └── middleware/      # Express middleware
+│   ├── database/            # Database files
+│   │   └── migrations/      # SQL migration files
+│   └── scripts/             # Utility scripts
+├── infrastructure/          # Terraform infrastructure
+│   ├── main.tf             # Main Terraform configuration
+│   ├── variables.tf        # Terraform variables
+│   └── modules/            # Terraform modules
+├── .github/workflows/       # GitHub Actions CI/CD
+├── docker-compose.yml       # Local development setup
+├── docker-compose.prod.yml  # Production setup
+└── README.md               # This file
+```
+
+## 🗄️ Database Schema
+
+### Tables:
+'''
+    
+    if system_type == 'web-app':
+        readme += '''- **users** - User authentication and profiles
+- **posts** - Content management (if content features enabled)
+- **comments** - User interactions (if interaction features enabled)
+'''
+    else:
+        readme += f'- **{system_name.lower().replace(' ', '_')}** - Main data table\n'
+    
+    readme += f'''
+### Migrations:
+- `001_create_users_table.sql` - User authentication
+- `002_create_posts_table.sql` - Content management
+- `003_create_comments_table.sql` - User interactions
+- `004_seed_data.sql` - Initial data
+
+## 🚀 Deployment
+
+### Option 1: AWS Deployment
+```bash
+chmod +x deploy-aws.sh
+./deploy-aws.sh
+```
+
+### Option 2: Google Cloud Platform
+```bash
+chmod +x deploy-gcp.sh
+./deploy-gcp.sh
+```
+
+### Option 3: Microsoft Azure
+```bash
+chmod +x deploy-azure.sh
+./deploy-azure.sh
+```
+
+### Option 4: Docker Compose (Any Server)
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/database
+
+# Application
+NODE_ENV=development
+PORT=8000
+JWT_SECRET=your-secret-key
+
+# External Services
+OPENAI_API_KEY=your-openai-key
+STRIPE_SECRET_KEY=your-stripe-key
+```
+
+## 🧪 Testing
+
+### Run Tests
+```bash
+# Backend tests
+cd backend
+npm test
+
+# Frontend tests
+cd frontend
+npm test
+```
+
+### API Testing
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# API endpoints
+curl http://localhost:8000/api/status
+```
+
+## 📊 Monitoring
+
+### Health Checks
+- **Application**: `/health`
+- **Database**: Connection status
+- **External APIs**: Service availability
+
+### Logs
+```bash
+# View application logs
+docker-compose logs -f backend
+
+# View database logs
+docker-compose logs -f postgres
+```
+
+## 🔒 Security
+
+### Authentication
+- JWT-based authentication
+- Password hashing with bcrypt
+- Role-based access control
+
+### Database Security
+- Parameterized queries (no SQL injection)
+- Connection encryption in production
+- Regular security updates
+
+## 🛠️ Development
+
+### Adding New Features
+
+1. **Database Changes:**
+   ```bash
+   # Create new migration
+   touch database/migrations/005_add_new_feature.sql
+   # Add your SQL changes
+   # Run migration
+   node scripts/run-migrations.js
+   ```
+
+2. **API Endpoints:**
+   - Add routes in `backend/src/routes/`
+   - Add models in `backend/src/models/`
+   - Update tests
+
+3. **Frontend Components:**
+   - Add components in `frontend/components/`
+   - Add pages in `frontend/pages/`
+   - Update styling
+
+## 📚 API Documentation
+
+### Authentication Endpoints
+- `POST /api/auth/login` - User login
+- `POST /api/auth/register` - User registration
+- `GET /api/auth/profile` - Get user profile
+
+### Content Endpoints (if enabled)
+- `GET /api/posts` - List posts
+- `POST /api/posts` - Create post
+- `GET /api/posts/:id` - Get post
+- `PUT /api/posts/:id` - Update post
+- `DELETE /api/posts/:id` - Delete post
+
+### Comment Endpoints (if enabled)
+- `GET /api/posts/:id/comments` - List comments
+- `POST /api/posts/:id/comments` - Add comment
+- `PUT /api/comments/:id` - Update comment
+- `DELETE /api/comments/:id` - Delete comment
+
+## 🆘 Troubleshooting
+
+### Common Issues
+
+1. **Database Connection Failed:**
+   ```bash
+   # Check if PostgreSQL is running
+   docker-compose ps postgres
+   # Check logs
+   docker-compose logs postgres
+   ```
+
+2. **Port Already in Use:**
+   ```bash
+   # Change ports in docker-compose.yml
+   # Or stop conflicting services
+   ```
+
+3. **Migration Errors:**
+   ```bash
+   # Check migration files
+   ls -la database/migrations/
+   # Run migrations manually
+   docker-compose exec backend node scripts/run-migrations.js
+   ```
+
+## 📞 Support
+
+- **Documentation**: This README
+- **Issues**: GitHub Issues
+- **Generated by**: System Builder Hub (SBH)
+
+---
+
+**Built with ❤️ by System Builder Hub - The AI-powered system that builds complete, deployable applications.**
+'''
+    
+    return readme
 
 def generate_sqlalchemy_models(spec):
     return f'''from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
