@@ -608,806 +608,621 @@ def extract_text_from_document(s3_key, content_type):
             'error': str(e)
         }
 
-def generate_system_templates(spec, architecture):
-    """Generate real, working system templates and code"""
-    templates = {
-        'frontend': {},
-        'backend': {},
-        'infrastructure': {},
-        'deployment': {}
-    }
-    
-    # Generate real React/Next.js frontend
-    if any('React' in tech for tech in spec['techStack']):
-        templates['frontend'] = generate_react_frontend(spec, architecture)
-    elif any('Next.js' in tech for tech in spec['techStack']):
-        templates['frontend'] = generate_nextjs_frontend(spec, architecture)
-    
-    # Generate real Node.js/Python backend
-    if any('Node.js' in tech for tech in spec['techStack']):
-        templates['backend'] = generate_nodejs_backend(spec, architecture)
-    elif any('Python' in tech for tech in spec['techStack']):
-        templates['backend'] = generate_python_backend(spec, architecture)
-    
-    # Generate real Terraform infrastructure
-    templates['infrastructure'] = generate_terraform_infrastructure(spec, architecture)
-    
-    # Generate real CI/CD pipeline
-    templates['deployment'] = generate_cicd_pipeline(spec, architecture)
-    
-    # Add Docker Compose and deployment scripts
-    templates['docker'] = generate_docker_setup(spec)
-    templates['scripts'] = generate_deployment_scripts_wrapper(spec)
-    
-    # Add comprehensive documentation
-    templates['docs'] = generate_documentation(spec)
-    
-    return templates
+#!/usr/bin/env python3
+"""
+System Builder Hub - Enhanced Server with OpenAI Integration and System Generation
 
-def generate_react_frontend(spec, architecture):
-    """Generate real React frontend code"""
+Configuration:
+- OPENAI_API_KEY: Required in production (provided via ECS task definition secrets)
+- OPENAI_MODEL: Default gpt-4o-mini
+- OPENAI_TIMEOUT_SECONDS: Default 20 seconds
+"""
+import os
+import time
+import uuid
+import json
+import logging
+from datetime import datetime
+from typing import Optional, Dict, Any
+from flask import Flask, jsonify, request, send_file
+from flask_cors import CORS
+import openai
+from openai import OpenAI
+import boto3
+from botocore.exceptions import ClientError
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# S3 Configuration
+s3_client = boto3.client('s3')
+S3_BUCKET = os.getenv('S3_BUCKET_NAME', 'sbh-generated-systems')
+
+def get_openai_config() -> Dict[str, Any]:
+    """Get OpenAI configuration from environment variables"""
     return {
-        'type': 'React',
-        'files': [
-            {
-                'name': 'package.json',
-                'content': generate_react_package_json(spec)
-            },
-            {
-                'name': 'src/App.tsx',
-                'content': generate_react_app_component(spec)
-            },
-            {
-                'name': 'src/components/Header.tsx',
-                'content': generate_react_header_component(spec)
-            },
-            {
-                'name': 'src/pages/Home.tsx',
-                'content': generate_react_home_page(spec)
-            },
-            {
-                'name': 'tailwind.config.js',
-                'content': generate_tailwind_config(spec)
-            },
-            {
-                'name': 'tsconfig.json',
-                'content': generate_typescript_config(spec)
-            }
-        ]
+        'api_key': os.getenv('OPENAI_API_KEY'),
+        'model': os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+        'timeout': int(os.getenv('OPENAI_TIMEOUT_SECONDS', '20'))
     }
 
-def generate_nextjs_frontend(spec, architecture):
-    """Generate real Next.js frontend code"""
-    return {
-        'type': 'Next.js',
-        'files': [
-            {
-                'name': 'package.json',
-                'content': generate_nextjs_package_json(spec)
-            },
-            {
-                'name': 'pages/index.tsx',
-                'content': generate_nextjs_index_page(spec)
-            },
-            {
-                'name': 'components/Header.tsx',
-                'content': generate_nextjs_header_component(spec)
-            },
-            {
-                'name': 'components/Layout.tsx',
-                'content': generate_nextjs_layout_component(spec)
-            },
-            {
-                'name': 'tailwind.config.js',
-                'content': generate_tailwind_config(spec)
-            },
-            {
-                'name': 'next.config.js',
-                'content': generate_nextjs_config(spec)
-            },
-            {
-                'name': 'tsconfig.json',
-                'content': generate_typescript_config(spec)
-            }
-        ]
-    }
-
-def generate_nodejs_backend(spec, architecture):
-    """Generate real Node.js/Express backend"""
-    files = [
-        {
-            'name': 'package.json',
-            'content': generate_nodejs_package_json(spec)
-        },
-        {
-            'name': 'src/app.js',
-            'content': generate_express_app(spec)
-        },
-        {
-            'name': 'src/routes/api.js',
-            'content': generate_api_routes(spec)
-        },
-        {
-            'name': 'src/models/index.js',
-            'content': generate_database_models(spec)
-        },
-        {
-            'name': 'src/middleware/auth.js',
-            'content': generate_auth_middleware(spec)
-        },
-        {
-            'name': 'Dockerfile',
-            'content': generate_nodejs_dockerfile(spec)
-        },
-        {
-            'name': '.env.example',
-            'content': generate_env_example(spec)
-        }
-    ]
+def create_openai_client() -> Optional[OpenAI]:
+    """Create OpenAI client if API key is available"""
+    config = get_openai_config()
+    if not config['api_key']:
+        return None
     
-    # Add database migration files
-    migrations = generate_database_migrations(spec)
-    for migration in migrations:
-        files.append({
-            'name': f'database/migrations/{migration["name"]}',
-            'content': migration['content']
+    try:
+        return OpenAI(
+            api_key=config['api_key'],
+            timeout=config['timeout']
+        )
+    except Exception as e:
+        logger.error(f"Failed to create OpenAI client: {e}")
+        return None
+
+def generate_system_architecture(spec):
+    """Generate system architecture based on specifications"""
+    architecture = {
+        'components': [],
+        'dataFlow': [],
+        'infrastructure': [],
+        'security': [],
+        'scalability': []
+    }
+    
+    # Add components based on system type
+    if spec['type'] == 'web-app':
+        architecture['components'] = [
+            {'name': 'Frontend', 'type': 'React App', 'port': 3000},
+            {'name': 'Backend API', 'type': 'Node.js/Express', 'port': 8000},
+            {'name': 'Database', 'type': 'PostgreSQL', 'port': 5432}
+        ]
+    elif spec['type'] == 'api':
+        architecture['components'] = [
+            {'name': 'API Gateway', 'type': 'Express.js', 'port': 8000},
+            {'name': 'Database', 'type': 'PostgreSQL', 'port': 5432}
+        ]
+    elif spec['type'] == 'ecommerce-platform':
+        architecture['components'] = [
+            {'name': 'Frontend', 'type': 'Next.js', 'port': 3000},
+            {'name': 'API Gateway', 'type': 'Node.js/Express', 'port': 8000},
+            {'name': 'Payment Service', 'type': 'Stripe Integration', 'port': 8001},
+            {'name': 'Database', 'type': 'PostgreSQL', 'port': 5432},
+            {'name': 'File Storage', 'type': 'AWS S3', 'port': None}
+        ]
+    elif spec['type'] == 'data-pipeline':
+        architecture['components'] = [
+            {'name': 'Data Ingestion', 'type': 'AWS Lambda', 'port': None},
+            {'name': 'Data Processing', 'type': 'AWS ECS', 'port': 8000},
+            {'name': 'Data Storage', 'type': 'AWS S3', 'port': None},
+            {'name': 'Data Warehouse', 'type': 'AWS Redshift', 'port': 5439}
+        ]
+    elif spec['type'] == 'ml-service':
+        architecture['components'] = [
+            {'name': 'Model API', 'type': 'FastAPI', 'port': 8000},
+            {'name': 'Model Storage', 'type': 'AWS S3', 'port': None},
+            {'name': 'Database', 'type': 'PostgreSQL', 'port': 5432},
+            {'name': 'Monitoring', 'type': 'CloudWatch', 'port': None}
+        ]
+    elif spec['type'] == 'microservice':
+        architecture['components'] = [
+            {'name': 'Service API', 'type': 'Express.js', 'port': 8000},
+            {'name': 'Database', 'type': 'PostgreSQL', 'port': 5432},
+            {'name': 'Message Queue', 'type': 'AWS SQS', 'port': None}
+        ]
+    elif spec['type'] == 'cms':
+        architecture['components'] = [
+            {'name': 'Frontend', 'type': 'Next.js', 'port': 3000},
+            {'name': 'Admin Panel', 'type': 'React', 'port': 3001},
+            {'name': 'API Gateway', 'type': 'Node.js/Express', 'port': 8000},
+            {'name': 'Database', 'type': 'PostgreSQL', 'port': 5432},
+            {'name': 'File Storage', 'type': 'AWS S3', 'port': None}
+        ]
+    elif spec['type'] == 'dashboard':
+        architecture['components'] = [
+            {'name': 'Dashboard UI', 'type': 'React', 'port': 3000},
+            {'name': 'API Gateway', 'type': 'Node.js/Express', 'port': 8000},
+            {'name': 'Data Processing', 'type': 'AWS Lambda', 'port': None},
+            {'name': 'Database', 'type': 'PostgreSQL', 'port': 5432},
+            {'name': 'Cache', 'type': 'Redis', 'port': 6379}
+        ]
+    
+    # Add infrastructure based on selections
+    if 'AWS ECS Fargate' in spec['infrastructure']:
+        architecture['infrastructure'].append({
+            'name': 'Container Orchestration',
+            'type': 'AWS ECS Fargate',
+            'description': 'Serverless container platform'
         })
     
-    # Add migration runner script
-    files.append({
-        'name': 'scripts/run-migrations.js',
-        'content': generate_migration_runner(spec)
-    })
+    if 'AWS RDS' in spec['infrastructure']:
+        architecture['infrastructure'].append({
+            'name': 'Database',
+            'type': 'AWS RDS PostgreSQL',
+            'description': 'Managed PostgreSQL database'
+        })
+    
+    if 'AWS S3' in spec['infrastructure']:
+        architecture['infrastructure'].append({
+            'name': 'File Storage',
+            'type': 'AWS S3',
+            'description': 'Object storage for files and assets'
+        })
+    
+    if 'AWS ALB' in spec['infrastructure']:
+        architecture['infrastructure'].append({
+            'name': 'Load Balancer',
+            'type': 'AWS Application Load Balancer',
+            'description': 'Application load balancer for traffic distribution'
+        })
+    
+    return architecture
+
+def save_system_to_s3(system_id, system_data):
+    """Save system to S3"""
+    try:
+        key = f"systems/{system_id}.json"
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=key,
+            Body=json.dumps(system_data, default=str),
+            ContentType='application/json'
+        )
+        return True
+    except ClientError as e:
+        logger.error(f"Error saving system to S3: {e}")
+        return False
+
+def load_system_from_s3(system_id):
+    """Load system from S3"""
+    try:
+        key = f"systems/{system_id}.json"
+        response = s3_client.get_object(Bucket=S3_BUCKET, Key=key)
+        return json.loads(response['Body'].read().decode('utf-8'))
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuchKey':
+            return None
+        logger.error(f"Error loading system from S3: {e}")
+        return None
+
+def delete_system_from_s3(system_id):
+    """Delete system from S3"""
+    try:
+        key = f"systems/{system_id}.json"
+        s3_client.delete_object(Bucket=S3_BUCKET, Key=key)
+        return True
+    except ClientError as e:
+        logger.error(f"Error deleting system from S3: {e}")
+        return False
+
+def detect_domain_type(domain):
+    """Detect the type of domain for deployment strategy"""
+    domain = domain.lower().strip()
+    
+    # SBH-managed subdomains
+    if domain.endswith('.sbh.umbervale.com'):
+        return 'sbh_managed'
+    
+    # Check if it's a root domain (no subdomain)
+    parts = domain.split('.')
+    if len(parts) == 2:  # ecommerce.com
+        return 'root_domain'
+    elif len(parts) > 2:  # ecommerce.umbervale.com
+        return 'custom_subdomain'
+    
+    return 'unknown'
+
+def validate_domain(domain):
+    """Validate domain format and availability"""
+    import re
+    
+    # Basic domain format validation
+    domain_pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$'
+    
+    if not re.match(domain_pattern, domain):
+        return {
+            'valid': False,
+            'error': 'Invalid domain format'
+        }
+    
+    # Check domain length
+    if len(domain) > 253:
+        return {
+            'valid': False,
+            'error': 'Domain too long (max 253 characters)'
+        }
+    
+    # Check for reserved domains
+    reserved_domains = ['localhost', 'example.com', 'test.com', 'sbh.umbervale.com']
+    if domain in reserved_domains:
+        return {
+            'valid': False,
+            'error': 'Domain is reserved'
+        }
     
     return {
-        'type': 'Node.js/Express',
-        'files': files
+        'valid': True,
+        'domain_type': detect_domain_type(domain)
     }
 
-def generate_python_backend(spec, architecture):
-    """Generate real Python/FastAPI backend"""
-    return {
-        'type': 'Python/FastAPI',
-        'files': [
-            {
-                'name': 'requirements.txt',
-                'content': generate_python_requirements(spec)
-            },
-            {
-                'name': 'src/main.py',
-                'content': generate_fastapi_app(spec)
-            },
-            {
-                'name': 'src/models.py',
-                'content': generate_sqlalchemy_models(spec)
-            },
-            {
-                'name': 'src/database.py',
-                'content': generate_database_config(spec)
-            },
-            {
-                'name': 'src/routes/api.py',
-                'content': generate_fastapi_routes(spec)
-            },
-            {
-                'name': 'src/middleware/auth.py',
-                'content': generate_python_auth_middleware(spec)
-            },
-            {
-                'name': 'Dockerfile',
-                'content': generate_python_dockerfile(spec)
-            },
-            {
-                'name': '.env.example',
-                'content': generate_env_example(spec)
-            }
-        ]
-    }
-
-def generate_terraform_infrastructure(spec, architecture):
-    """Generate real Terraform infrastructure"""
-    return {
-        'type': 'Terraform',
-        'files': [
-            {
-                'name': 'main.tf',
-                'content': generate_terraform_main(spec, architecture)
-            },
-            {
-                'name': 'variables.tf',
-                'content': generate_terraform_variables(spec)
-            },
-            {
-                'name': 'outputs.tf',
-                'content': generate_terraform_outputs(spec)
-            },
-            {
-                'name': 'modules/vpc/main.tf',
-                'content': generate_vpc_module(spec)
-            },
-            {
-                'name': 'modules/ecs/main.tf',
-                'content': generate_ecs_module(spec)
-            },
-            {
-                'name': 'modules/rds/main.tf',
-                'content': generate_rds_module(spec)
-            },
-            {
-                'name': 'modules/alb/main.tf',
-                'content': generate_alb_module(spec)
-            }
-        ]
-    }
-
-def generate_cicd_pipeline(spec, architecture):
-    """Generate real GitHub Actions CI/CD pipeline"""
-    return {
-        'type': 'GitHub Actions',
-        'files': [
-            {
-                'name': '.github/workflows/deploy.yml',
-                'content': generate_github_actions_workflow(spec)
-            },
-            {
-                'name': '.github/workflows/test.yml',
-                'content': generate_test_workflow(spec)
-            },
-            {
-                'name': '.github/workflows/security.yml',
-                'content': generate_security_workflow(spec)
-            }
-        ]
-    }
-
-def generate_docker_setup(spec):
-    """Generate Docker Compose setup"""
-    return {
-        'type': 'Docker Compose',
-        'files': [
-            {
-                'name': 'docker-compose.yml',
-                'content': generate_docker_compose(spec)
-            },
-            {
-                'name': 'docker-compose.prod.yml',
-                'content': generate_docker_compose_prod(spec)
-            },
-            {
-                'name': '.env.example',
-                'content': generate_docker_env_example(spec)
-            }
-        ]
-    }
-
-def generate_deployment_scripts_wrapper(spec):
-    """Generate deployment scripts for multiple cloud providers"""
-    scripts = generate_deployment_scripts(spec)
-    return {
-        'type': 'Deployment Scripts',
-        'files': scripts
-    }
-
-def generate_docker_compose_prod(spec):
-    """Generate production Docker Compose"""
-    system_name = spec['name'].lower().replace(' ', '-').replace('_', '-')
-    
-    return f'''version: '3.8'
-
-services:
-  # Backend API (Production)
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: {system_name}-backend-prod
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: ${{DATABASE_URL}}
-      REDIS_URL: ${{REDIS_URL}}
-      PORT: 8000
-    ports:
-      - "8000:8000"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
-
-  # Frontend (Production)
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: {system_name}-frontend-prod
-    environment:
-      NEXT_PUBLIC_API_URL: ${{NEXT_PUBLIC_API_URL}}
-      NODE_ENV: production
-    ports:
-      - "3000:3000"
-    restart: unless-stopped
-    depends_on:
-      - backend
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.25'
-        reservations:
-          memory: 128M
-          cpus: '0.1'
-
-networks:
-  default:
-    name: {system_name}-network-prod
-'''
-
-def generate_docker_env_example(spec):
-    """Generate Docker environment example"""
-    system_name = spec['name'].lower().replace(' ', '-').replace('_', '-')
-    
-    return f'''# {spec['name']} Environment Configuration
-# Copy this file to .env and update the values
-
-# Database Configuration
-DATABASE_URL=postgresql://{system_name}_user:{system_name}_password@localhost:5432/{system_name}
-
-# Redis Configuration
-REDIS_URL=redis://localhost:6379
-
-# Application Configuration
-NODE_ENV=development
-PORT=8000
-NEXT_PUBLIC_API_URL=http://localhost:8000
-
-# Security
-JWT_SECRET=your-super-secret-jwt-key-here
-SESSION_SECRET=your-super-secret-session-key-here
-
-# AWS Configuration (for production)
-AWS_REGION=us-west-2
-AWS_ACCESS_KEY_ID=your-aws-access-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-S3_BUCKET_NAME=your-s3-bucket-name
-
-# Email Configuration (optional)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-
-# External APIs (optional)
-OPENAI_API_KEY=your-openai-api-key
-STRIPE_SECRET_KEY=your-stripe-secret-key
-'''
-
-def generate_documentation(spec):
-    """Generate comprehensive documentation"""
-    return {
-        'type': 'Documentation',
-        'files': [
-            {
-                'name': 'README.md',
-                'content': generate_comprehensive_readme(spec)
-            },
-            {
-                'name': 'DEPLOYMENT.md',
-                'content': generate_deployment_guide(spec)
-            },
-            {
-                'name': 'API.md',
-                'content': generate_api_documentation(spec)
-            }
-        ]
-    }
-
-def generate_deployment_guide(spec):
-    """Generate detailed deployment guide"""
-    system_name = spec['name']
-    
-    return f'''# {system_name} - Deployment Guide
-
-**Generated by System Builder Hub (SBH)**
-
-## 🚀 Deployment Options
-
-### 1. AWS Deployment (Recommended)
-
-#### Prerequisites
-- AWS CLI configured
-- Docker installed
-- AWS account with appropriate permissions
-
-#### Steps
-1. **Configure AWS CLI:**
-   ```bash
-   aws configure
-   ```
-
-2. **Set environment variables:**
-   ```bash
-   export AWS_ACCOUNT_ID=your-account-id
-   export AWS_REGION=us-west-2
-   ```
-
-3. **Deploy:**
-   ```bash
-   chmod +x deploy-aws.sh
-   ./deploy-aws.sh
-   ```
-
-#### What gets deployed:
-- ECS Fargate cluster
-- RDS PostgreSQL database
-- Application Load Balancer
-- CloudFront distribution
-- Route 53 DNS (if configured)
-
-### 2. Google Cloud Platform
-
-#### Prerequisites
-- Google Cloud CLI installed
-- Docker installed
-- GCP project with billing enabled
-
-#### Steps
-1. **Authenticate:**
-   ```bash
-   gcloud auth login
-   gcloud config set project YOUR_PROJECT_ID
-   ```
-
-2. **Deploy:**
-   ```bash
-   chmod +x deploy-gcp.sh
-   ./deploy-gcp.sh
-   ```
-
-### 3. Microsoft Azure
-
-#### Prerequisites
-- Azure CLI installed
-- Docker installed
-- Azure subscription
-
-#### Steps
-1. **Authenticate:**
-   ```bash
-   az login
-   az account set --subscription YOUR_SUBSCRIPTION_ID
-   ```
-
-2. **Deploy:**
-   ```bash
-   chmod +x deploy-azure.sh
-   ./deploy-azure.sh
-   ```
-
-### 4. Docker Compose (Any Server)
-
-#### Prerequisites
-- Docker and Docker Compose
-- Server with public IP
-- Domain name (optional)
-
-#### Steps
-1. **Upload files to server:**
-   ```bash
-   scp -r . user@your-server:/path/to/app
-   ```
-
-2. **Deploy:**
-   ```bash
-   ssh user@your-server
-   cd /path/to/app
-   docker-compose -f docker-compose.prod.yml up -d
-   ```
-
-## 🔧 Environment Configuration
-
-### Required Environment Variables
-
-```bash
-# Database
-DATABASE_URL=postgresql://user:password@host:5432/database
-
-# Application
-NODE_ENV=production
-PORT=8000
-JWT_SECRET=your-super-secret-jwt-key
-
-# External Services (if used)
-OPENAI_API_KEY=your-openai-key
-STRIPE_SECRET_KEY=your-stripe-key
-```
-
-### AWS-Specific Variables
-```bash
-AWS_REGION=us-west-2
-AWS_ACCESS_KEY_ID=your-access-key
-AWS_SECRET_ACCESS_KEY=your-secret-key
-S3_BUCKET_NAME=your-bucket-name
-```
-
-## 📊 Monitoring & Health Checks
-
-### Health Endpoints
-- **Application**: `GET /health`
-- **Database**: Connection status in health check
-- **External APIs**: Service availability
-
-### Logs
-```bash
-# AWS ECS
-aws logs tail /ecs/{system_name.lower().replace(' ', '-')} --follow
-
-# Docker Compose
-docker-compose logs -f backend
-```
-
-## 🔒 Security Considerations
-
-### Production Security
-- Use strong JWT secrets
-- Enable HTTPS/TLS
-- Configure CORS properly
-- Use environment variables for secrets
-- Regular security updates
-
-### Database Security
-- Use connection encryption
-- Regular backups
-- Access control
-- Parameterized queries
-
-## 🆘 Troubleshooting
-
-### Common Issues
-
-1. **Deployment Fails:**
-   - Check AWS/GCP/Azure credentials
-   - Verify Docker is running
-   - Check resource limits
-
-2. **Database Connection Issues:**
-   - Verify DATABASE_URL format
-   - Check network connectivity
-   - Verify database exists
-
-3. **Application Won't Start:**
-   - Check environment variables
-   - Verify port availability
-   - Check application logs
-
-## 📞 Support
-
-- **Documentation**: This guide
-- **Issues**: GitHub Issues
-- **Generated by**: System Builder Hub (SBH)
-'''
-
-def generate_api_documentation(spec):
-    """Generate API documentation"""
-    system_name = spec['name']
-    system_type = spec.get('type', 'web-app')
-    features = spec.get('features', [])
-    
-    api_doc = f'''# {system_name} - API Documentation
-
-**Generated by System Builder Hub (SBH)**
-
-## Base URL
-- **Development**: `http://localhost:8000`
-- **Production**: `https://your-domain.com`
-
-## Authentication
-
-All protected endpoints require a JWT token in the Authorization header:
-```
-Authorization: Bearer <your-jwt-token>
-```
-
-## Endpoints
-
-### Health Check
-- **GET** `/health`
-- **Description**: Check application health
-- **Response**: `{{"status": "healthy", "timestamp": "..."}}`
-
-### Authentication
-
-#### Login
-- **POST** `/api/auth/login`
-- **Body**: `{{"email": "user@example.com", "password": "password"}}`
-- **Response**: `{{"token": "jwt-token", "user": {{"id": 1, "email": "..."}}}}`
-
-#### Register
-- **POST** `/api/auth/register`
-- **Body**: `{{"email": "user@example.com", "password": "password", "name": "User Name"}}`
-- **Response**: `{{"token": "jwt-token", "user": {{"id": 1, "email": "..."}}}}`
-
-#### Profile
-- **GET** `/api/auth/profile`
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**: `{{"id": 1, "email": "user@example.com", "name": "User Name"}}`
-'''
-
-    if system_type == 'web-app' and any('content' in feature.lower() or 'post' in feature.lower() for feature in features):
-        api_doc += '''
-### Posts (Content Management)
-
-#### List Posts
-- **GET** `/api/posts`
-- **Query Parameters**: `?limit=10&offset=0&status=published`
-- **Response**: `[{"id": 1, "title": "...", "content": "...", "author": {...}}]`
-
-#### Get Post
-- **GET** `/api/posts/:id`
-- **Response**: `{"id": 1, "title": "...", "content": "...", "author": {...}}`
-
-#### Create Post
-- **POST** `/api/posts`
-- **Headers**: `Authorization: Bearer <token>`
-- **Body**: `{"title": "Post Title", "content": "Post content"}`
-- **Response**: `{"id": 1, "title": "...", "content": "...", "status": "draft"}`
-
-#### Update Post
-- **PUT** `/api/posts/:id`
-- **Headers**: `Authorization: Bearer <token>`
-- **Body**: `{"title": "Updated Title", "content": "Updated content"}`
-- **Response**: `{"id": 1, "title": "...", "content": "...", "updated_at": "..."}`
-
-#### Delete Post
-- **DELETE** `/api/posts/:id`
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**: `{"message": "Post deleted successfully"}`
-'''
-
-    if system_type == 'web-app' and any('comment' in feature.lower() or 'interaction' in feature.lower() for feature in features):
-        api_doc += '''
-### Comments (User Interactions)
-
-#### List Comments
-- **GET** `/api/posts/:postId/comments`
-- **Query Parameters**: `?limit=50&offset=0`
-- **Response**: `[{"id": 1, "content": "...", "author": {...}, "created_at": "..."}]`
-
-#### Create Comment
-- **POST** `/api/posts/:postId/comments`
-- **Headers**: `Authorization: Bearer <token>`
-- **Body**: `{"content": "Comment content"}`
-- **Response**: `{"id": 1, "content": "...", "author": {...}, "created_at": "..."}`
-
-#### Update Comment
-- **PUT** `/api/comments/:id`
-- **Headers**: `Authorization: Bearer <token>`
-- **Body**: `{"content": "Updated comment content"}`
-- **Response**: `{"id": 1, "content": "...", "updated_at": "..."}`
-
-#### Delete Comment
-- **DELETE** `/api/comments/:id`
-- **Headers**: `Authorization: Bearer <token>`
-- **Response**: `{"message": "Comment deleted successfully"}`
-'''
-
-    api_doc += '''
-## Error Responses
-
-### 400 Bad Request
-```json
-{
-  "error": "Validation failed",
-  "details": ["Email is required", "Password must be at least 8 characters"]
-}
-```
-
-### 401 Unauthorized
-```json
-{
-  "error": "Authentication required",
-  "message": "Please provide a valid JWT token"
-}
-```
-
-### 403 Forbidden
-```json
-{
-  "error": "Access denied",
-  "message": "You don't have permission to perform this action"
-}
-```
-
-### 404 Not Found
-```json
-{
-  "error": "Resource not found",
-  "message": "The requested resource does not exist"
-}
-```
-
-### 500 Internal Server Error
-```json
-{
-  "error": "Internal server error",
-  "message": "An unexpected error occurred"
-}
-```
-
-## Rate Limiting
-
-- **Limit**: 100 requests per minute per IP
-- **Headers**: 
-  - `X-RateLimit-Limit`: Request limit
-  - `X-RateLimit-Remaining`: Remaining requests
-  - `X-RateLimit-Reset`: Reset time
-
-## Testing
-
-### Using curl
-```bash
-# Health check
-curl http://localhost:8000/health
-
-# Login
-curl -X POST http://localhost:8000/api/auth/login \\
-  -H "Content-Type: application/json" \\
-  -d '{"email": "user@example.com", "password": "password"}'
-
-# Get posts (with token)
-curl http://localhost:8000/api/posts \\
-  -H "Authorization: Bearer <your-token>"
-```
-
-### Using Postman
-1. Import the API collection
-2. Set base URL to your application URL
-3. Configure authentication token
-4. Test endpoints
-
-## Generated by System Builder Hub (SBH)
-'''
-
-    return api_doc
-
-def generate_deployment_config(spec, architecture):
-    """Generate deployment configuration"""
-    return {
-        'platform': 'AWS',
-        'services': [
-            {'name': 'ECS Fargate', 'status': 'configured'},
-            {'name': 'RDS PostgreSQL', 'status': 'configured'},
-            {'name': 'S3 Bucket', 'status': 'configured'},
-            {'name': 'Application Load Balancer', 'status': 'configured'}
-        ],
-        'ci_cd': {
-            'platform': 'GitHub Actions',
-            'workflows': ['build.yml', 'deploy.yml', 'test.yml']
+def get_deployment_strategy(domain_type):
+    """Get deployment strategy based on domain type"""
+    strategies = {
+        'sbh_managed': {
+            'dns_management': 'automatic',
+            'ssl_management': 'automatic',
+            'user_action_required': False,
+            'setup_instructions': 'Fully automated - no user action required'
         },
-        'monitoring': {
-            'platform': 'CloudWatch',
-            'alarms': ['cpu_utilization', 'memory_utilization', 'error_rate']
+        'custom_subdomain': {
+            'dns_management': 'cname_instructions',
+            'ssl_management': 'automatic_after_dns',
+            'user_action_required': True,
+            'setup_instructions': 'Create CNAME record pointing to our load balancer'
+        },
+        'root_domain': {
+            'dns_management': 'route53_or_cloudflare',
+            'ssl_management': 'automatic_after_dns',
+            'user_action_required': True,
+            'setup_instructions': 'Transfer to Route 53 or use CloudFlare for best results'
         }
     }
+    
+    return strategies.get(domain_type, {
+        'dns_management': 'manual',
+        'ssl_management': 'manual',
+        'user_action_required': True,
+        'setup_instructions': 'Manual DNS configuration required'
+    })
+
+def create_route53_record(domain, target, record_type='CNAME'):
+    """Create Route 53 DNS record"""
+    try:
+        route53_client = boto3.client('route53')
+        
+        # Get hosted zone ID for the domain
+        hosted_zone_id = get_hosted_zone_id(domain)
+        if not hosted_zone_id:
+            return {
+                'success': False,
+                'error': 'No Route 53 hosted zone found for domain'
+            }
+        
+        # Create DNS record
+        response = route53_client.change_resource_record_sets(
+            HostedZoneId=hosted_zone_id,
+            ChangeBatch={
+                'Changes': [{
+                    'Action': 'UPSERT',
+                    'ResourceRecordSet': {
+                        'Name': domain,
+                        'Type': record_type,
+                        'TTL': 300,
+                        'ResourceRecords': [{'Value': target}]
+                    }
+                }]
+            }
+        )
+        
+        return {
+            'success': True,
+            'change_id': response['ChangeInfo']['Id'],
+            'status': response['ChangeInfo']['Status']
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating Route 53 record: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def get_hosted_zone_id(domain):
+    """Get Route 53 hosted zone ID for domain"""
+    try:
+        route53_client = boto3.client('route53')
+        
+        # Extract root domain
+        parts = domain.split('.')
+        if len(parts) >= 2:
+            root_domain = '.'.join(parts[-2:])
+        else:
+            root_domain = domain
+        
+        # List hosted zones
+        response = route53_client.list_hosted_zones()
+        
+        for zone in response['HostedZones']:
+            zone_name = zone['Name'].rstrip('.')
+            if zone_name == root_domain:
+                return zone['Id'].split('/')[-1]
+        
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error getting hosted zone ID: {e}")
+        return None
+
+def request_ssl_certificate(domain):
+    """Request SSL certificate from AWS Certificate Manager"""
+    try:
+        acm_client = boto3.client('acm', region_name='us-east-1')  # ACM requires us-east-1
+        
+        # Request certificate
+        response = acm_client.request_certificate(
+            DomainName=domain,
+            ValidationMethod='DNS',
+            SubjectAlternativeNames=[domain] if not domain.startswith('*.') else [domain]
+        )
+        
+        certificate_arn = response['CertificateArn']
+        
+        # Get DNS validation records
+        validation_records = get_certificate_validation_records(certificate_arn)
+        
+        return {
+            'success': True,
+            'certificate_arn': certificate_arn,
+            'validation_records': validation_records,
+            'status': 'pending_validation'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error requesting SSL certificate: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def get_certificate_validation_records(certificate_arn):
+    """Get DNS validation records for SSL certificate"""
+    try:
+        acm_client = boto3.client('acm', region_name='us-east-1')
+        
+        response = acm_client.describe_certificate(CertificateArn=certificate_arn)
+        
+        validation_records = []
+        for option in response['Certificate']['DomainValidationOptions']:
+            if 'ResourceRecord' in option:
+                validation_records.append({
+                    'name': option['ResourceRecord']['Name'],
+                    'type': option['ResourceRecord']['Type'],
+                    'value': option['ResourceRecord']['Value']
+                })
+        
+        return validation_records
+        
+    except Exception as e:
+        logger.error(f"Error getting validation records: {e}")
+        return []
+
+def check_dns_propagation(domain, expected_value):
+    """Check if DNS record has propagated"""
+    try:
+        import socket
+        
+        # Try to resolve the domain
+        result = socket.gethostbyname(domain)
+        
+        # For CNAME records, we'd need to check the actual CNAME value
+        # This is a simplified check
+        return {
+            'propagated': True,
+            'resolved_ip': result
+        }
+        
+    except socket.gaierror:
+        return {
+            'propagated': False,
+            'error': 'DNS not yet propagated'
+        }
+    except Exception as e:
+        return {
+            'propagated': False,
+            'error': str(e)
+        }
+
+def upload_file_to_s3(file, system_id, file_type):
+    """Upload file to S3 for system reference"""
+    try:
+        import uuid
+        from werkzeug.utils import secure_filename
+        
+        # Generate unique filename
+        file_id = str(uuid.uuid4())
+        file_extension = secure_filename(file.filename).split('.')[-1] if '.' in file.filename else ''
+        s3_key = f"references/{system_id}/{file_type}/{file_id}.{file_extension}"
+        
+        # Upload to S3
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=s3_key,
+            Body=file.read(),
+            ContentType=file.content_type or 'application/octet-stream'
+        )
+        
+        return {
+            'success': True,
+            'file_id': file_id,
+            's3_key': s3_key,
+            'filename': file.filename,
+            'content_type': file.content_type,
+            'size': file.content_length
+        }
+        
+    except Exception as e:
+        logger.error(f"Error uploading file to S3: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def analyze_uploaded_image(s3_key):
+    """Analyze uploaded image for system design insights"""
+    try:
+        from PIL import Image
+        import io
+        
+        # Download image from S3
+        response = s3_client.get_object(Bucket=S3_BUCKET, Key=s3_key)
+        image_data = response['Body'].read()
+        
+        # Open image with PIL
+        image = Image.open(io.BytesIO(image_data))
+        
+        # Basic analysis
+        analysis = {
+            'width': image.width,
+            'height': image.height,
+            'format': image.format,
+            'mode': image.mode,
+            'size_kb': len(image_data) / 1024,
+            'aspect_ratio': round(image.width / image.height, 2)
+        }
+        
+        # Detect UI elements (basic color analysis)
+        if image.mode == 'RGB':
+            # Get dominant colors
+            colors = image.getcolors(maxcolors=256*256*256)
+            if colors:
+                dominant_color = max(colors, key=lambda x: x[0])
+                analysis['dominant_color'] = dominant_color[1]
+        
+        return {
+            'success': True,
+            'analysis': analysis
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing image: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def analyze_reference_url(url):
+    """Analyze reference URL for system inspiration"""
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+        
+        # Fetch the webpage
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        # Parse HTML
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Extract key information
+        analysis = {
+            'title': soup.title.string if soup.title else '',
+            'description': '',
+            'technologies': [],
+            'features': [],
+            'layout_elements': []
+        }
+        
+        # Get meta description
+        meta_desc = soup.find('meta', attrs={'name': 'description'})
+        if meta_desc:
+            analysis['description'] = meta_desc.get('content', '')
+        
+        # Detect technologies
+        scripts = soup.find_all('script', src=True)
+        for script in scripts:
+            src = script['src']
+            if 'react' in src.lower():
+                analysis['technologies'].append('React')
+            elif 'vue' in src.lower():
+                analysis['technologies'].append('Vue.js')
+            elif 'angular' in src.lower():
+                analysis['technologies'].append('Angular')
+            elif 'jquery' in src.lower():
+                analysis['technologies'].append('jQuery')
+        
+        # Detect common UI elements
+        if soup.find('nav'):
+            analysis['layout_elements'].append('Navigation')
+        if soup.find('form'):
+            analysis['layout_elements'].append('Forms')
+        if soup.find('button'):
+            analysis['layout_elements'].append('Buttons')
+        if soup.find('input'):
+            analysis['layout_elements'].append('Input Fields')
+        
+        # Detect features based on content
+        page_text = soup.get_text().lower()
+        if 'login' in page_text or 'sign in' in page_text:
+            analysis['features'].append('User Authentication')
+        if 'search' in page_text:
+            analysis['features'].append('Search Functionality')
+        if 'cart' in page_text or 'shopping' in page_text:
+            analysis['features'].append('E-commerce')
+        if 'contact' in page_text:
+            analysis['features'].append('Contact Forms')
+        
+        return {
+            'success': True,
+            'url': url,
+            'analysis': analysis
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing URL: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def extract_text_from_document(s3_key, content_type):
+    """Extract text from uploaded documents"""
+    try:
+        # Download file from S3
+        response = s3_client.get_object(Bucket=S3_BUCKET, Key=s3_key)
+        file_data = response['Body'].read()
+        
+        text_content = ""
+        
+        if content_type == 'application/pdf':
+            import PyPDF2
+            import io
+            pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_data))
+            for page in pdf_reader.pages:
+                text_content += page.extract_text() + "\n"
+                
+        elif content_type in ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword']:
+            from docx import Document
+            import io
+            doc = Document(io.BytesIO(file_data))
+            for paragraph in doc.paragraphs:
+                text_content += paragraph.text + "\n"
+                
+        elif content_type == 'text/plain':
+            text_content = file_data.decode('utf-8')
+            
+        return {
+            'success': True,
+            'text_content': text_content.strip(),
+            'word_count': len(text_content.split())
+        }
+        
+    except Exception as e:
+        logger.error(f"Error extracting text from document: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
 
 # Enhanced template generation functions
 def generate_react_package_json(spec):
     """Generate real package.json for React"""
     return json.dumps({
-        "name": spec['name'].lower().replace(' ', '-'),
+        "name": spec['name'].lower().replace(" ", "-"),
         "version": "1.0.0",
         "private": True,
         "scripts": {
@@ -1435,7 +1250,7 @@ def generate_react_package_json(spec):
 def generate_nextjs_package_json(spec):
     """Generate real package.json for Next.js"""
     return json.dumps({
-        "name": spec['name'].lower().replace(' ', '-'),
+        "name": spec['name'].lower().replace(" ", "-"),
         "version": "1.0.0",
         "private": True,
         "scripts": {
@@ -1463,7 +1278,7 @@ def generate_nextjs_package_json(spec):
 def generate_nodejs_package_json(spec):
     """Generate real package.json for Node.js backend"""
     return json.dumps({
-        "name": f"{spec['name'].lower().replace(' ', '-')}-backend",
+        "name": f"{spec['name'].lower().replace(" ", "-")}-backend",
         "version": "1.0.0",
         "description": f"Backend API for {spec['name']}",
         "main": "src/app.js",
@@ -2056,7 +1871,7 @@ def generate_database_models(spec):
 
 def generate_webapp_models(spec, features):
     """Generate models for a web application with users, posts, comments"""
-    system_name = spec['name'].replace(' ', '').replace('-', '')
+    system_name = spec['name'].replace(" ", "").replace('-', '')
     
     models = f'''const {{ Pool }} = require('pg')
 
@@ -2337,22 +2152,22 @@ const pool = new Pool({{
 }})
 
 // {spec['name']} Models
-class {spec['name'].replace(' ', '')}Model {{
+class {spec['name'].replace(" ", "")}Model {{
   static async create(data) {{
-    const query = 'INSERT INTO {spec['name'].lower().replace(' ', '_')} (data) VALUES ($1) RETURNING *'
+    const query = 'INSERT INTO {spec['name'].lower().replace(" ", "_")} (data) VALUES ($1) RETURNING *'
     const values = [JSON.stringify(data)]
     const result = await pool.query(query, values)
     return result.rows[0]
   }}
 
   static async findById(id) {{
-    const query = 'SELECT * FROM {spec['name'].lower().replace(' ', '_')} WHERE id = $1'
+    const query = 'SELECT * FROM {spec['name'].lower().replace(" ", "_")} WHERE id = $1'
     const result = await pool.query(query, [id])
     return result.rows[0]
   }}
 
   static async findAll() {{
-    const query = 'SELECT * FROM {spec['name'].lower().replace(' ', '_')}'
+    const query = 'SELECT * FROM {spec['name'].lower().replace(" ", "_")}'
     const result = await pool.query(query)
     return result.rows
   }}
@@ -2360,7 +2175,7 @@ class {spec['name'].replace(' ', '')}Model {{
 
 module.exports = {{
   pool,
-  {spec['name'].replace(' ', '')}Model
+  {spec['name'].replace(" ", "")}Model
 }}'''
 
 def generate_database_migrations(spec):
@@ -2494,7 +2309,7 @@ CREATE TRIGGER update_comments_updated_at
 -- Insert admin user (password: admin123 - change in production!)
 INSERT INTO users (email, password_hash, name, role, email_verified) 
 VALUES (
-    'admin@{spec['name'].lower().replace(' ', '')}.com',
+    'admin@{spec['name'].lower().replace(" ", "")}.com',
     '$2b$10$rQZ8K9vX8K9vX8K9vX8K9e', -- bcrypt hash for 'admin123'
     'Admin User',
     'admin',
@@ -2504,7 +2319,7 @@ VALUES (
 -- Insert sample user
 INSERT INTO users (email, password_hash, name, role, email_verified) 
 VALUES (
-    'user@{spec['name'].lower().replace(' ', '')}.com',
+    'user@{spec['name'].lower().replace(" ", "")}.com',
     '$2b$10$rQZ8K9vX8K9vX8K9vX8K9e', -- bcrypt hash for 'user123'
     'Sample User',
     'user',
@@ -2522,7 +2337,7 @@ def generate_generic_migrations(spec):
         'content': f'''-- Migration: Create initial table
 -- Generated for: {spec['name']}
 
-CREATE TABLE IF NOT EXISTS {spec['name'].lower().replace(' ', '_')} (
+CREATE TABLE IF NOT EXISTS {spec['name'].lower().replace(" ", "_")} (
     id SERIAL PRIMARY KEY,
     data JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -2530,7 +2345,7 @@ CREATE TABLE IF NOT EXISTS {spec['name'].lower().replace(' ', '_')} (
 );
 
 -- Create indexes
-CREATE INDEX IF NOT EXISTS idx_{spec['name'].lower().replace(' ', '_')}_created_at ON {spec['name'].lower().replace(' ', '_')}(created_at);
+CREATE INDEX IF NOT EXISTS idx_{spec['name'].lower().replace(" ", "_")}_created_at ON {spec['name'].lower().replace(" ", "_")}(created_at);
 '''
     }]
 
@@ -3162,8 +2977,8 @@ from datetime import datetime
 
 Base = declarative_base()
 
-class {spec['name'].replace(' ', '')}Model(Base):
-    __tablename__ = '{spec['name'].lower().replace(' ', '_')}'
+class {spec['name'].replace(" ", "")}Model(Base):
+    __tablename__ = '{spec['name'].lower().replace(" ", "_")}'
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
@@ -3182,7 +2997,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/{spec['name'].lower().replace(' ', '_')}")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/{spec['name'].lower().replace(" ", "_")}")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -3277,7 +3092,7 @@ NODE_ENV=production
 PORT=8000
 
 # Database
-DATABASE_URL=postgresql://user:password@localhost/{spec['name'].lower().replace(' ', '_')}
+DATABASE_URL=postgresql://user:password@localhost/{spec['name'].lower().replace(" ", "_")}
 
 # JWT
 JWT_SECRET=your-secret-key-here
@@ -3397,7 +3212,7 @@ jobs:
       with:
         aws-region: us-west-2
         role-to-assume: ${{{{ secrets.AWS_ROLE_ARN }}}}
-        role-session-name: {spec['name'].lower().replace(' ', '-')}-deploy
+        role-session-name: {spec['name'].lower().replace(" ", "-")}-deploy
     
     - name: Login to Amazon ECR
       id: login-ecr
@@ -3406,7 +3221,7 @@ jobs:
     - name: Build, tag, and push image to Amazon ECR
       env:
         ECR_REGISTRY: ${{{{ steps.login-ecr.outputs.registry }}}}
-        ECR_REPOSITORY: {spec['name'].lower().replace(' ', '-')}-repo
+        ECR_REPOSITORY: {spec['name'].lower().replace(" ", "-")}-repo
         IMAGE_TAG: ${{{{ github.sha }}}}
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
@@ -3415,15 +3230,15 @@ jobs:
     - name: Deploy to ECS
       run: |
         aws ecs update-service \\
-          --cluster {spec['name'].lower().replace(' ', '-')}-cluster \\
-          --service {spec['name'].lower().replace(' ', '-')}-service \\
+          --cluster {spec['name'].lower().replace(" ", "-")}-cluster \\
+          --service {spec['name'].lower().replace(" ", "-")}-service \\
           --force-new-deployment
     
     - name: Wait for deployment to complete
       run: |
         aws ecs wait services-stable \\
-          --cluster {spec['name'].lower().replace(' ', '-')}-cluster \\
-          --services {spec['name'].lower().replace(' ', '-')}-service'''
+          --cluster {spec['name'].lower().replace(" ", "-")}-cluster \\
+          --services {spec['name'].lower().replace(" ", "-")}-service'''
 
 def generate_test_workflow(spec):
     """Generate test workflow"""
@@ -3493,7 +3308,7 @@ def generate_terraform_variables(spec):
     return f'''variable "project_name" {{
   description = "Name of the project"
   type        = string
-  default     = "{spec['name'].lower().replace(' ', '-')}"
+  default     = "{spec['name'].lower().replace(" ", "-")}"
 }}
 
 variable "environment" {{
