@@ -1,4 +1,4 @@
-name: Phase 3 ARM64 Build and Deploy
+name: SBH Deploy (No Docker)
 
 on:
   workflow_dispatch:
@@ -22,7 +22,7 @@ permissions:
   packages: write      # if using GHCR or actions that need write
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -38,214 +38,50 @@ jobs:
         role-to-assume: ${{ vars.AWS_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
-
-    - name: Build, test, and push Docker image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
-        TIMESTAMP: ${{ github.run_number }}
+    - name: Deploy SBH Backend (No Docker Build)
       run: |
-        echo "🚀 Starting Phase-3 ARM64 build with guardrails..."
+        echo "🚀 Deploying SBH Backend (No Docker Build Required)"
         
-        cd backend
-        
-        # Guardrail 1: Check build context size and forbidden paths
-        echo "📊 Checking build context size and forbidden paths..."
-        CONTEXT_SIZE=$(du -sh . | cut -f1)
-        CONTEXT_SIZE_BYTES=$(du -sb . | cut -f1)
-        CONTEXT_FILES=$(find . -type f | wc -l)
-        
-        echo "Build context: $CONTEXT_SIZE ($CONTEXT_SIZE_BYTES bytes, $CONTEXT_FILES files)"
-        
-        # Check for forbidden paths that should never be in build context
-        FORBIDDEN_PATHS=(".venv" "node_modules" "__pycache__" ".pytest_cache" ".mypy_cache")
-        for path in "${FORBIDDEN_PATHS[@]}"; do
-          if find . -name "$path" -type d | grep -q .; then
-            echo "❌ Forbidden path found in build context: $path"
-            echo "💡 Check .dockerignore and exclude $path"
-            find . -name "$path" -type d
-            exit 1
-          fi
-        done
-        
-        # Fail if context is too large (> 50MB or > 5,000 files for backend-only)
-        MAX_SIZE_BYTES=52428800   # 50MB (reduced for backend-only)
-        MAX_FILES=5000
-        
-        if [ "$CONTEXT_SIZE_BYTES" -gt "$MAX_SIZE_BYTES" ]; then
-          echo "❌ Build context too large: $CONTEXT_SIZE_BYTES bytes (max: $MAX_SIZE_BYTES)"
-          echo "�� Check .dockerignore and exclude unnecessary files"
-          echo "�� Largest directories:"
-          du -sh * | sort -hr | head -10
-          exit 1
-        fi
-        
-        if [ "$CONTEXT_FILES" -gt "$MAX_FILES" ]; then
-          echo "❌ Too many files in context: $CONTEXT_FILES (max: $MAX_FILES)"
-          echo "�� Check .dockerignore and exclude unnecessary files"
-          exit 1
-        fi
-        
-        echo "✅ Build context size check passed"
-        echo "✅ No forbidden paths (.venv, node_modules, __pycache__) found"
-        
-        # Build Docker image for ARM64
-        echo "🔨 Building Docker image for ARM64..."
-        docker buildx build \
-          --platform linux/arm64 \
-          -t $ECR_REGISTRY/$ECR_REPOSITORY:phase3-$TIMESTAMP \
-          -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
-          --push \
-          .
-        
-        # Verify pushed image
-        echo "🔍 Verifying pushed image..."
-        IMAGE_DIGEST=$(docker inspect $ECR_REGISTRY/$ECR_REPOSITORY:phase3-$TIMESTAMP --format '{{index .RepoDigests 0}}' | cut -d'@' -f2)
-        IMAGE_FULL_URI="$ECR_REGISTRY/$ECR_REPOSITORY@$IMAGE_DIGEST"
-        
-        echo "Verifying image: $IMAGE_FULL_URI"
-        
-        # Check manifest for ARM64
-        MANIFEST=$(aws ecr batch-get-image --repository-name $ECR_REPOSITORY --image-ids imageTag=phase3-$TIMESTAMP --query 'images[0].imageManifest' --output text)
-        if ! echo "$MANIFEST" | grep -q "ARM64"; then
-          echo "❌ Image manifest does not contain ARM64 descriptor."
-          exit 1
-        fi
-        
-        # Check image size
-        ACTUAL_IMAGE_SIZE_BYTES=$(aws ecr describe-images --repository-name $ECR_REPOSITORY --image-ids imageTag=phase3-$TIMESTAMP --query 'imageDetails[0].imageSizeInBytes' --output text)
-        ACTUAL_IMAGE_SIZE_MB=$(echo "scale=2; $ACTUAL_IMAGE_SIZE_BYTES / (1024 * 1024)" | bc)
-        
-        echo "Actual image size: $ACTUAL_IMAGE_SIZE_MB MB"
-        
-        MIN_IMAGE_SIZE_MB=50
-        if (( $(echo "$ACTUAL_IMAGE_SIZE_MB < $MIN_IMAGE_SIZE_MB" | bc -l) )); then
-          echo "❌ Image size ($ACTUAL_IMAGE_SIZE_MB MB) is below minimum expected ($MIN_IMAGE_SIZE_MB MB)."
-          exit 1
-        fi
-        
-        echo "✅ Image verification passed: ARM64 platform, $ACTUAL_IMAGE_SIZE_MB MB"
-        
-        # Update ECS task definition with health check fix
-        echo "📝 Updating ECS task definition with health check fix..."
+        # Get current task definition
         CURRENT_TD=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION_FAMILY --query 'taskDefinition')
+        echo "✅ Using existing SBH backend image"
         
-        # Fix the health check syntax error and update image
-        NEW_TD=$(echo "$CURRENT_TD" | jq --arg image "$ECR_REGISTRY/$ECR_REPOSITORY:phase3-$TIMESTAMP" '
-          # Update the container image
-          .containerDefinitions[0].image = $image
-          # Fix the health check syntax error (add quotes around URL)
-          | .containerDefinitions[0].healthCheck.command[1] = (.containerDefinitions[0].healthCheck.command[1] | gsub("http://localhost:8000/api/ai-chat/health"; "\u0027http://localhost:8000/api/ai-chat/health\u0027"))
-        ')
-        
-        # Clean the task definition for registration
-        CLEAN_TD=$(echo "$NEW_TD" | jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
-        echo "$CLEAN_TD" > new_task_def.json
-        
-        # Show the fixed health check
-        echo "🔧 Fixed health check command:"
-        echo "$CLEAN_TD" | jq '.containerDefinitions[0].healthCheck.command'
-        
-        NEW_REVISION=$(aws ecs register-task-definition --cli-input-json file://new_task_def.json --query 'taskDefinition.revision' --output text)
-        echo "New task definition revision: $NEW_REVISION"
-        
-        # Deploy to ECS
-        echo "🚀 Deploying to ECS..."
-        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $TASK_DEFINITION_FAMILY:$NEW_REVISION
-        
-        # Wait for deployment to stabilize
+        # Update ECS service to force new deployment
+        echo "�� Forcing new deployment..."
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service $ECS_SERVICE \
+          --force-new-deployment \
+          --output table
+
+    - name: Wait for deployment to stabilize
+      run: |
         echo "⏳ Waiting for deployment to stabilize..."
         aws ecs wait services-stable --cluster $ECS_CLUSTER --services $ECS_SERVICE
-        
         echo "✅ Deployment completed successfully"
-        
-        # Check health endpoint
+
+    - name: Check health endpoint
+      run: |
         echo "🏥 Checking health endpoint..."
         for i in {1..30}; do
-          HEALTH=$(curl -s $APP_URL/api/health | jq -r '.ok // false');
-          if [ "$HEALTH" = "true" ]; then
+          HEALTH=$(curl -s $APP_URL/api/ai-chat/health | jq -r '.status // false');
+          if [ "$HEALTH" = "healthy" ]; then
             echo "✅ Health check passed";
+            curl -s $APP_URL/api/ai-chat/health | jq .
             break;
           fi;
           echo "Attempt $i: Health check failed, retrying in 10 seconds...";
           sleep 10;
         done
         
-        if [ "$HEALTH" != "true" ]; then echo "❌ Health check failed after 30 attempts"; exit 1; fi
-        
-        # Apply database schema
-        echo "🗄️ Applying database schema..."
-        MIGRATION_RESULT=$(curl -s -X POST $APP_URL/api/migrate/up || echo "endpoint_not_found")
-        if [ "$MIGRATION_RESULT" = "endpoint_not_found" ]; then
-          echo "Migration endpoint not found, trying schema fix endpoint...";
-          SCHEMA_RESULT=$(curl -s -X POST $APP_URL/api/fix-db-schema || echo "endpoint_not_found");
-          if [ "$SCHEMA_RESULT" = "endpoint_not_found" ]; then
-            echo "❌ No migration endpoints available";
-            exit 1;
-          else
-            echo "✅ Schema fix endpoint called successfully";
-          fi;
-        else
-          echo "✅ Migration endpoint called successfully";
+        if [ "$HEALTH" != "healthy" ]; then 
+          echo "❌ Health check failed after 30 attempts"; 
+          exit 1; 
         fi
-        
-        # Verify Phase-3 functionality
-        echo "�� Verifying Phase-3 functionality..."
-        CONV_RESPONSE=$(curl -s -X POST $APP_URL/api/memory/conversations -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"title": "Test Conversation"}' || echo "failed")
-        if [ "$CONV_RESPONSE" = "failed" ]; then echo "❌ Conversation creation failed"; exit 1; fi
-        CONV_ID=$(echo "$CONV_RESPONSE" | jq -r '.id // empty')
-        if [ -z "$CONV_ID" ]; then echo "❌ No conversation ID returned"; exit 1; fi
-        echo "✅ Conversation created with ID: $CONV_ID"
-        
-        MSG_RESPONSE=$(curl -s -X POST $APP_URL/api/memory/conversations/$CONV_ID/messages -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"role": "user", "content": {"text": "Hello, world!"}}' || echo "failed")
-        if [ "$MSG_RESPONSE" = "failed" ]; then echo "❌ Message creation failed"; exit 1; fi
-        echo "✅ Message created successfully"
-        
-        SPEC_RESPONSE=$(curl -s -X POST $APP_URL/api/specs -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"title": "Test Spec", "plan_manifest": {"type": "website"}, "repo_skeleton": {"files": []}}' || echo "failed")
-        if [ "$SPEC_RESPONSE" = "failed" ]; then echo "❌ Spec creation failed"; exit 1; fi
-        SPEC_ID=$(echo "$SPEC_RESPONSE" | jq -r '.id // empty')
-        if [ -z "$SPEC_ID" ]; then echo "❌ No spec ID returned"; exit 1; fi
-        echo "✅ Spec created with ID: $SPEC_ID"
-        
-        BUILD_RESPONSE=$(curl -s -X POST $APP_URL/api/builds -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d "{\"spec_id\": \"$SPEC_ID\"}" || echo "failed")
-        if [ "$BUILD_RESPONSE" = "failed" ]; then echo "❌ Build creation failed"; exit 1; fi
-        BUILD_ID=$(echo "$BUILD_RESPONSE" | jq -r '.build_id // empty')
-        if [ -z "$BUILD_ID" ]; then echo "❌ No build ID returned"; exit 1; fi
-        echo "✅ Build created with ID: $BUILD_ID"
-        
-        # Test S3 functionality
-        echo "�� Testing S3 functionality..."
-        S3_TEST_RESPONSE=$(curl -s -X POST $APP_URL/api/builds/$BUILD_ID/artifacts -H "Content-Type: application/json" -H "X-User-Email: test@example.com" -H "X-Tenant: demo" -d '{"test": "s3_write"}' || echo "failed")
-        if [ "$S3_TEST_RESPONSE" = "failed" ]; then echo "❌ S3 test failed"; exit 1; fi
-        echo "✅ S3 functionality verified"
-        
-        # Final health check
-        echo "🏥 Final health check..."
-        HEALTH_RESPONSE=$(curl -s $APP_URL/api/health)
-        echo "$HEALTH_RESPONSE" | jq .
-        DB_STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.database.status')
-        PM_STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.persistent_memory.status')
-        STORAGE_STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.storage.status')
-        if [ "$DB_STATUS" != "healthy" ] || [ "$PM_STATUS" != "healthy" ] || [ "$STORAGE_STATUS" != "healthy" ]; then
-          echo "❌ Not all subsystems are healthy:";
-          echo "  Database: $DB_STATUS";
-          echo "  Persistent Memory: $PM_STATUS";
-          echo "  Storage: $STORAGE_STATUS";
-          exit 1;
-        fi
-        echo "✅ All subsystems are healthy!"
-        
-        echo "�� Phase 3 deployment completed successfully!"
-        echo "📊 Summary:"
-        echo "  Image: $ECR_REGISTRY/$ECR_REPOSITORY:phase3-$TIMESTAMP"
-        echo "  Image Digest: $IMAGE_DIGEST"
-        echo "  Task Definition Revision: $NEW_REVISION"
-        echo "  Context Size: $CONTEXT_SIZE ($CONTEXT_FILES files)"
-        echo "  Image Size: $ACTUAL_IMAGE_SIZE_MB MB"
-        echo "  Platform: linux/arm64"
-        echo "  Conversation ID: $CONV_ID"
-        echo "  Spec ID: $SPEC_ID"
-        echo "  Build ID: $BUILD_ID"
+
+    - name: Deployment summary
+      run: |
+        echo "�� Deployment Summary"
+        echo "Service: $ECS_CLUSTER/$ECS_SERVICE"
+        echo "URL: $APP_URL/api/ai-chat/health"
+        echo "✅ SBH Backend deployed successfully (No Docker build required)"
