@@ -1,716 +1,674 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Code, Database, Cloud, Zap, Settings, Play, Download, Eye, ShoppingCart, FileText, BarChart3, Globe, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react'
+import React, { useState, useRef, useCallback } from 'react';
+import { Send, Download, Eye, Edit, RefreshCw, Upload, Link, Globe, Settings, FileText, Image, Code, Database, Server, Cloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 interface SystemSpec {
-  name: string
-  description: string
-  type: 'web-app' | 'api' | 'data-pipeline' | 'ml-service' | 'microservice' | 'ecommerce-platform' | 'cms' | 'dashboard'
-  techStack: string[]
-  features: string[]
-  infrastructure: string[]
+  name: string;
+  description: string;
+  type: string;
+  techStack: string[];
+  features: string[];
+  infrastructure: string[];
 }
 
-interface DomainValidation {
-  success: boolean
-  domain: string
-  domain_type: string
-  strategy: any
-  setup_instructions: any
-  error?: string
+interface GeneratedSystem {
+  id: string;
+  specification: SystemSpec;
+  preview: any;
+  templates: any;
+  architecture: any;
+  deployment: any;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface DeploymentResult {
-  success: boolean
-  system_id: string
-  live_url: string
-  deployment_id: string
-  deployment_type: string
-  domain_type: string
-  dns_setup: any
-  ssl_setup: any
-  strategy: any
-  status: string
-  message: string
-  error?: string
+interface FileUpload {
+  file: File;
+  type: 'image' | 'document' | 'code' | 'other';
+  preview?: string;
 }
 
-const systemTypes = [
-  { id: 'web-app', name: 'Web Application', icon: Code, description: 'Full-stack web app with frontend and backend' },
-  { id: 'api', name: 'REST API', icon: Database, description: 'Backend API service with database' },
-  { id: 'data-pipeline', name: 'Data Pipeline', icon: Cloud, description: 'ETL pipeline for data processing' },
-  { id: 'ml-service', name: 'ML Service', icon: Zap, description: 'Machine learning model serving' },
-  { id: 'microservice', name: 'Microservice', icon: Settings, description: 'Containerized microservice' },
-  { id: 'ecommerce-platform', name: 'E-commerce Platform', icon: ShoppingCart, description: 'Complete e-commerce solution with payment processing' },
-  { id: 'cms', name: 'Content Management System', icon: FileText, description: 'CMS for content creation and management' },
-  { id: 'dashboard', name: 'Analytics Dashboard', icon: BarChart3, description: 'Real-time analytics and reporting dashboard' }
-]
+interface ReferenceUrl {
+  url: string;
+  title?: string;
+  description?: string;
+}
 
-const techStacks = [
-  'React + Node.js', 'Vue.js + Python', 'Angular + Java', 'Next.js + TypeScript',
-  'Python + FastAPI', 'Go + Gin', 'Rust + Actix', 'PHP + Laravel',
-  'PostgreSQL', 'MongoDB', 'Redis', 'Elasticsearch'
-]
-
-const commonFeatures = [
-  'User Authentication', 'REST API', 'Database Integration', 'File Upload',
-  'Real-time Updates', 'Search Functionality', 'Admin Dashboard', 'Email Notifications',
-  'Payment Processing', 'Analytics', 'Caching', 'Logging'
-]
-
-const infrastructureOptions = [
-  'AWS ECS Fargate', 'AWS Lambda', 'AWS RDS', 'AWS S3', 'AWS ALB',
-  'Docker Containers', 'Auto Scaling', 'Load Balancing', 'SSL/TLS',
-  'CloudWatch Monitoring', 'GitHub Actions CI/CD'
-]
-
-export function SystemBuilder() {
-  const [spec, setSpec] = useState<SystemSpec>({
+export default function SystemBuilder() {
+  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string; timestamp: Date }>>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [generatedSystem, setGeneratedSystem] = useState<GeneratedSystem | null>(null);
+  const [systemSpec, setSystemSpec] = useState<SystemSpec>({
     name: '',
     description: '',
-    type: 'web-app',
+    type: 'web_app',
     techStack: [],
     features: [],
     infrastructure: []
-  })
-  const [currentStep, setCurrentStep] = useState(1)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [generatedSystem, setGeneratedSystem] = useState<any>(null)
+  });
+  const [uploadedFiles, setUploadedFiles] = useState<FileUpload[]>([]);
+  const [referenceUrls, setReferenceUrls] = useState<ReferenceUrl[]>([]);
+  const [deploymentDomain, setDeploymentDomain] = useState('');
+  const [deploymentStatus, setDeploymentStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
+  const [deploymentUrl, setDeploymentUrl] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [editHistory, setEditHistory] = useState<any[]>([]);
   
-  // Domain management state
-  const [deploymentDomain, setDeploymentDomain] = useState('')
-  const [deploymentType, setDeploymentType] = useState('production')
-  const [domainValidation, setDomainValidation] = useState<DomainValidation | null>(null)
-  const [isValidatingDomain, setIsValidatingDomain] = useState(false)
-  const [isDeploying, setIsDeploying] = useState(false)
-  const [deploymentResult, setDeploymentResult] = useState<DeploymentResult | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const updateSpec = (updates: Partial<SystemSpec>) => {
-    setSpec(prev => ({ ...prev, ...updates }))
-    // Clear errors when user makes changes
-    setErrors({})
-  }
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-  const toggleArrayItem = (array: string[], item: string, setter: (items: string[]) => void) => {
-    if (array.includes(item)) {
-      setter(array.filter(i => i !== item))
-    } else {
-      setter([...array, item])
-    }
-  }
+  const addMessage = useCallback((role: 'user' | 'assistant', content: string) => {
+    setMessages(prev => [...prev, { role, content, timestamp: new Date() }]);
+    setTimeout(scrollToBottom, 100);
+  }, []);
 
-  const validateStep = (step: number): boolean => {
-    const newErrors: Record<string, string> = {}
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    files.forEach(file => {
+      const fileType = getFileType(file);
+      const fileUpload: FileUpload = {
+        file,
+        type: fileType,
+        preview: fileType === 'image' ? URL.createObjectURL(file) : undefined
+      };
+      setUploadedFiles(prev => [...prev, fileUpload]);
+    });
+  };
+
+  const getFileType = (file: File): 'image' | 'document' | 'code' | 'other' => {
+    const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const documentTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+    const codeTypes = ['text/javascript', 'text/typescript', 'text/html', 'text/css', 'application/json'];
     
-    if (step === 1) {
-      if (!spec.name.trim()) newErrors.name = 'System name is required'
-      if (!spec.description.trim()) newErrors.description = 'Description is required'
-      if (!spec.type) newErrors.type = 'System type is required'
-    }
-    
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    if (imageTypes.includes(file.type)) return 'image';
+    if (documentTypes.includes(file.type)) return 'document';
+    if (codeTypes.includes(file.type)) return 'code';
+    return 'other';
+  };
 
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 5))
-    }
-  }
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
-  const handlePrevious = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1))
-  }
+  const addReferenceUrl = () => {
+    if (deploymentDomain.trim()) {
+      setReferenceUrls(prev => [...prev, { url: deploymentDomain.trim() }]);
+      setDeploymentDomain('');
+    }
+  };
+
+  const removeReferenceUrl = (index: number) => {
+    setReferenceUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const analyzeUrl = async (url: string) => {
+    try {
+      const response = await fetch('/api/system/analyze-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const data = await response.json();
+      if (data.success) {
+        return data.analysis;
+      }
+    } catch (error) {
+      console.error('Error analyzing URL:', error);
+    }
+    return null;
+  };
+
+  const generateSystem = async () => {
+    if (!systemSpec.name || !systemSpec.description) {
+      addMessage('assistant', 'Please provide a system name and description to generate a system.');
+      return;
+    }
+
+    setIsLoading(true);
+    addMessage('user', `Generate a ${systemSpec.name}: ${systemSpec.description}`);
+
+    try {
+      // Upload files first if any
+      let uploadedFileIds: string[] = [];
+      if (uploadedFiles.length > 0 && generatedSystem) {
+        const formData = new FormData();
+        uploadedFiles.forEach((fileUpload, index) => {
+          formData.append(`files`, fileUpload.file);
+        });
+        
+        const uploadResponse = await fetch(`/api/system/upload-reference/${generatedSystem.id}`, {
+          method: 'POST',
+          body: formData
+        });
+        const uploadData = await uploadResponse.json();
+        if (uploadData.success) {
+          uploadedFileIds = uploadData.file_ids;
+        }
+      }
+
+      // Analyze reference URLs
+      let urlInsights: any[] = [];
+      for (const refUrl of referenceUrls) {
+        const analysis = await analyzeUrl(refUrl.url);
+        if (analysis) {
+          urlInsights.push(analysis);
+        }
+      }
+
+      const response = await fetch('/api/system/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...systemSpec,
+          reference_urls: referenceUrls.map(r => r.url),
+          uploaded_files: uploadedFileIds,
+          url_insights: urlInsights
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setGeneratedSystem(data.system);
+        addMessage('assistant', `🎉 System "${data.system.specification.name}" generated successfully! I've created a complete, deployable application with ${data.system.preview.fileCount} files including frontend, backend, infrastructure, and deployment configurations.`);
+      } else {
+        addMessage('assistant', `❌ Error generating system: ${data.error}`);
+      }
+    } catch (error) {
+      addMessage('assistant', `❌ Error generating system: ${error}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const previewSystem = async () => {
+    if (!generatedSystem) return;
+
+    try {
+      const response = await fetch(`/api/system/preview/${generatedSystem.id}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setGeneratedSystem(data.system);
+        addMessage('assistant', `📋 System preview updated. The system includes ${data.system.preview.components} components and ${data.system.preview.fileCount} files.`);
+      }
+    } catch (error) {
+      addMessage('assistant', `❌ Error previewing system: ${error}`);
+    }
+  };
+
+  const downloadSystem = async () => {
+    if (!generatedSystem) return;
+
+    try {
+      const response = await fetch(`/api/system/download/${generatedSystem.id}`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${generatedSystem.specification.name.toLowerCase().replace(/\s+/g, '-')}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        addMessage('assistant', `📦 System downloaded successfully! You can now deploy it to your own infrastructure.`);
+      }
+    } catch (error) {
+      addMessage('assistant', `❌ Error downloading system: ${error}`);
+    }
+  };
+
+  const deploySystem = async () => {
+    if (!generatedSystem) return;
+
+    setDeploymentStatus('deploying');
+    addMessage('assistant', '🚀 Starting live deployment...');
+
+    try {
+      const response = await fetch(`/api/system/deploy/${generatedSystem.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          domain: deploymentDomain || undefined,
+          domain_type: deploymentDomain ? 'custom' : 'sbh_managed'
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setDeploymentStatus('success');
+        setDeploymentUrl(data.deployment_url);
+        addMessage('assistant', `🎉 System deployed successfully! Your application is now live at: ${data.deployment_url}`);
+      } else {
+        setDeploymentStatus('error');
+        addMessage('assistant', `❌ Deployment failed: ${data.error}`);
+      }
+    } catch (error) {
+      setDeploymentStatus('error');
+      addMessage('assistant', `❌ Deployment error: ${error}`);
+    }
+  };
+
+  const editSystem = async (newSpec: Partial<SystemSpec>) => {
+    if (!generatedSystem) return;
+
+    setIsLoading(true);
+    addMessage('user', `Edit system: ${JSON.stringify(newSpec)}`);
+
+    try {
+      const response = await fetch(`/api/system/edit/${generatedSystem.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSpec)
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setGeneratedSystem(data.system);
+        setEditHistory(prev => [...prev, { timestamp: new Date(), changes: newSpec }]);
+        addMessage('assistant', `✏️ System updated successfully! Changes have been applied and the system has been regenerated.`);
+      } else {
+        addMessage('assistant', `❌ Error editing system: ${data.error}`);
+      }
+    } catch (error) {
+      addMessage('assistant', `❌ Error editing system: ${error}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const regenerateSystem = async (components: string[] = []) => {
+    if (!generatedSystem) return;
+
+    setIsLoading(true);
+    addMessage('user', `Regenerate system components: ${components.join(', ')}`);
+
+    try {
+      const response = await fetch(`/api/system/regenerate/${generatedSystem.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ components })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setGeneratedSystem(data.system);
+        addMessage('assistant', `🔄 System components regenerated successfully!`);
+      } else {
+        addMessage('assistant', `❌ Error regenerating system: ${data.error}`);
+      }
+    } catch (error) {
+      addMessage('assistant', `❌ Error regenerating system: ${error}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const validateDomain = async (domain: string) => {
-    if (!domain.trim()) return
-    
-    setIsValidatingDomain(true)
     try {
       const response = await fetch('/api/system/domain/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain })
-      })
-      const result = await response.json()
-      setDomainValidation(result)
+      });
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error('Error validating domain:', error)
-      setDomainValidation({
-        success: false,
-        domain,
-        domain_type: 'unknown',
-        strategy: {},
-        setup_instructions: {},
-        error: 'Failed to validate domain'
-      })
-    } finally {
-      setIsValidatingDomain(false)
+      return { success: false, error: 'Domain validation failed' };
     }
-  }
-
-  const deployToCloud = async (systemId: string) => {
-    if (!deploymentDomain.trim()) {
-      alert('Please enter a domain for deployment')
-      return
-    }
-
-    setIsDeploying(true)
-    try {
-      const response = await fetch(`/api/system/deploy/${systemId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          domain: deploymentDomain,
-          type: deploymentType
-        })
-      })
-      const result = await response.json()
-      setDeploymentResult(result)
-      
-      if (result.success) {
-        alert(`�� System deployed successfully!\n\nLive URL: ${result.live_url}\n\n${result.message}`)
-      } else {
-        alert(`❌ Deployment failed: ${result.error}`)
-      }
-    } catch (error) {
-      console.error('Error deploying system:', error)
-      alert('Failed to deploy system. Please try again.')
-    } finally {
-      setIsDeploying(false)
-    }
-  }
-
-  const generateSystem = async () => {
-    if (validateStep(currentStep)) {
-      setIsGenerating(true)
-      
-      try {
-        const response = await fetch('/api/system/generate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(spec)
-        })
-        
-        const result = await response.json()
-        
-        if (result.success) {
-          // System generated successfully
-          setGeneratedSystem(result.system)
-          console.log('Generated system:', result.system)
-          
-          // Show success message with system details
-          const systemDetails = `
-System "${spec.name}" generated successfully!
-
-System ID: ${result.system.systemId}
-Type: ${result.system.specification.type}
-Components: ${result.system.architecture.components.length}
-Templates: ${Object.keys(result.system.templates).length}
-Infrastructure: ${result.system.deployment.services.length} services
-
-Check the console for full system details.
-          `.trim()
-          
-          alert(systemDetails)
-        } else {
-          alert(`Error generating system: ${result.error}`)
-        }
-      } catch (error) {
-        console.error('Error generating system:', error)
-        alert('Failed to generate system. Please try again.')
-      } finally {
-        setIsGenerating(false)
-      }
-    }
-  }
-
-  const downloadSystem = () => {
-    if (generatedSystem) {
-      const dataStr = JSON.stringify(generatedSystem, null, 2)
-      const dataBlob = new Blob([dataStr], { type: 'application/json' })
-      const url = URL.createObjectURL(dataBlob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `${spec.name.toLowerCase().replace(/\s+/g, '-')}-system.json`
-      link.click()
-      URL.revokeObjectURL(url)
-    }
-  }
-
-  const steps = [
-    { id: 1, name: 'Basic Info', icon: Settings },
-    { id: 2, name: 'Tech Stack', icon: Code },
-    { id: 3, name: 'Features', icon: Zap },
-    { id: 4, name: 'Infrastructure', icon: Cloud },
-    { id: 5, name: 'Review', icon: Eye }
-  ]
+  };
 
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Progress Steps */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          {steps.map((step, index) => {
-            const Icon = step.icon
-            const isActive = currentStep === step.id
-            const isCompleted = currentStep > step.id
-            
-            return (
-              <div key={step.id} className="flex items-center">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                    isActive
-                      ? 'border-sbh-600 bg-sbh-600 text-white'
-                      : isCompleted
-                      ? 'border-green-500 bg-green-500 text-white'
-                      : 'border-gray-300 bg-white text-gray-400'
-                  }`}
-                >
-                  {isCompleted ? '✓' : <Icon className="w-5 h-5" />}
+    <div className="flex h-screen bg-gray-50">
+      {/* Left Panel - Chat Interface */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 p-4">
+          <h1 className="text-2xl font-bold text-gray-900">System Builder Hub</h1>
+          <p className="text-gray-600">AI-powered system generation and deployment</p>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.map((message, index) => (
+            <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-3xl p-4 rounded-lg ${
+                message.role === 'user' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-white border border-gray-200'
+              }`}>
+                <div className="whitespace-pre-wrap">{message.content}</div>
+                <div className={`text-xs mt-2 ${
+                  message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                }`}>
+                  {message.timestamp.toLocaleTimeString()}
                 </div>
-                <div className="ml-3">
-                  <p className={`text-sm font-medium ${isActive ? 'text-sbh-600' : 'text-gray-500'}`}>
-                    {step.name}
-                  </p>
-                </div>
-                {index < steps.length - 1 && (
-                  <div className={`w-16 h-0.5 mx-4 ${isCompleted ? 'bg-green-500' : 'bg-gray-300'}`} />
-                )}
               </div>
-            )
-          })}
+            </div>
+          ))}
+          
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-white border border-gray-200 p-4 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Generating system...</span>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input Area */}
+        <div className="bg-white border-t border-gray-200 p-4">
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Describe your system or ask questions..."
+              className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), addMessage('user', input), setInput(''))}
+            />
+            <button
+              onClick={() => {
+                addMessage('user', input);
+                setInput('');
+              }}
+              className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              <Send className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Step Content */}
-      <div className="card">
-        {currentStep === 1 && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900">Basic Information</h2>
+      {/* Right Panel - System Builder */}
+      <div className="w-96 bg-white border-l border-gray-200 flex flex-col">
+        {/* System Specification */}
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">System Specification</h2>
+          
+          <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                System Name <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">System Name</label>
               <input
                 type="text"
-                value={spec.name}
-                onChange={(e) => updateSpec({ name: e.target.value })}
+                value={systemSpec.name}
+                onChange={(e) => setSystemSpec(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="e.g., E-commerce Platform"
-                className={`input-field ${errors.name ? 'border-red-500' : ''}`}
               />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={spec.description}
-                onChange={(e) => updateSpec({ description: e.target.value })}
-                placeholder="Describe what your system should do..."
-                className={`input-field ${errors.description ? 'border-red-500' : ''}`}
-                rows={4}
-              />
-              {errors.description && (
-                <p className="mt-1 text-sm text-red-600">{errors.description}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                System Type <span className="text-red-500">*</span>
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {systemTypes.map((type) => {
-                  const Icon = type.icon
-                  return (
-                    <button
-                      key={type.id}
-                      onClick={() => updateSpec({ type: type.id as any })}
-                      className={`p-4 border-2 rounded-lg text-left transition-colors ${
-                        spec.type === type.id
-                          ? 'border-sbh-600 bg-sbh-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <Icon className="w-6 h-6 text-sbh-600 mb-2" />
-                      <h3 className="font-medium text-gray-900">{type.name}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{type.description}</p>
-                    </button>
-                  )
-                })}
-              </div>
-              {errors.type && (
-                <p className="mt-2 text-sm text-red-600">{errors.type}</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {currentStep === 2 && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900">Technology Stack</h2>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Technologies
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {techStacks.map((tech) => (
-                  <button
-                    key={tech}
-                    onClick={() => toggleArrayItem(spec.techStack, tech, (items) => updateSpec({ techStack: items }))}
-                    className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
-                      spec.techStack.includes(tech)
-                        ? 'border-sbh-600 bg-sbh-600 text-white'
-                        : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                    }`}
-                  >
-                    {tech}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {currentStep === 3 && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900">Features</h2>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Features
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {commonFeatures.map((feature) => (
-                  <button
-                    key={feature}
-                    onClick={() => toggleArrayItem(spec.features, feature, (items) => updateSpec({ features: items }))}
-                    className={`px-4 py-3 rounded-lg border text-left transition-colors ${
-                      spec.features.includes(feature)
-                        ? 'border-sbh-600 bg-sbh-50 text-sbh-700'
-                        : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                    }`}
-                  >
-                    {feature}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {currentStep === 4 && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900">Infrastructure</h2>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Infrastructure Components
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {infrastructureOptions.map((infra) => (
-                  <button
-                    key={infra}
-                    onClick={() => toggleArrayItem(spec.infrastructure, infra, (items) => updateSpec({ infrastructure: items }))}
-                    className={`px-4 py-3 rounded-lg border text-left transition-colors ${
-                      spec.infrastructure.includes(infra)
-                        ? 'border-sbh-600 bg-sbh-50 text-sbh-700'
-                        : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                    }`}
-                  >
-                    {infra}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {currentStep === 5 && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900">Review & Generate</h2>
             
-            {/* System Specification Review */}
-            <div className="bg-gray-50 rounded-lg p-6 space-y-4">
-              <div>
-                <h3 className="font-medium text-gray-900">System Name</h3>
-                <p className="text-gray-600">{spec.name || 'Not specified'}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">Description</h3>
-                <p className="text-gray-600">{spec.description || 'Not specified'}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">Type</h3>
-                <p className="text-gray-600">{systemTypes.find(t => t.id === spec.type)?.name}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">Tech Stack</h3>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {spec.techStack.map((tech) => (
-                    <span key={tech} className="px-2 py-1 bg-sbh-100 text-sbh-700 rounded text-sm">
-                      {tech}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">Features</h3>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {spec.features.map((feature) => (
-                    <span key={feature} className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm">
-                      {feature}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">Infrastructure</h3>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {spec.infrastructure.map((infra) => (
-                    <span key={infra} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm">
-                      {infra}
-                    </span>
-                  ))}
-                </div>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea
+                value={systemSpec.description}
+                onChange={(e) => setSystemSpec(prev => ({ ...prev, description: e.target.value }))}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={3}
+                placeholder="Describe what your system should do..."
+              />
             </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">System Type</label>
+              <select
+                value={systemSpec.type}
+                onChange={(e) => setSystemSpec(prev => ({ ...prev, type: e.target.value }))}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="web_app">Web Application</option>
+                <option value="api">API Service</option>
+                <option value="mobile_app">Mobile App</option>
+                <option value="desktop_app">Desktop App</option>
+                <option value="microservice">Microservice</option>
+              </select>
+            </div>
+          </div>
+        </div>
 
-            {/* Generated System Display */}
-            {generatedSystem && (
-              <div className="space-y-6">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                  <h3 className="font-medium text-green-900 mb-4 flex items-center">
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    System Generated Successfully!
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <p><strong>System ID:</strong> {generatedSystem.systemId}</p>
-                    <p><strong>Components:</strong> {generatedSystem.architecture.components.length}</p>
-                    <p><strong>Templates:</strong> {Object.keys(generatedSystem.templates).length}</p>
-                    <p><strong>Infrastructure Services:</strong> {generatedSystem.deployment.services.length}</p>
-                  </div>
-                  <div className="flex space-x-3 mt-4">
+        {/* File Upload & References */}
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="text-md font-semibold text-gray-900 mb-3">References & Files</h3>
+          
+          {/* File Upload */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Upload Files</label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+              <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-sm text-gray-600 mb-2">Drag & drop files or click to browse</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileUpload}
+                className="hidden"
+                accept="image/*,.pdf,.doc,.docx,.txt,.js,.ts,.tsx,.jsx,.html,.css,.json"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                Choose Files
+              </button>
+            </div>
+            
+            {/* Uploaded Files */}
+            {uploadedFiles.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {uploadedFiles.map((fileUpload, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                    <div className="flex items-center space-x-2">
+                      {fileUpload.type === 'image' && <Image className="h-4 w-4 text-gray-500" />}
+                      {fileUpload.type === 'document' && <FileText className="h-4 w-4 text-gray-500" />}
+                      {fileUpload.type === 'code' && <Code className="h-4 w-4 text-gray-500" />}
+                      <span className="text-sm text-gray-700">{fileUpload.file.name}</span>
+                    </div>
                     <button
-                      onClick={downloadSystem}
-                      className="btn-secondary flex items-center space-x-2"
+                      onClick={() => removeFile(index)}
+                      className="text-red-500 hover:text-red-700"
                     >
-                      <Download className="w-4 h-4" />
-                      <span>Download System</span>
+                      ×
                     </button>
                   </div>
-                </div>
-
-                {/* Deployment Section */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <h3 className="font-medium text-blue-900 mb-4 flex items-center">
-                    <Globe className="w-5 h-5 mr-2" />
-                    Deploy to Cloud
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Domain Name
-                      </label>
-                      <div className="flex space-x-3">
-                        <input
-                          type="text"
-                          value={deploymentDomain}
-                          onChange={(e) => setDeploymentDomain(e.target.value)}
-                          onBlur={() => deploymentDomain && validateDomain(deploymentDomain)}
-                          placeholder="e.g., myapp.com or myapp.sbh.umbervale.com"
-                          className="input-field flex-1"
-                        />
-                        {isValidatingDomain && (
-                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mt-2" />
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Deployment Type
-                      </label>
-                      <select
-                        value={deploymentType}
-                        onChange={(e) => setDeploymentType(e.target.value)}
-                        className="input-field"
-                      >
-                        <option value="preview">Preview (for testing)</option>
-                        <option value="production">Production (live system)</option>
-                      </select>
-                    </div>
-
-                    {/* Domain Validation Results */}
-                    {domainValidation && (
-                      <div className={`p-4 rounded-lg border ${
-                        domainValidation.success 
-                          ? 'bg-green-50 border-green-200' 
-                          : 'bg-red-50 border-red-200'
-                      }`}>
-                        <div className="flex items-start">
-                          {domainValidation.success ? (
-                            <CheckCircle className="w-5 h-5 text-green-600 mr-2 mt-0.5" />
-                          ) : (
-                            <AlertCircle className="w-5 h-5 text-red-600 mr-2 mt-0.5" />
-                          )}
-                          <div className="flex-1">
-                            <h4 className={`font-medium ${
-                              domainValidation.success ? 'text-green-900' : 'text-red-900'
-                            }`}>
-                              {domainValidation.success ? 'Domain Valid' : 'Domain Invalid'}
-                            </h4>
-                            {domainValidation.success ? (
-                              <div className="mt-2">
-                                <p className="text-sm text-green-700">
-                                  <strong>Type:</strong> {domainValidation.domain_type}
-                                </p>
-                                <p className="text-sm text-green-700">
-                                  <strong>Strategy:</strong> {domainValidation.strategy.setup_instructions}
-                                </p>
-                                {domainValidation.setup_instructions.steps && domainValidation.setup_instructions.steps.length > 0 && (
-                                  <div className="mt-2">
-                                    <p className="text-sm font-medium text-green-800">Setup Steps:</p>
-                                    <ul className="text-sm text-green-700 mt-1 space-y-1">
-                                      {domainValidation.setup_instructions.steps.map((step: string, index: number) => (
-                                        <li key={index}>{step}</li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-red-700 mt-1">
-                                {domainValidation.error}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Deployment Button */}
-                    <button
-                      onClick={() => deployToCloud(generatedSystem.systemId)}
-                      disabled={isDeploying || !deploymentDomain.trim() || !domainValidation?.success}
-                      className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isDeploying ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Deploying...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Cloud className="w-4 h-4" />
-                          <span>Deploy to Cloud</span>
-                        </>
-                      )}
-                    </button>
-
-                    {/* Deployment Result */}
-                    {deploymentResult && (
-                      <div className={`p-4 rounded-lg border ${
-                        deploymentResult.success 
-                          ? 'bg-green-50 border-green-200' 
-                          : 'bg-red-50 border-red-200'
-                      }`}>
-                        <div className="flex items-start">
-                          {deploymentResult.success ? (
-                            <CheckCircle className="w-5 h-5 text-green-600 mr-2 mt-0.5" />
-                          ) : (
-                            <AlertCircle className="w-5 h-5 text-red-600 mr-2 mt-0.5" />
-                          )}
-                          <div className="flex-1">
-                            <h4 className={`font-medium ${
-                              deploymentResult.success ? 'text-green-900' : 'text-red-900'
-                            }`}>
-                              {deploymentResult.success ? 'Deployment Successful!' : 'Deployment Failed'}
-                            </h4>
-                            {deploymentResult.success ? (
-                              <div className="mt-2 space-y-2">
-                                <p className="text-sm text-green-700">
-                                  <strong>Live URL:</strong> 
-                                  <a 
-                                    href={deploymentResult.live_url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="ml-1 text-green-600 hover:text-green-800 underline flex items-center"
-                                  >
-                                    {deploymentResult.live_url}
-                                    <ExternalLink className="w-3 h-3 ml-1" />
-                                  </a>
-                                </p>
-                                <p className="text-sm text-green-700">
-                                  <strong>Deployment ID:</strong> {deploymentResult.deployment_id}
-                                </p>
-                                <p className="text-sm text-green-700">
-                                  <strong>Domain Type:</strong> {deploymentResult.domain_type}
-                                </p>
-                                <p className="text-sm text-green-700">
-                                  <strong>Status:</strong> {deploymentResult.status}
-                                </p>
-                              </div>
-                            ) : (
-                              <p className="text-sm text-red-700 mt-1">
-                                {deploymentResult.error}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                ))}
               </div>
             )}
           </div>
-        )}
-
-        {/* Navigation */}
-        <div className="flex justify-between pt-6 border-t border-gray-200">
-          <button
-            onClick={handlePrevious}
-            disabled={currentStep === 1}
-            className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
           
-          {currentStep < 5 ? (
-            <button
-              onClick={handleNext}
-              className="btn-primary"
-            >
-              Next
-            </button>
-          ) : (
+          {/* Reference URLs */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Reference URLs</label>
+            <div className="flex space-x-2">
+              <input
+                type="url"
+                value={deploymentDomain}
+                onChange={(e) => setDeploymentDomain(e.target.value)}
+                placeholder="https://example.com"
+                className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <button
+                onClick={addReferenceUrl}
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+              >
+                <Link className="h-4 w-4" />
+              </button>
+            </div>
+            
+            {/* Reference URLs List */}
+            {referenceUrls.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {referenceUrls.map((refUrl, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                    <span className="text-sm text-gray-700 truncate">{refUrl.url}</span>
+                    <button
+                      onClick={() => removeReferenceUrl(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="text-md font-semibold text-gray-900 mb-3">Actions</h3>
+          
+          <div className="space-y-2">
             <button
               onClick={generateSystem}
-              disabled={isGenerating}
-              className="btn-primary flex items-center space-x-2 disabled:opacity-50"
+              disabled={isLoading || !systemSpec.name || !systemSpec.description}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isGenerating ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Generating...</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  <span>Generate System</span>
-                </>
-              )}
+              <Code className="h-4 w-4" />
+              <span>Generate System</span>
             </button>
-          )}
+            
+            {generatedSystem && (
+              <>
+                <button
+                  onClick={previewSystem}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                >
+                  <Eye className="h-4 w-4" />
+                  <span>Preview</span>
+                </button>
+                
+                <button
+                  onClick={downloadSystem}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download</span>
+                </button>
+                
+                <button
+                  onClick={() => setEditMode(!editMode)}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+                >
+                  <Edit className="h-4 w-4" />
+                  <span>{editMode ? 'Exit Edit' : 'Edit System'}</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
+
+        {/* Deployment */}
+        {generatedSystem && (
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="text-md font-semibold text-gray-900 mb-3">Live Deployment</h3>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Custom Domain (Optional)</label>
+                <input
+                  type="text"
+                  value={deploymentDomain}
+                  onChange={(e) => setDeploymentDomain(e.target.value)}
+                  placeholder="myapp.com or leave blank for SBH subdomain"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <button
+                onClick={deploySystem}
+                disabled={deploymentStatus === 'deploying'}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+              >
+                {deploymentStatus === 'deploying' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Globe className="h-4 w-4" />
+                )}
+                <span>
+                  {deploymentStatus === 'deploying' ? 'Deploying...' : 'Deploy Live'}
+                </span>
+              </button>
+              
+              {deploymentStatus === 'success' && deploymentUrl && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm text-green-800">Deployed Successfully!</span>
+                  </div>
+                  <a
+                    href={deploymentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-green-600 hover:text-green-700 underline"
+                  >
+                    {deploymentUrl}
+                  </a>
+                </div>
+              )}
+              
+              {deploymentStatus === 'error' && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <div className="flex items-center space-x-2">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <span className="text-sm text-red-800">Deployment Failed</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* System Status */}
+        {generatedSystem && (
+          <div className="p-4">
+            <h3 className="text-md font-semibold text-gray-900 mb-3">System Status</h3>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Status:</span>
+                <span className={`font-medium ${
+                  generatedSystem.status === 'generated' ? 'text-green-600' : 'text-yellow-600'
+                }`}>
+                  {generatedSystem.status}
+                </span>
+              </div>
+              
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Files:</span>
+                <span className="font-medium">{generatedSystem.preview?.fileCount || 0}</span>
+              </div>
+              
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Components:</span>
+                <span className="font-medium">{generatedSystem.preview?.components || 0}</span>
+              </div>
+              
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Created:</span>
+                <span className="font-medium">
+                  {new Date(generatedSystem.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
-  )
+  );
 }
