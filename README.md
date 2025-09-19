@@ -2,11 +2,11 @@
 
 **The AI-powered system that builds complete, deployable applications from natural language specifications.**
 
-## 🎯 What is SBH?
+## �� What is SBH?
 
 SBH is an AI-assisted platform that takes high-level system specifications and outputs **complete, bootable applications** with their own infrastructure, CI/CD, and monitoring. Think of it as "better than Cursor" - it doesn't just write code, it builds entire systems.
 
-## 🌟 Current Status: **LIVE & BEAST MODE**
+## �� Current Status: **LIVE & BEAST MODE**
 
 **✅ FULLY OPERATIONAL**
 - **Frontend**: https://sbh.umbervale.com (with authentication)
@@ -19,6 +19,7 @@ SBH is an AI-assisted platform that takes high-level system specifications and o
 - **File Upload & URL Analysis**: ✅ **WORKING** - Reference-based generation
 - **Domain Management**: ✅ **WORKING** - Custom domain deployment
 - **Live Deployment**: ✅ **WORKING** - Direct AWS deployment with URLs
+- **Advanced Frontend**: ✅ **WORKING** - Complete UI with navigation, dashboard, and workflows
 
 ## 🚀 What SBH Can Do RIGHT NOW
 
@@ -29,56 +30,66 @@ SBH is an AI-assisted platform that takes high-level system specifications and o
 - **Complete Systems**: Frontend + Backend + Infrastructure + CI/CD
 - **34+ Files Generated**: Including React, Node.js, Terraform, Docker, GitHub Actions, documentation
 
-### **2. System Preview & Testing**
+### **2. Advanced Frontend Interface**
+- **Dashboard View**: System management and overview with search, filters, and bulk operations
+- **Builder View**: Chat-based system generation with file uploads and live deployment
+- **Edit View**: Iterative development workflow with feedback and component regeneration
+- **Domain View**: Custom domain deployment with DNS and SSL management
+- **Responsive Design**: Mobile-friendly sidebar navigation
+- **Real-time Updates**: Live status tracking and progress indicators
+
+### **3. System Preview & Testing**
 - **Live Preview**: View generated code and architecture
 - **System Validation**: Automated checks for completeness
 - **Test Deployment**: Deploy to temporary environments
 - **Download Ready**: Get complete ZIP packages (22KB+ with full systems)
 
-### **3. Iterative Development Workflow**
+### **4. Iterative Development Workflow**
 - **Edit Systems**: Modify specifications and regenerate components
 - **Regenerate Components**: Update specific parts (templates, infrastructure, etc.)
 - **Edit History Tracking**: Full audit trail of all changes
 - **Live Feedback Loop**: Upload screenshots, errors, or feedback for AI fixes
+- **Component Selection**: Choose which parts to regenerate (frontend, backend, database, etc.)
 
-### **4. Advanced File Analysis**
+### **5. Advanced File Analysis**
 - **Image Analysis**: Upload screenshots for UI/UX reference
 - **Document Processing**: PDF, Word docs, text files for requirements
 - **URL Analysis**: Analyze existing websites for inspiration
 - **Multi-format Support**: Handles various file types intelligently
+- **Drag & Drop Interface**: Modern file upload experience with progress tracking
 
-### **5. Domain Management & Live Deployment**
+### **6. Domain Management & Live Deployment**
 - **Custom Domains**: Deploy to your own domain (e.g., `myapp.com`)
 - **SBH Subdomains**: Use `myapp.sbh.umbervale.com` for quick deployment
 - **DNS Management**: Automatic Route 53 setup for AWS domains
 - **SSL Certificates**: Automatic HTTPS with AWS Certificate Manager
 - **Live URLs**: Systems get real, accessible URLs immediately
+- **Domain Validation**: Real-time domain validation and setup instructions
 
-### **6. Production-Ready Infrastructure**
+### **7. Production-Ready Infrastructure**
 - **AWS ECS Fargate**: Scalable container hosting
 - **AWS RDS PostgreSQL**: Managed database
 - **AWS S3**: Persistent storage for generated systems
 - **AWS ALB + CloudFront**: Global content delivery
 - **HTTPS + Custom Domain**: Professional setup
 
-## 🏗️ Architecture
+## ��️ Architecture
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Backend API   │    │   Generated     │
-│   (Next.js)     │◄──►│   (Flask)       │◄──►│   Systems       │
-│   CloudFront    │    │   ECS Fargate   │    │   S3 Storage    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Authentication│    │   OpenAI API    │    │   AWS RDS       │
-│   (Cognito)     │    │   Integration   │    │   PostgreSQL    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│ Frontend │ │ Backend API │ │ Generated │
+│ (Next.js) │◄──►│ (Flask) │◄──►│ Systems │
+│ CloudFront │ │ ECS Fargate │ │ S3 Storage │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
+│ │ │
+│ │ │
+▼ ▼ ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│ Authentication│ │ OpenAI API │ │ AWS RDS │
+│ (Cognito) │ │ Integration │ │ PostgreSQL │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
 
-## 🔐 Authentication
+
+## �� Authentication
 
 **Current Setup:**
 - **Login Required**: All access requires authentication
@@ -92,11 +103,14 @@ SBH is an AI-assisted platform that takes high-level system specifications and o
 ### **Step 1: Login**
 Visit https://sbh.umbervale.com and login with the credentials above.
 
-### **Step 2: Choose Your Mode**
-- **Chat**: Talk to the AI about your system requirements
-- **Builder**: Use the step-by-step system builder
+### **Step 2: Choose Your View**
+- **Dashboard**: View and manage all your generated systems
+- **Builder**: Generate new systems with chat interface
+- **Edit**: Modify existing systems with iterative development
+- **Domain**: Deploy systems with custom domains
 
 ### **Step 3: Generate Your System**
+- **Navigate to Builder** view
 - **Describe your system** in natural language
 - **Upload references** (optional): Screenshots, documents, or provide URLs
 - **SBH analyzes** your requirements and references
@@ -108,13 +122,13 @@ Visit https://sbh.umbervale.com and login with the credentials above.
 - **Download** the complete ZIP package
 
 ### **Step 5: Deploy Live**
-- **Option A**: Download and deploy yourself
-- **Option B**: Use SBH's live deployment
-  - Choose custom domain or SBH subdomain
-  - SBH handles DNS, SSL, and infrastructure
-  - Get live URL immediately
+- **Navigate to Domain** view
+- **Choose custom domain** or SBH subdomain
+- **SBH handles DNS, SSL, and infrastructure**
+- **Get live URL immediately**
 
 ### **Step 6: Iterate & Improve**
+- **Navigate to Edit** view
 - **Edit** your system specifications
 - **Upload feedback** (screenshots, errors, requirements)
 - **Regenerate** specific components
@@ -128,6 +142,7 @@ Visit https://sbh.umbervale.com and login with the credentials above.
 - **React 18** with modern hooks
 - **Lucide React** for icons
 - **AWS Cognito** for authentication
+- **Advanced Components**: SystemBuilder, SystemDashboard, EditWorkflow, DomainManagement, FileUpload
 
 ### **Backend**
 - **Flask** with Python 3.11
@@ -152,46 +167,45 @@ Visit https://sbh.umbervale.com and login with the credentials above.
 
 When you generate a system, SBH creates:
 
-```
 your-system/
-├── frontend/                 # React + TypeScript
-│   ├── package.json
-│   ├── src/App.tsx
-│   ├── src/components/
-│   ├── src/pages/
-│   └── tailwind.config.js
-├── backend/                  # Node.js + Express
-│   ├── package.json
-│   ├── src/app.js
-│   ├── src/models/
-│   ├── src/routes/
-│   ├── src/middleware/
-│   ├── database/migrations/
-│   ├── scripts/
-│   └── Dockerfile
-├── deployment/               # CI/CD
-│   ├── .github/workflows/
-│   │   ├── deploy.yml
-│   │   ├── test.yml
-│   │   └── security.yml
-├── docker/                   # Containerization
-│   ├── docker-compose.yml
-│   ├── docker-compose.prod.yml
-│   └── .env.example
-├── infrastructure/           # Terraform
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   └── modules/
-├── scripts/                  # Deployment Scripts
-│   ├── deploy-aws.sh
-│   ├── deploy-gcp.sh
-│   └── deploy-azure.sh
-└── docs/                     # Documentation
-    ├── README.md
-    ├── DEPLOYMENT.md
-    └── API.md
-```
+├── frontend/ # React + TypeScript
+│ ├── package.json
+│ ├── src/App.tsx
+│ ├── src/components/
+│ ├── src/pages/
+│ └── tailwind.config.js
+├── backend/ # Node.js + Express
+│ ├── package.json
+│ ├── src/app.js
+│ ├── src/models/
+│ ├── src/routes/
+│ ├── src/middleware/
+│ ├── database/migrations/
+│ ├── scripts/
+│ └── Dockerfile
+├── deployment/ # CI/CD
+│ ├── .github/workflows/
+│ │ ├── deploy.yml
+│ │ ├── test.yml
+│ │ └── security.yml
+├── docker/ # Containerization
+│ ├── docker-compose.yml
+│ ├── docker-compose.prod.yml
+│ └── .env.example
+├── infrastructure/ # Terraform
+│ ├── main.tf
+│ ├── variables.tf
+│ ├── outputs.tf
+│ └── modules/
+├── scripts/ # Deployment Scripts
+│ ├── deploy-aws.sh
+│ ├── deploy-gcp.sh
+│ └── deploy-azure.sh
+└── docs/ # Documentation
+├── README.md
+├── DEPLOYMENT.md
+└── API.md
+
 
 **Total: 34+ files with real, working code!**
 
@@ -277,7 +291,7 @@ aws logs tail /ecs/sbh-backend --follow --since 1h
 - **Compliance**: SOC2, HIPAA, GDPR compliance tools
 - **Advanced Monitoring**: Custom dashboards and alerts
 
-## 🤝 Contributing
+## �� Contributing
 
 SBH is built to be the ultimate system builder. Contributions welcome!
 
@@ -287,7 +301,7 @@ SBH is built to be the ultimate system builder. Contributions welcome!
 - **Frontend**: https://sbh.umbervale.com
 - **Issues**: GitHub Issues
 
-## 🚀 API Endpoints
+## �� API Endpoints
 
 ### **System Management**
 - `POST /api/system/generate` - Generate new system
