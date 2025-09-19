@@ -3875,20 +3875,8 @@ def deploy_to_aws_ecs(system, domain, deployment_type):
         system_id = system['systemId']
         deployment_id = f"deploy_{system_id[:8]}"
         
-        # Get the actual ALB DNS name from existing infrastructure
-        elbv2 = boto3.client('elbv2')
-        response = elbv2.describe_load_balancers()
-        
-        # Find the SBH ALB
-        alb_dns = None
-        for lb in response['LoadBalancers']:
-            if 'sbh' in lb['LoadBalancerName'].lower() or 'ai-website-builder' in lb['LoadBalancerName'].lower():
-                alb_dns = lb['DNSName']
-                break
-        
-        if not alb_dns:
-            # Fallback to the known ALB DNS
-            alb_dns = 'ai-website-builder-alb-81948155.us-west-2.elb.amazonaws.com'
+        # Use the known ALB DNS (we know this from our earlier investigation)
+        alb_dns = 'ai-website-builder-alb-81948155.us-west-2.elb.amazonaws.com'
         
         # For now, we'll use the existing SBH backend infrastructure
         # In a full implementation, we would:
