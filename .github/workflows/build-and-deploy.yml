@@ -69,20 +69,29 @@ jobs:
         
         echo "✅ Image verification passed: $IMAGE_SIZE bytes"
 
-    - name: Create new task definition
+    - name: Create new task definition with fixed health check
       id: create-task-def
       run: |
         # Get current task definition
         CURRENT_TD=$(aws ecs describe-task-definition --task-definition sbh-task-dev --region us-west-2 --query 'taskDefinition')
         
-        # Update image URI
-        NEW_TD=$(echo "$CURRENT_TD" | jq --arg image "776567512687.dkr.ecr.us-west-2.amazonaws.com/sbh-repo-dev:phase3-${{ github.run_number }}" '.containerDefinitions[0].image = $image')
+        # Fix the health check syntax error and update image
+        NEW_TD=$(echo "$CURRENT_TD" | jq --arg image "776567512687.dkr.ecr.us-west-2.amazonaws.com/sbh-repo-dev:phase3-${{ github.run_number }}" '
+          # Update the container image
+          .containerDefinitions[0].image = $image
+          # Fix the health check syntax error (add quotes around URL)
+          | .containerDefinitions[0].healthCheck.command[1] = (.containerDefinitions[0].healthCheck.command[1] | gsub("http://localhost:8000/api/ai-chat/health"; "\u0027http://localhost:8000/api/ai-chat/health\u0027"))
+        ')
         
         # Remove fields that can't be in register-task-definition
         CLEAN_TD=$(echo "$NEW_TD" | jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
         
         # Save to file
         echo "$CLEAN_TD" > new_task_def.json
+        
+        # Show the fixed health check
+        echo "🔧 Fixed health check command:"
+        echo "$CLEAN_TD" | jq '.containerDefinitions[0].healthCheck.command'
         
         # Register new task definition
         NEW_REVISION=$(aws ecs register-task-definition --cli-input-json file://new_task_def.json --region us-west-2 --query 'taskDefinition.revision' --output text)
@@ -110,8 +119,8 @@ jobs:
       run: |
         echo "Checking health endpoint..."
         for i in {1..30}; do
-          HEALTH=$(curl -s https://sbh.umbervale.com/api/health | jq -r '.ok // false')
-          if [ "$HEALTH" = "true" ]; then
+          HEALTH=$(curl -s http://ai-website-builder-alb-81948155.us-west-2.elb.amazonaws.com/api/ai-chat/health | jq -r '.status // false')
+          if [ "$HEALTH" = "healthy" ]; then
             echo "✅ Health check passed"
             break
           fi
@@ -119,7 +128,7 @@ jobs:
           sleep 10
         done
         
-        if [ "$HEALTH" != "true" ]; then
+        if [ "$HEALTH" != "healthy" ]; then
           echo "❌ Health check failed after 30 attempts"
           exit 1
         fi
@@ -129,11 +138,11 @@ jobs:
         echo "Applying database schema..."
         
         # Try to call the migration endpoint
-        MIGRATION_RESULT=$(curl -s -X POST https://sbh.umbervale.com/api/migrate/up || echo "endpoint_not_found")
+        MIGRATION_RESULT=$(curl -s -X POST http://ai-website-builder-alb-81948155.us-west-2.elb.amazonaws.com/api/migrate/up || echo "endpoint_not_found")
         
         if [ "$MIGRATION_RESULT" = "endpoint_not_found" ]; then
           echo "Migration endpoint not found, trying schema fix endpoint..."
-          SCHEMA_RESULT=$(curl -s -X POST https://sbh.umbervale.com/api/fix-db-schema || echo "endpoint_not_found")
+          SCHEMA_RESULT=$(curl -s -X POST http://ai-website-builder-alb-81948155.us-west-2.elb.amazonaws.com/api/fix-db-schema || echo "endpoint_not_found")
           
           if [ "$SCHEMA_RESULT" = "endpoint_not_found" ]; then
             echo "❌ No migration endpoints available"
@@ -150,7 +159,7 @@ jobs:
         echo "Verifying Phase-3 APIs..."
         
         # Test conversation creation
-        CONV_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/memory/conversations \
+        CONV_RESPONSE=$(curl -s -X POST http://ai-website-builder-alb-81948155.us-west-2.elb.amazonaws.com/api/memory/conversations \
           -H "Content-Type: application/json" \
           -H "X-User-Email: test@example.com" \
           -H "X-Tenant: demo" \
@@ -170,7 +179,7 @@ jobs:
         echo "✅ Conversation created with ID: $CONV_ID"
         
         # Test message creation
-        MSG_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/memory/conversations/$CONV_ID/messages \
+        MSG_RESPONSE=$(curl -s -X POST http://ai-website-builder-alb-81948155.us-west-2.elb.amazonaws.com/api/memory/conversations/$CONV_ID/messages \
           -H "Content-Type: application/json" \
           -H "X-User-Email: test@example.com" \
           -H "X-Tenant: demo" \
@@ -184,7 +193,7 @@ jobs:
         echo "✅ Message created successfully"
         
         # Test spec creation
-        SPEC_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/specs \
+        SPEC_RESPONSE=$(curl -s -X POST http://ai-website-builder-alb-81948155.us-west-2.elb.amazonaws.com/api/specs \
           -H "Content-Type: application/json" \
           -H "X-User-Email: test@example.com" \
           -H "X-Tenant: demo" \
@@ -204,7 +213,7 @@ jobs:
         echo "✅ Spec created with ID: $SPEC_ID"
         
         # Test build creation
-        BUILD_RESPONSE=$(curl -s -X POST https://sbh.umbervale.com/api/builds \
+        BUILD_RESPONSE=$(curl -s -X POST http://ai-website-builder-alb-81948155.us-west-2.elb.amazonaws.com/api/builds \
           -H "Content-Type: application/json" \
           -H "X-User-Email: test@example.com" \
           -H "X-Tenant: demo" \
@@ -226,7 +235,7 @@ jobs:
     - name: Final health check
       run: |
         echo "Final health check..."
-        HEALTH_RESPONSE=$(curl -s https://sbh.umbervale.com/api/health)
+        HEALTH_RESPONSE=$(curl -s http://ai-website-builder-alb-81948155.us-west-2.elb.amazonaws.com/api/ai-chat/health)
         echo "$HEALTH_RESPONSE" | jq .
         
         # Check that all subsystems are healthy
