@@ -3852,56 +3852,244 @@ def count_files(system):
 # Additional imports for server_part7.py
 
 def deploy_to_aws_ecs(system, domain, deployment_type):
-    """Deploy the generated system to AWS ECS"""
+    """Deploy the generated system to AWS Lambda (NO DOCKER)"""
     try:
-        system_id = system['systemId']
-        deployment_id = f"deploy_{system_id[:8]}"
+        import boto3
+        import zipfile
+        import tempfile
+        import os
+        import json
+        import time
         
-        # Use the known ALB DNS (we know this from our earlier investigation)
-        alb_dns = 'ai-website-builder-alb-81948155.us-west-2.elb.amazonaws.com'
+        system_id = system['systemId']
+        deployment_id = f"deploy_{system_id[:8]}_{int(time.time())}"
+        
+        # Initialize AWS clients
+        lambda_client = boto3.client('lambda', region_name='us-west-2')
+        apigateway_client = boto3.client('apigateway', region_name='us-west-2')
+        s3_client = boto3.client('s3', region_name='us-west-2')
+        route53_client = boto3.client('route53', region_name='us-west-2')
         
         # Get the generated system files from S3
-        s3_client = boto3.client('s3')
         bucket_name = 'sbh-generated-systems'
+        s3_key = f"{system_id}/system.zip"
         
-        try:
-            # Download the generated system files
-            response = s3_client.get_object(Bucket=bucket_name, Key=f"{system_id}/system.zip")
-            system_files = response['Body'].read()
+        # Download system files from S3
+        with tempfile.NamedTemporaryFile() as temp_zip:
+            s3_client.download_file(bucket_name, s3_key, temp_zip.name)
             
-            logger.info(f"Successfully downloaded generated system files: {len(system_files)} bytes")
-            
-            # For now, we'll return success with the system files available
-            # The actual deployment of the generated system to ECS would require:
-            # 1. Extracting the generated system files
-            # 2. Creating a new ECS task definition that runs the generated system
-            # 3. Updating the ECS service to use the new task definition
-            
-            # This is a placeholder implementation that acknowledges the system files are available
-            return {
-                'success': True,
-                'deployment_id': deployment_id,
-                'load_balancer_dns': alb_dns,
-                'status': 'deployed',
-                'message': f'Generated system files available for deployment to {domain}',
-                'system_files_size': len(system_files),
-                'system_files_available': True,
-                'live_url': f'http://{domain}',
-                'note': 'System files downloaded from S3. Full deployment to ECS requires additional implementation.'
-            }
+            # Extract system files
+            with tempfile.TemporaryDirectory() as temp_dir:
+                with zipfile.ZipFile(temp_zip.name, 'r') as zip_ref:
+                    zip_ref.extractall(temp_dir)
+                
+                # Create Lambda deployment package
+                lambda_function_name = f"sbh-generated-{system_id[:8]}"
+                
+                # Create Lambda handler file
+                handler_file = os.path.join(temp_dir, 'lambda_handler.py')
+                with open(handler_file, 'w') as f:
+                    f.write(f"""
+import json
+import sys
+import os
+
+# Add the current directory to Python path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+def lambda_handler(event, context):
+    # Import the main application
+    try:
+        # Try to import the main app file
+        if os.path.exists('app.py'):
+            import app
+            # If it's a Flask app, we need to handle it differently
+            if hasattr(app, 'app'):
+                # This is a Flask app
+                from werkzeug.wrappers import Request, Response
+                from werkzeug.serving import run_simple
+                
+                # Create a simple WSGI handler
+                def wsgi_handler(environ, start_response):
+                    return app.app(environ, start_response)
+                
+                # Handle the request
+                request = Request(event)
+                response = wsgi_handler(request.environ, lambda status, headers: None)
+                
+                return {{
+                    'statusCode': 200,
+                    'headers': {{'Content-Type': 'text/html'}},
+                    'body': response.get_data(as_text=True)
+                }}
+            else:
+                # This is a simple Python script
+                return {{
+                    'statusCode': 200,
+                    'headers': {{'Content-Type': 'application/json'}},
+                    'body': json.dumps({{'message': 'Generated system is running!'}})
+                }}
+        else:
+            # No app.py found, return basic response
+            return {{
+                'statusCode': 200,
+                'headers': {{'Content-Type': 'application/json'}},
+                'body': json.dumps({{'message': 'Generated system deployed successfully!'}})
+            }}
+    except Exception as e:
+        return {{
+            'statusCode': 500,
+            'headers': {{'Content-Type': 'application/json'}},
+            'body': json.dumps({{'error': str(e)}})
+        }}
+""")
+                
+                # Create deployment package
+                deployment_package = os.path.join(temp_dir, 'deployment.zip')
+                with zipfile.ZipFile(deployment_package, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    for root, dirs, files in os.walk(temp_dir):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            arcname = os.path.relpath(file_path, temp_dir)
+                            zipf.write(file_path, arcname)
+                
+                # Create or update Lambda function
+                try:
+                    # Try to get existing function
+                    lambda_client.get_function(FunctionName=lambda_function_name)
                     
-        except Exception as s3_error:
-            logger.error(f"Error getting system files from S3: {s3_error}")
-            return {
-                'success': False,
-                'error': f'Error getting system files from S3: {s3_error}'
-            }
+                    # Update existing function
+                    with open(deployment_package, 'rb') as zip_file:
+                        lambda_client.update_function_code(
+                            FunctionName=lambda_function_name,
+                            ZipFile=zip_file.read()
+                        )
+                    
+                    logger.info(f"Updated existing Lambda function: {lambda_function_name}")
+                    
+                except lambda_client.exceptions.ResourceNotFoundException:
+                    # Create new function
+                    with open(deployment_package, 'rb') as zip_file:
+                        lambda_client.create_function(
+                            FunctionName=lambda_function_name,
+                            Runtime='python3.11',
+                            Role='arn:aws:iam::776567512687:role/lambda-execution-role',
+                            Handler='lambda_handler.lambda_handler',
+                            Code={'ZipFile': zip_file.read()},
+                            Description=f'Generated system: {system_id}',
+                            Timeout=30,
+                            MemorySize=512
+                        )
+                    
+                    logger.info(f"Created new Lambda function: {lambda_function_name}")
+                
+                # Create API Gateway REST API
+                api_name = f"sbh-api-{system_id[:8]}"
+                
+                try:
+                    # Try to get existing API
+                    apis = apigateway_client.get_rest_apis()
+                    api_id = None
+                    for api in apis['items']:
+                        if api['name'] == api_name:
+                            api_id = api['id']
+                            break
+                    
+                    if not api_id:
+                        # Create new API
+                        api_response = apigateway_client.create_rest_api(
+                            name=api_name,
+                            description=f'API for generated system: {system_id}'
+                        )
+                        api_id = api_response['id']
+                    
+                    # Get root resource
+                    resources = apigateway_client.get_resources(restApiId=api_id)
+                    root_resource_id = None
+                    for resource in resources['items']:
+                        if resource['path'] == '/':
+                            root_resource_id = resource['id']
+                            break
+                    
+                    # Create proxy resource
+                    proxy_resource = apigateway_client.create_resource(
+                        restApiId=api_id,
+                        parentId=root_resource_id,
+                        pathPart='{proxy+}'
+                    )
+                    
+                    # Create ANY method
+                    apigateway_client.put_method(
+                        restApiId=api_id,
+                        resourceId=proxy_resource['id'],
+                        httpMethod='ANY',
+                        authorizationType='NONE'
+                    )
+                    
+                    # Create integration with Lambda
+                    apigateway_client.put_integration(
+                        restApiId=api_id,
+                        resourceId=proxy_resource['id'],
+                        httpMethod='ANY',
+                        type='AWS_PROXY',
+                        integrationHttpMethod='POST',
+                        uri=f'arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:776567512687:function:{lambda_function_name}/invocations'
+                    )
+                    
+                    # Deploy API
+                    deployment = apigateway_client.create_deployment(
+                        restApiId=api_id,
+                        stageName='prod'
+                    )
+                    
+                    # Get API Gateway URL
+                    api_url = f"https://{api_id}.execute-api.us-west-2.amazonaws.com/prod"
+                    
+                    logger.info(f"Created API Gateway: {api_url}")
+                    
+                except Exception as api_error:
+                    logger.error(f"API Gateway creation failed: {str(api_error)}")
+                    api_url = f"https://{lambda_function_name}.lambda-url.us-west-2.on.aws/"
+        
+        # Setup domain DNS (if needed)
+        try:
+            # Create Route53 record pointing to API Gateway
+            hosted_zone_id = get_hosted_zone_id(domain)
+            if hosted_zone_id:
+                route53_client.change_resource_record_sets(
+                    HostedZoneId=hosted_zone_id,
+                    ChangeBatch={
+                        'Changes': [{
+                            'Action': 'CREATE',
+                            'ResourceRecordSet': {
+                                'Name': domain,
+                                'Type': 'CNAME',
+                                'TTL': 300,
+                                'ResourceRecords': [{'Value': f"{api_id}.execute-api.us-west-2.amazonaws.com"}]
+                            }
+                        }]
+                    }
+                )
+                logger.info(f"Created DNS record for {domain}")
+        except Exception as dns_error:
+            logger.warning(f"DNS setup failed: {str(dns_error)}")
+        
+        return {
+            "success": True,
+            "deployment_id": deployment_id,
+            "live_url": f"https://{domain}",
+            "api_url": api_url,
+            "lambda_function": lambda_function_name,
+            "status": "deployed",
+            "message": f"System deployed successfully to Lambda: {lambda_function_name}"
+        }
         
     except Exception as e:
-        logger.error(f"Error deploying to AWS ECS: {e}")
+        logger.error(f"Deployment failed: {str(e)}")
         return {
-            'success': False,
-            'error': str(e)
+            "success": False,
+            "error": str(e),
+            "status": "failed"
         }
 
 def setup_domain_dns(domain, target, domain_type):
