@@ -63,7 +63,7 @@ jobs:
       run: |
         echo "🏥 Checking health endpoint..."
         for i in {1..30}; do
-          HEALTH=$(curl -s $APP_URL/api/ai-chat/health | jq -r '.status // false');
+          HEALTH=$(curl -s http://ai-website-builder-alb-81948155.us-west-2.elb.amazonaws.com/api/ai-chat/health | jq -r '.status // false');
           if [ "$HEALTH" = "healthy" ]; then
             echo "✅ Health check passed";
             curl -s $APP_URL/api/ai-chat/health | jq .
