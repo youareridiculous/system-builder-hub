@@ -42,16 +42,15 @@ jobs:
       run: |
         echo "🚀 Deploying SBH Backend (No Docker Build Required)"
         
-        # Get current task definition
-        CURRENT_TD=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION_FAMILY --query 'taskDefinition')
-        echo "✅ Using existing SBH backend image"
+        # Use the new task definition with fixed health check
+        echo "✅ Using task definition sbh-task-dev:107 (with fixed health check)"
         
-        # Update ECS service to force new deployment
-        echo "�� Forcing new deployment..."
+        # Update ECS service to use the new task definition
+        echo " Updating ECS service to use new task definition..."
         aws ecs update-service \
           --cluster $ECS_CLUSTER \
           --service $ECS_SERVICE \
-          --force-new-deployment \
+          --task-definition $TASK_DEFINITION_FAMILY:107 \
           --output table
 
     - name: Wait for deployment to stabilize
@@ -81,7 +80,7 @@ jobs:
 
     - name: Deployment summary
       run: |
-        echo "�� Deployment Summary"
+        echo " Deployment Summary"
         echo "Service: $ECS_CLUSTER/$ECS_SERVICE"
         echo "URL: $APP_URL/api/ai-chat/health"
         echo "✅ SBH Backend deployed successfully (No Docker build required)"
