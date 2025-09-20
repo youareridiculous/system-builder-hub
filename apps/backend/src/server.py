@@ -4132,57 +4132,29 @@ def check_ssl_certificate_status(domain):
         }
 
 def create_app():
-    """Create Flask application with OpenAI integration and system generation"""
+    """Create Flask application with bulletproof startup"""
     app = Flask(__name__)
     
-    # Basic Configuration
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
-    
-    # CORS Configuration
-    cors_origins = [
-        'http://localhost:3000',
-        'https://sbh.umbervale.com'
-    ]
-    CORS(app, 
-         origins=cors_origins,
-         allow_headers=['Content-Type', 'Authorization'],
-         methods=['GET', 'POST', 'OPTIONS'],
-         supports_credentials=False)
-    
-    # Get OpenAI configuration
-    openai_config = get_openai_config()
-    openai_client = create_openai_client()
-    
-    logger.info(f"OpenAI configured: {bool(openai_config['api_key'])}")
-    logger.info(f"OpenAI model: {openai_config['model']}")
-
-    @app.route('/api/health')
-    def health():
-        """Health check endpoint"""
-        return jsonify({
-            "ok": True, 
-            "status": "healthy",
-            "openai_configured": bool(openai_config['api_key']),
-            "environment": os.getenv('FLASK_ENV', 'production')
-        })
-
-    @app.route('/')
-    def index():
-        return jsonify({
-            "name": "System Builder Hub",
-            "version": "1.0.0",
-            "status": "running"
-        })
+    # Minimal config; avoid doing heavy work here.
+    app.config["ENV"] = os.getenv("ENV", "production")
+    app.config["JSON_SORT_KEYS"] = False
 
     @app.route('/api/ai-chat/health', methods=['GET'])
     def ai_chat_health():
-        """Health check for AI Chat service"""
+        """
+        PURE health endpoint. No DB/S3. Always fast.
+        """
         return jsonify({
-            'status': 'healthy',
-            'openai_configured': bool(openai_config['api_key']),
-            'model': openai_config['model'] if openai_config['api_key'] else None,
-            'timestamp': int(time.time())
-        })
+            "status": "healthy",
+            "timestamp": int(time.time()),
+            "openai_configured": bool(os.getenv("OPENAI_API_KEY")) or str(os.getenv("OPENAI_CONFIGURED", "")).lower() in ("1", "true", "yes")
+        }), 200
+
+    @app.route('/api/ping')
+    def ping():
+        return jsonify({"ok": True, "t": int(time.time())})
+
+    return app
 
     @app.route('/api/ai-chat/chat', methods=['POST'])
     def ai_chat():
