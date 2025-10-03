@@ -105,10 +105,11 @@ async function main() {
     setupAuthControls(config, apiClient);
 
     const navEl = document.getElementById("nav");
+    const router = new Router({ basePath: config.spaBasePath || '' });
+    AppState.router = router;
     renderNav(navEl, config.resources);
 
-    const router = new Router();
-    AppState.router = router;
+    
 
     router.addRoute("/", () => {
       const defaultRes = getDefaultResourceName();

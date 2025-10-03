@@ -65,5 +65,18 @@ npx http-server frontend -p 8080 --cors
 
 Serve statically (S3+CloudFront, Vercel static, Netlify, Nginx). Ensure CORS allows your origin.
 
+### GitHub Pages
+
+1) Push the `frontend/` folder to a GitHub repository.
+2) In repo Settings → Pages, set Source to `Deploy from a branch`, and select branch `main` (or your default) and folder `/ (root)` if the repo only contains `frontend`, or select `/docs` and place the files there.
+3) Add `404.html` (already included) for SPA routing.
+4) Set `spaBasePath` in `config.json` to your Pages subpath:
+
+```json
+{"spaBasePath":"/YOUR_REPO_NAME"}
+```
+
+5) Access the app at `https://YOUR_USER.github.io/YOUR_REPO_NAME/`.
+
 ## License
 MIT

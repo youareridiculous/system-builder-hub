@@ -1,6 +1,7 @@
 export class Router {
-  constructor() {
+  constructor(options = {}) {
     this.routes = [];
+    this.basePath = (options.basePath || '').replace(/\/$/, '');
     window.addEventListener('popstate', () => this._handle());
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a');
@@ -23,13 +24,18 @@ export class Router {
   }
 
   push(path) {
-    history.pushState({}, '', path);
+    history.pushState({}, '', this.to(path));
     this._handle();
   }
 
   replace(path) {
-    history.replaceState({}, '', path);
+    history.replaceState({}, '', this.to(path));
     this._handle();
+  }
+
+  to(path) {
+    if (!path.startsWith('/')) return this.basePath + '/' + path;
+    return this.basePath + path;
   }
 
   _compile(pattern, keys) {
@@ -44,7 +50,10 @@ export class Router {
 
   _handle() {
     const url = new URL(location.href);
-    const path = url.pathname;
+    let path = url.pathname;
+    if (this.basePath && path.startsWith(this.basePath)) {
+      path = path.slice(this.basePath.length) || '/';
+    }
     for (const r of this.routes) {
       const m = path.match(r.regex);
       if (m) {

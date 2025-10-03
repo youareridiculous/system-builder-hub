@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting…</title>
+    <meta http-equiv="refresh" content="0; url=./index.html" />
+    <script>
+      (function() {
+        var l = window.location;
+        var target = l.protocol + '//' + l.host + l.pathname.replace(/404\.html$/, '') + 'index.html' + l.search + l.hash;
+        window.location.replace(target);
+      })();
+    </script>
+  </head>
+  <body>Redirecting…</body>
+</html>

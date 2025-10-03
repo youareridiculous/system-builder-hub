@@ -75,7 +75,7 @@ export async function renderFormView({ mount, resource, apiClient, mode, id }) {
   }
 
   const submit = h('button', { class: 'btn primary', type: 'submit' }, mode === 'create' ? 'Create' : 'Save changes');
-  const cancel = h('a', { href: `/r/${encodeURIComponent(resource.name)}`, class: 'btn' }, 'Cancel');
+  const cancel = h('a', { href: AppState.router.to(`/r/${encodeURIComponent(resource.name)}`), class: 'btn' }, 'Cancel');
   form.append(h('div', { class: 'toolbar' }, submit, cancel));
 
   form.addEventListener('submit', async (e) => {

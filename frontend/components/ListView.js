@@ -20,7 +20,7 @@ function buildToolbar({ resource, router }) {
   const searchInput = h('input', { type: 'text', placeholder: 'Search…', value: q.get('search') || '' });
   const limitSelect = h('select');
   [10, 20, 50, 100].forEach((n) => limitSelect.appendChild(h('option', { value: String(n), selected: (q.get('limit') || '20') === String(n) }, String(n))));
-  const createBtn = h('a', { href: `/r/${encodeURIComponent(resource.name)}/new`, class: 'btn success' }, 'New');
+  const createBtn = h('a', { href: AppState.router.to(`/r/${encodeURIComponent(resource.name)}/new`), class: 'btn success' }, 'New');
   const applyBtn = h('button', { class: 'btn primary' }, 'Apply');
 
   applyBtn.addEventListener('click', () => {
@@ -66,7 +66,7 @@ function buildTable({ resource, rows, router }) {
   for (const row of rows) {
     const idKey = resource.idKey || 'id';
     const id = row[idKey];
-    const editHref = `/r/${encodeURIComponent(resource.name)}/${encodeURIComponent(id)}/edit`;
+    const editHref = AppState.router.to(`/r/${encodeURIComponent(resource.name)}/${encodeURIComponent(id)}/edit`);
     const editBtn = h('a', { href: editHref, class: 'btn' }, 'Edit');
     const delBtn = h('button', { class: 'btn danger' }, 'Delete');
     delBtn.addEventListener('click', async () => {
