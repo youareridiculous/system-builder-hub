@@ -2,7 +2,7 @@ name: Deploy frontend to GitHub Pages
 
 on:
   push:
-    branches: ["main", "master"]
+    branches: ["main", "master", "cursor/build-web-front-end-for-database-0532"]
   workflow_dispatch:
 
 permissions:
