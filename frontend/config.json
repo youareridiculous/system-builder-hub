@@ -1,6 +1,5 @@
 {
   "baseUrl": "http://localhost:3000",
-  "spaBasePath": "",
   "auth": {
     "type": "bearer",
     "localStorageKey": "data_admin_token"
